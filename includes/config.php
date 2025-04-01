@@ -1,9 +1,9 @@
 <?php
 // 数据库配置
 $host = 'localhost';
-$dbname = 'serd43olc';
-$user = 'serd43olc';
-$pass = 'tID4we';
+$dbname = 'score-system';
+$user = 'pwd-admin';
+$pass = 'pwd123456';
 
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$dbname", $user, $pass);
