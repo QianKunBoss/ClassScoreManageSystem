@@ -14,7 +14,7 @@ try {
 
 // 账号和密码
 $username = 'admin';
-$password = 'admin#2302';
+$password = 'admin#';
 
 // 会话超时时间（秒）
 define('SESSION_TIMEOUT', 144);
