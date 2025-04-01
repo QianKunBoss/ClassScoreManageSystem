@@ -1,2 +1,4 @@
 # ClassScoreManageSystem
 CSMS
+这是我的第一项开源项目
+这里会知道你如何使用该由php做的班级操行分积分管理系统
