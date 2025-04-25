@@ -4,6 +4,12 @@ CSMS\
 这里会教你如何使用这个由php做的班级操行分积分管理系统\
 
 ### 项目图片预览
+![image](https://github.com/user-attachments/assets/1e42a26f-ae6b-4a03-9718-aefbbb807640)
+![image](https://github.com/user-attachments/assets/ce3566e1-443d-4544-a1b6-c3d82b3486f6)
+![image](https://github.com/user-attachments/assets/3b43f06e-b3aa-404f-8f32-a5d1ff869794)
+![image](https://github.com/user-attachments/assets/a0d0ddf7-2bfa-4389-bc8b-541f45d2e8d3)
+![image](https://github.com/user-attachments/assets/62c23486-3455-4ed8-9e85-8d718ec38945)
+![image](https://github.com/user-attachments/assets/822af0cd-9548-4260-958f-a156c34521ac)
 
 
 ### 1、搭建WEB服务器
