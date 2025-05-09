@@ -4,6 +4,8 @@ require_once '../includes/functions.php';
 
 // 获取所有用户
 $users = $pdo->query("SELECT * FROM users")->fetchAll();
+// 从数据库获取模板数据
+$templates = $pdo->query("SELECT * FROM score_templates ORDER BY name")->fetchAll();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $userIds = $_POST['user_ids'];
@@ -31,12 +33,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html>
 <head>
     <title>调整积分</title>
-    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
     <?php showNav(); ?>
     
     <div class="container mt-4">
+        <a href="../admin.php" class="btn btn-secondary mb-3">← 返回排名</a>
+     
         <div class="card">
             <div class="card-header">积分调整</div>
             <div class="card-body">
@@ -70,15 +74,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </script>
                     </div>
                     
-                    <div class="mb-3">
-                        <label>分数变化</label>
-                        <input type="number" name="score" class="form-control" required>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label>原因说明</label>
-                        <textarea name="description" class="form-control"></textarea>
-                    </div>
+    <div class="mb-3">
+        <label>选择预设</label>
+        <select class="form-select mb-2" id="templateSelect">
+            <option value="">-- 请选择预设 --</option>
+            <?php foreach ($templates as $index => $template): ?>
+                <option value="<?= $index ?>" 
+                        data-score="<?= $template['score_change'] ?>"
+                        data-desc="<?= htmlspecialchars($template['description']) ?>">
+                    <?= htmlspecialchars($template['name']) ?> (<?= $template['score_change'] > 0 ? '+' : '' ?><?= $template['score_change'] ?>分)
+                </option>
+            <?php endforeach; ?>
+        </select>
+    </div>
+    
+    <div class="mb-3">
+        <label>分数变化</label>
+        <input type="number" name="score" class="form-control" id="scoreInput" required>
+    </div>
+    
+    <div class="mb-3">
+        <label>原因说明</label>
+        <textarea name="description" class="form-control" id="descInput"></textarea>
+    </div>
+    
+    <script>
+        document.getElementById('templateSelect').addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            if (selectedOption.value) {
+                document.getElementById('scoreInput').value = selectedOption.dataset.score;
+                document.getElementById('descInput').value = selectedOption.dataset.desc;
+            }
+        });
+    </script>
                     
                     <button type="submit" class="btn btn-primary">提交</button>
                 </form>
