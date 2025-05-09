@@ -63,25 +63,27 @@ $templates = $pdo->query("SELECT * FROM score_templates ORDER BY id DESC")->fetc
 <!DOCTYPE html>
 <html>
 <head>
-    <title>积分模板管理</title>
+    <title>积分预设管理</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
     <?php showNav(); ?>
     
     <div class="container mt-4">
+        <a href="../admin.php" class="btn btn-secondary mb-3">← 返回排名</a>
+     
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <span>积分模板管理</span>
                 <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addTemplateModal">
-                    添加新模板
+                    添加新预设
                 </button>
             </div>
             <div class="card-body">
                 <table class="table">
                     <thead>
                         <tr>
-                            <th>模板名称</th>
+                            <th>预设名称</th>
                             <th>分数变化</th>
                             <th>描述</th>
                             <th>操作</th>
@@ -123,12 +125,12 @@ $templates = $pdo->query("SELECT * FROM score_templates ORDER BY id DESC")->fetc
             <div class="modal-content">
                 <form method="post">
                     <div class="modal-header">
-                        <h5 class="modal-title">添加新模板</h5>
+                        <h5 class="modal-title">添加新预设</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
                         <div class="mb-3">
-                            <label class="form-label">模板名称</label>
+                            <label class="form-label">预设名称</label>
                             <input type="text" name="name" class="form-control" required>
                         </div>
                         <div class="mb-3">
@@ -156,12 +158,12 @@ $templates = $pdo->query("SELECT * FROM score_templates ORDER BY id DESC")->fetc
                 <form method="post">
                     <input type="hidden" name="id" id="editTemplateId">
                     <div class="modal-header">
-                        <h5 class="modal-title">编辑模板</h5>
+                        <h5 class="modal-title">编辑预设</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
                         <div class="mb-3">
-                            <label class="form-label">模板名称</label>
+                            <label class="form-label">预设名称</label>
                             <input type="text" name="name" id="editTemplateName" class="form-control" required>
                         </div>
                         <div class="mb-3">
