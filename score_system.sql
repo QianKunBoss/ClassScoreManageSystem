@@ -1,12 +1,30 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.1
+-- version 5.1.1
 -- https://www.phpmyadmin.net/
 --
--- 主机： 127.0.0.1
--- 生成日期： 2025-03-15 17:00:59
--- 服务器版本： 10.4.32-MariaDB
--- PHP 版本： 8.2.12
+-- 主机： localhost
+-- 生成日期： 2025-03-16 22:22:10
+-- 服务器版本： 8.0.36
+-- PHP 版本： 8.0.26
+-- --------------------------------------------------------
+--
+-- 使用表AUTO_INCREMENT `score_templates`
+--
+ALTER TABLE `score_templates`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+--
+-- 表的结构 `score_templates`
+--
 
+CREATE TABLE `score_templates` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
+  `score_change` int NOT NULL,
+  `description` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
 SET time_zone = "+00:00";
@@ -18,7 +36,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- 数据库： `score_system`
+-- 数据库： `ser829804584410`
 --
 
 -- --------------------------------------------------------
@@ -28,11 +46,11 @@ SET time_zone = "+00:00";
 --
 
 CREATE TABLE `score_logs` (
-  `id` int(11) NOT NULL,
-  `user_id` int(11) NOT NULL,
-  `score_change` int(11) NOT NULL,
-  `description` varchar(255) DEFAULT NULL,
-  `created_at` datetime DEFAULT current_timestamp()
+  `id` int NOT NULL,
+  `user_id` int NOT NULL,
+  `score_change` int NOT NULL,
+  `description` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -42,10 +60,18 @@ CREATE TABLE `score_logs` (
 --
 
 CREATE TABLE `users` (
-  `id` int(11) NOT NULL,
-  `username` varchar(50) NOT NULL,
-  `created_at` datetime DEFAULT current_timestamp()
+  `id` int NOT NULL,
+  `username` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+
+
+--
+-- 转存表中的数据 `users`
+--
+
+--INSERT INTO `users` (`id`, `username`, `created_at`) VALUES
 
 --
 -- 转储表的索引
@@ -73,13 +99,15 @@ ALTER TABLE `users`
 -- 使用表AUTO_INCREMENT `score_logs`
 --
 ALTER TABLE `score_logs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
 -- 使用表AUTO_INCREMENT `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=61;
+
+
 
 --
 -- 限制导出的表
