@@ -30,6 +30,11 @@ function showNav() {
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" href="http://cxf.tianrld.top/pages/template_management.php">
+                            <i class="fas fa-list-alt"></i> 预设管理
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="http://cxf.tianrld.top/pages/export.php">
                             <i class="fas fa-edit"></i> 数据导出
                         </a>
@@ -53,6 +58,7 @@ function showNav() {
             </div>
         </div>
     </nav>';
+
 }
 
 
