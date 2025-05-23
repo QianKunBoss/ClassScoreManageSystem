@@ -1,14 +1,30 @@
 <?php
+// 检查是否已安装
+if (!file_exists(__DIR__ . '/includes/config.php')) {
+    if (is_dir(__DIR__ . '/install')) {
+        header('Location: install/');
+        exit;
+    } else {
+        die('<div class="alert alert-danger">系统未安装且安装目录不存在，请联系管理员</div>');
+    }
+}
+
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/functions.php';
-
 // 处理登录逻辑
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     $inputUsername = $_POST['username'] ?? '';
     $inputPassword = $_POST['password'] ?? '';
-
-    if ($inputUsername === $username && $inputPassword === $password) {
+    
+    $credentialsFile = __DIR__ . '/includes/user_credentials.php';
+    if (!file_exists($credentialsFile)) {
+        die('用户凭据文件不存在');
+    }
+    
+    include $credentialsFile;
+    if (isset($credentials[$inputUsername]) && password_verify($inputPassword, $credentials[$inputUsername])) {
         $_SESSION['loggedin'] = true;
+        $_SESSION['username'] = $inputUsername;
     } else {
         $loginError = '账号或密码错误';
     }
@@ -40,8 +56,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && !empty($_GET['q'])) {
 <!DOCTYPE html>
 <html>
 <head>
-    <title>积分查询</title>
-    <link href="./css/bootstrap.min.css" rel="stylesheet">
+    <title><?= htmlspecialchars($pdo->query("SELECT setting_value FROM system_settings WHERE setting_key = 'system_title'")->fetchColumn() ?: '积分查询') ?></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
     <?php showNav(); ?>
@@ -74,32 +90,105 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && !empty($_GET['q'])) {
             </div>
         <?php endif; ?>
 
-        <div class="card">
-            <div class="card-header">积分查询</div>
-            <div class="card-body">
-                <form method="get">
-                    <div class="input-group mb-3">
-                        <input type="text" name="q" class="form-control" 
-                               placeholder="输入用户名进行查询" value="<?= htmlspecialchars($_GET['q'] ?? '') ?>">
-                        <button class="btn btn-primary" type="submit">搜索</button>
-                    </div>
-                </form>
+    <?php
+    // 获取显示设置
+    $showRanking = $pdo->query("SELECT setting_value FROM system_settings WHERE setting_key = 'show_ranking'")->fetchColumn() ?? '1';
+    $showSearch = $pdo->query("SELECT setting_value FROM system_settings WHERE setting_key = 'show_search'")->fetchColumn() ?? '1';
+    
+    // 调试信息
+    //echo '<div class="alert alert-info">';
+    //echo '当前设置 - 显示排名: ' . ($showRanking === '1' ? '是' : '否') . ', ';
+    //echo '显示搜索: ' . ($showSearch === '1' ? '是' : '否');
+    //echo '</div>';
+    ?>
 
-                <?php if (!empty($searchResult)): ?>
-                <div class="list-group">
-                    <?php foreach ($searchResult as $user): ?>
-                    <a href="./pages/user_search.php?id=<?= $user['id'] ?>" 
-                       class="list-group-item list-group-item-action">
-                        <?= htmlspecialchars($user['username']) ?>
-                    </a>
-                    <?php endforeach; ?>
+    <?php if ($showSearch === '1'): ?>
+    <div class="card">
+        <div class="card-header">积分查询</div>
+        <div class="card-body">
+            <form method="get">
+                <div class="input-group mb-3">
+                    <input type="text" name="q" class="form-control" 
+                           placeholder="输入用户名进行查询" value="<?= htmlspecialchars($_GET['q'] ?? '') ?>">
+                    <button class="btn btn-primary" type="submit">搜索</button>
                 </div>
-                <?php elseif(isset($_GET['q'])): ?>
-                <div class="alert alert-warning mt-3">未找到匹配用户</div>
-                <?php endif; ?>
-            </div>
+            </form>
+    <?php endif; ?>
+
+    <?php if ($showSearch === '1'): ?>
+        <?php if (!empty($searchResult)): ?>
+        <div class="list-group mb-4">
+            <?php foreach ($searchResult as $user): ?>
+            <a href="./pages/user_search.php?id=<?= $user['id'] ?>" 
+               class="list-group-item list-group-item-action">
+                <?= htmlspecialchars($user['username']) ?>
+            </a>
+            <?php endforeach; ?>
         </div>
+        <?php elseif(isset($_GET['q'])): ?>
+        <div class="alert alert-warning mt-3">未找到匹配用户</div>
+        <?php endif; ?>
     </div>
+    </div>
+    <?php endif; ?>
+
+    <?php if ($showRanking === '1'): ?>
+    <!-- 添加积分排名表格 -->
+    <h3 class="my-4">学生操行分排名（TOP 20）</h3>
+    <?php
+    $ranking = $pdo->query("
+        SELECT 
+            u.id, 
+            u.username, 
+            SUM(sl.score_change) AS total_score,
+            SUM(CASE WHEN sl.score_change > 0 THEN sl.score_change ELSE 0 END) AS add_score,
+            SUM(CASE WHEN sl.score_change < 0 THEN sl.score_change ELSE 0 END) AS deduct_score
+        FROM users u
+        LEFT JOIN score_logs sl ON u.id = sl.user_id
+        GROUP BY u.id
+        ORDER BY total_score DESC
+        LIMIT 20
+    ")->fetchAll();
+    ?>
+    
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>排名</th>
+                <th>用户名</th>
+                <th>总积分</th>
+                <th>已加分数</th>
+                <th>已扣分数</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach ($ranking as $index => $user): ?>
+            <tr>
+                <td><?= $index+1 ?></td>
+                <td>
+                    <?php 
+                    $enableUserDetail = $pdo->query("SELECT setting_value FROM system_settings WHERE setting_key = 'enable_user_detail'")->fetchColumn() ?? '1';
+                    $medal = '';
+                    if ($index+1 === 1) $medal = '🥇 ';
+                    elseif ($index+1 === 2) $medal = '🥈 ';
+                    elseif ($index+1 === 3) $medal = '🥉 ';
+                    
+                    if ($enableUserDetail === '1'): ?>
+                        <a href="./pages/user_search.php?id=<?= $user['id'] ?>">
+                            <?= $medal . htmlspecialchars($user['username']) ?>
+                        </a>
+                    <?php else: ?>
+                        <?= $medal . htmlspecialchars($user['username']) ?>
+                    <?php endif; ?>
+                </td>
+                <td><?= $user['total_score'] ?? 0 ?></td>
+                <td class="text-success">+<?= $user['add_score'] ?? 0 ?></td>
+                <td class="text-danger"><?= $user['deduct_score'] ?? 0 ?></td>
+            </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+    <?php endif; ?>
 
     <?php showFooter(); ?>
 </body>

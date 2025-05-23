@@ -1,0 +1,55 @@
+<?php
+if (file_exists('../includes/config.php')) {
+    die('系统已安装，如需重新安装请先删除includes/config.php文件');
+}
+?>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>系统安装向导</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="style.css" rel="stylesheet">
+</head>
+<body>
+    <div class="install-container">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4>系统安装向导</h4>
+            </div>
+            <div class="card-body">
+                <form action="process.php" method="post">
+                    <h5 class="mb-3">数据库配置</h5>
+                    <div class="mb-3">
+                        <label class="form-label">数据库地址</label>
+                        <input type="text" name="db_host" class="form-control" value="localhost" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">数据库用户名</label>
+                        <input type="text" name="db_user" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">数据库密码</label>
+                        <input type="password" name="db_pass" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">数据库名称</label>
+                        <input type="text" name="db_name" class="form-control" required>
+                    </div>
+                    
+                    <h5 class="mb-3 mt-4">管理员账号</h5>
+                    <div class="mb-3">
+                        <label class="form-label">管理员用户名</label>
+                        <input type="text" name="admin_user" class="form-control" value="admin" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">管理员密码</label>
+                        <input type="password" name="admin_pass" class="form-control" required>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">开始安装</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -6,9 +6,16 @@ require_once __DIR__ . '/includes/functions.php';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     $inputUsername = $_POST['username'] ?? '';
     $inputPassword = $_POST['password'] ?? '';
-
-    if ($inputUsername === $username && $inputPassword === $password) {
+    
+    $credentialsFile = __DIR__ . '/includes/user_credentials.php';
+    if (!file_exists($credentialsFile)) {
+        die('用户凭据文件不存在');
+    }
+    
+    include $credentialsFile;
+    if (isset($credentials[$inputUsername]) && password_verify($inputPassword, $credentials[$inputUsername])) {
         $_SESSION['loggedin'] = true;
+        $_SESSION['username'] = $inputUsername;
         header('Location: admin.php');
         exit;
     } else {
@@ -21,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
 <html>
 <head>
     <title>登录</title>
-    <link href="./css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
     <div class="container mt-5">

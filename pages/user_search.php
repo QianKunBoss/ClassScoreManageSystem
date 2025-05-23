@@ -96,7 +96,7 @@ if (!empty($errorMsg)) {
 <html>
 <head>
     <title><?= $user['username'] ?> 的详情</title>
-    <link href="http://cxf.tianrld.top/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -105,26 +105,57 @@ if (!empty($errorMsg)) {
     <div class="container mt-4">
         <a href="../index.php" class="btn btn-secondary mb-3">← 返回查询</a>
         
+        <?php
+        // 获取所有用户排名
+        $ranking = $pdo->query("
+            SELECT 
+                u.id, 
+                u.username, 
+                SUM(sl.score_change) AS total_score
+            FROM users u
+            LEFT JOIN score_logs sl ON u.id = sl.user_id
+            GROUP BY u.id
+            ORDER BY total_score DESC
+        ")->fetchAll();
+        
+        // 查找当前用户排名
+        $userRank = 0;
+        $medal = '';
+        foreach ($ranking as $index => $row) {
+            if ($row['id'] == $userId) {
+                $userRank = $index + 1;
+                if ($userRank === 1) $medal = '🥇 ';
+                elseif ($userRank === 2) $medal = '🥈 ';
+                elseif ($userRank === 3) $medal = '🥉 ';
+                break;
+            }
+        }
+        ?>
+
         <!-- 用户概要 -->
         <div class="card mb-4">
             <div class="card-header">
-                <h4><?= htmlspecialchars($user['username']) ?> 的积分档案</h4>
+                <h4><?= $medal . htmlspecialchars($user['username']) ?> 的积分档案</h4>
             </div>
             <div class="card-body">
-                <div class="row">
-                    <div class="col-md-4">
-                        <h5>当前总分</h5>
-                        <div class="display-4 <?= $user['total_score'] >= 0 ? 'text-success' : 'text-danger' ?>">
+                <div class="row g-0 text-center">
+                    <div class="col-md-3 border-end">
+                        <div class="text-muted small">当前总分</div>
+                        <div class="h2 <?= $user['total_score'] >= 0 ? 'text-success' : 'text-danger' ?>">
                             <?= $user['total_score'] ?? 0 ?>
                         </div>
                     </div>
-                    <div class="col-md-4">
-                        <h5>加分总计</h5>
-                        <div class="text-success fs-3">+<?= $stats['total_positive'] ?? 0 ?></div>
+                    <div class="col-md-3 border-end">
+                        <div class="text-muted small">加分总计</div>
+                        <div class="h3 text-success">+<?= $stats['total_positive'] ?? 0 ?></div>
                     </div>
-                    <div class="col-md-4">
-                        <h5>扣分总计</h5>
-                        <div class="text-danger fs-3"><?= $stats['total_negative'] ?? 0 ?></div>
+                    <div class="col-md-3 border-end">
+                        <div class="text-muted small">扣分总计</div>
+                        <div class="h3 text-danger"><?= $stats['total_negative'] ?? 0 ?></div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-muted small">当前排名</div>
+                        <div class="h2"><?= $userRank ?></div>
                     </div>
                 </div>
             </div>

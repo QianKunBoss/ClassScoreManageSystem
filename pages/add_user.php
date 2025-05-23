@@ -10,10 +10,10 @@ if (!isLoggedIn()) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = htmlspecialchars($_POST['username']);
     
-    try {
-        $stmt = $pdo->prepare("INSERT INTO users (username) VALUES (?)");
-        $stmt->execute([$username]);
-        header("Location: ../admin.php");
+        try {
+            $stmt = $pdo->prepare("INSERT INTO users (username) VALUES (?)");
+            $stmt->execute([$username]);
+            header("Location: ../admin.php");
     } catch(PDOException $e) {
         $error = "添加失败: " . $e->getMessage();
     }
@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html>
 <head>
     <title>添加学生</title>
-    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
     <?php showNav(); ?>

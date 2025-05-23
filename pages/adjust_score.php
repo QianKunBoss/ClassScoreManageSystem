@@ -2,6 +2,11 @@
 require_once '../includes/config.php';
 require_once '../includes/functions.php';
 
+if (!isLoggedIn()) {
+    header('Location: ../dengluye.php');
+    exit;
+}
+
 // 获取所有用户
 $users = $pdo->query("SELECT * FROM users")->fetchAll();
 // 从数据库获取模板数据
@@ -62,14 +67,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <?php endforeach; ?>
                         </div>
                         <button type="button" class="btn btn-link btn-sm mt-2" onclick="toggleAllUsers(this)">
-                            全选/反选
+                            全选/取消
                         </button>
                         <script>
                             function toggleAllUsers(btn) {
                                 const checkboxes = document.querySelectorAll('.user-list input[type="checkbox"]');
                                 const allChecked = Array.from(checkboxes).every(checkbox => checkbox.checked);
                                 checkboxes.forEach(checkbox => checkbox.checked = !allChecked);
-                                btn.textContent = allChecked ? '全选' : '反选';
+                                btn.textContent = allChecked ? '全选' : '取消';
                             }
                         </script>
                     </div>
