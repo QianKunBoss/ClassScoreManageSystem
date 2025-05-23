@@ -7,7 +7,23 @@ if (!isLoggedIn()) {
     exit;
 }
 
+// 初始化设置表
+$pdo->exec("
+    CREATE TABLE IF NOT EXISTS system_settings (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        setting_key VARCHAR(50) UNIQUE,
+        setting_value TEXT
+    )
+");
 
+// 初始化默认设置
+$defaultSettings = [
+    'system_title' => '班级操行分管理系统',
+    'nav_title' => '操行分管理系统',
+    'show_ranking' => '1',
+    'show_search' => '1',
+    'enable_user_detail' => '1',
+];
 
 foreach ($defaultSettings as $key => $value) {
     $stmt = $pdo->prepare("INSERT IGNORE INTO system_settings (setting_key, setting_value) VALUES (?, ?)");
