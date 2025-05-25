@@ -1,3 +1,10 @@
+<div align="center">
+  <a href="https://github.com/QianKunBoss/ClassScoreManageSystem/">
+    <img src="/favicon.ico" alt="Logo" width="120" height="120">
+  </a>
+
+</div>
+
 # ClassScoreManageSystem（CSMS）
 ## 班级操行分管理系统（CSMS）
 简称CSMS\
