@@ -23,6 +23,7 @@ $defaultSettings = [
     'show_ranking' => '1',
     'show_search' => '1',
     'enable_user_detail' => '1',
+    'splash_video_enabled' => '1',
 ];
 
 foreach ($defaultSettings as $key => $value) {
@@ -44,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         // 处理开关输入
-        $switchSettings = ['show_ranking', 'show_search', 'enable_user_detail'];
+        $switchSettings = ['show_ranking', 'show_search', 'enable_user_detail', 'splash_video_enabled'];
         foreach ($switchSettings as $key) {
             $valueToSave = isset($_POST[$key]) ? '1' : '0';
             $stmt = $pdo->prepare("UPDATE system_settings SET setting_value = ? WHERE setting_key = ?");
@@ -57,8 +58,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     // 处理用户管理表单
     if (isset($_GET['user_management'])) {
-        $credentialsFile = __DIR__ . '/../includes/user_credentials.php';
-        
         // 验证当前密码
         $currentUsername = $_SESSION['username'];
         $currentPassword = $_POST['current_password'];
@@ -71,9 +70,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
         
-        include $credentialsFile;
-        if (!isset($credentials[$currentUsername]) || 
-            !password_verify($currentPassword, $credentials[$currentUsername])) {
+        // 从数据库验证密码
+        $stmt = $pdo->prepare("SELECT password_hash FROM admins WHERE username = ?");
+        $stmt->execute([$currentUsername]);
+        $admin = $stmt->fetch();
+        
+        if (!$admin || !password_verify($currentPassword, $admin['password_hash'])) {
             $_SESSION['error'] = "当前密码不正确";
             header("Location: settings.php");
             exit;
@@ -83,28 +85,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $newUsername = trim($_POST['new_username']);
         $newPassword = trim($_POST['new_password']);
         
-        $targetUsername = $currentUsername;
-        
-        if (!empty($newUsername)) {
-            // 更新用户名
-            $credentials[$newUsername] = $credentials[$currentUsername];
-            unset($credentials[$currentUsername]);
-            $targetUsername = $newUsername;
-            $_SESSION['username'] = $newUsername;
-        }
+        try {
+            $pdo->beginTransaction();
+            
+            if (!empty($newUsername)) {
+                // 检查新用户名是否已存在
+                $stmt = $pdo->prepare("SELECT id FROM admins WHERE username = ?");
+                $stmt->execute([$newUsername]);
+                if ($stmt->fetch()) {
+                    $_SESSION['error'] = "该用户名已存在";
+                    header("Location: settings.php");
+                    exit;
+                }
+                
+                // 更新用户名
+                $stmt = $pdo->prepare("UPDATE admins SET username = ? WHERE username = ?");
+                $stmt->execute([$newUsername, $currentUsername]);
+                $_SESSION['username'] = $newUsername;
+                $currentUsername = $newUsername;
+            }
         
         if (!empty($newPassword)) {
             // 更新密码
-            $credentials[$targetUsername] = password_hash($newPassword, PASSWORD_DEFAULT);
+            $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+            $stmt = $pdo->prepare("UPDATE admins SET password_hash = ? WHERE username = ?");
+            $stmt->execute([$hashedPassword, $currentUsername]);
         }
         
-        // 保存到文件
-        file_put_contents($credentialsFile, 
-            "<?php\n\$credentials = " . var_export($credentials, true) . ";\n?>");
-        
+        $pdo->commit();
         $_SESSION['success'] = "用户信息已更新";
         header("Location: settings.php");
         exit;
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        $_SESSION['error'] = "更新用户信息时出错: " . $e->getMessage();
+        header("Location: settings.php");
+        exit;
+    }
     }
 }
 
@@ -121,6 +138,7 @@ while ($row = $stmt->fetch()) {
 <head>
     <title>系统设置</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="../assets/css/main.css" rel="stylesheet">
 </head>
 <body>
     <?php showNav(); ?>
@@ -170,6 +188,12 @@ while ($row = $stmt->fetch()) {
                         <input type="checkbox" name="enable_user_detail" class="form-check-input" role="switch" id="enableUserDetail" value="1"
                             <?= ($settings['enable_user_detail'] ?? '1') === '1' ? 'checked' : '' ?>>
                         <label class="form-check-label" for="enableUserDetail">允许点击用户名查看详情</label>
+                    </div>
+
+                    <div class="mb-3 form-check form-switch">
+                        <input type="checkbox" name="splash_video_enabled" class="form-check-input" role="switch" id="splashVideoEnabled" value="1"
+                            <?= ($settings['splash_video_enabled'] ?? '1') === '1' ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="splashVideoEnabled">启用开屏动画</label>
                     </div>
                     
                     <button type="submit" class="btn btn-primary">保存设置</button>

@@ -42,6 +42,17 @@ INSERT IGNORE INTO score_templates (name, score_change, description) VALUES
 ('早退', -3, '未经允许提前离开'),
 ('帮助同学', 3, '主动帮助同学解决问题');
 
+-- 创建管理员表
+CREATE TABLE IF NOT EXISTS admins (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `username` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
+  `password_hash` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `last_login` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `username` (`username`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 -- 创建系统设置表
 CREATE TABLE IF NOT EXISTS system_settings (
   `id` int NOT NULL AUTO_INCREMENT,
@@ -58,7 +69,8 @@ INSERT IGNORE INTO system_settings (setting_key, setting_value) VALUES
 ('nav_title', '操行分管理系统'),
 ('show_ranking', '1'),
 ('show_search', '1'),
-('enable_user_detail', '1');
+('enable_user_detail', '1'),
+('splash_video_enabled', '1');
 
 -- 表的索引 `score_templates`
 ALTER TABLE score_templates

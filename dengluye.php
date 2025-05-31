@@ -7,19 +7,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     $inputUsername = $_POST['username'] ?? '';
     $inputPassword = $_POST['password'] ?? '';
     
-    $credentialsFile = __DIR__ . '/includes/user_credentials.php';
-    if (!file_exists($credentialsFile)) {
-        die('用户凭据文件不存在');
-    }
-    
-    include $credentialsFile;
-    if (isset($credentials[$inputUsername]) && password_verify($inputPassword, $credentials[$inputUsername])) {
-        $_SESSION['loggedin'] = true;
-        $_SESSION['username'] = $inputUsername;
-        header('Location: admin.php');
-        exit;
-    } else {
-        $loginError = '账号或密码错误';
+    try {
+        // 从数据库验证管理员
+        $stmt = $pdo->prepare("SELECT id, password_hash FROM admins WHERE username = ?");
+        $stmt->execute([$inputUsername]);
+        $admin = $stmt->fetch();
+        
+        if ($admin && password_verify($inputPassword, $admin['password_hash'])) {
+            $_SESSION['loggedin'] = true;
+            $_SESSION['username'] = $inputUsername;
+            
+            // 更新最后登录时间
+            $pdo->prepare("UPDATE admins SET last_login = NOW() WHERE id = ?")
+                ->execute([$admin['id']]);
+                
+            header('Location: admin.php');
+            exit;
+        } else {
+            $loginError = '账号或密码错误';
+        }
+    } catch (PDOException $e) {
+        $loginError = '系统错误，请稍后再试';
+        error_log("登录错误: " . $e->getMessage());
     }
 }
 ?>
@@ -29,6 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
 <head>
     <title>登录</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="assets/css/main.css" rel="stylesheet">
 </head>
 <body>
     <div class="container mt-5">
@@ -47,6 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
                                 <input type="password" name="password" class="form-control" required>
                             </div>
                             <button type="submit" name="login" class="btn btn-primary">登录</button>
+                            <a href="reset_password.php" class="btn btn-link">忘记密码?</a>
                             <?php if (isset($loginError)): ?>
                                 <div class="alert alert-danger mt-3"><?= $loginError ?></div>
                             <?php endif; ?>

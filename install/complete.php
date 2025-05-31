@@ -10,7 +10,7 @@ if (!file_exists('../includes/config.php')) {
 <head>
     <title>安装完成</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="style.css" rel="stylesheet">
+    <link href="../assets/css/install/style.css" rel="stylesheet">
 </head>
 <body>
     <div class="install-container">
@@ -20,8 +20,9 @@ if (!file_exists('../includes/config.php')) {
             </div>
             <div class="card-body">
                 <div class="alert alert-success">
-                    <h5>系统已成功安装！</h5>
+                    <h5>操行分管理系统 v0.2.1 已成功安装！</h5>
                     <p>请妥善保管您的管理员账号信息。</p>
+                    <p class="mb-0">系统版本：v0.2.1</p>
                 </div>
                 
                 <div class="mb-4">

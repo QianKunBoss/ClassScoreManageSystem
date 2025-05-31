@@ -16,17 +16,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     $inputUsername = $_POST['username'] ?? '';
     $inputPassword = $_POST['password'] ?? '';
     
-    $credentialsFile = __DIR__ . '/includes/user_credentials.php';
-    if (!file_exists($credentialsFile)) {
-        die('用户凭据文件不存在');
-    }
-    
-    include $credentialsFile;
-    if (isset($credentials[$inputUsername]) && password_verify($inputPassword, $credentials[$inputUsername])) {
-        $_SESSION['loggedin'] = true;
-        $_SESSION['username'] = $inputUsername;
-    } else {
-        $loginError = '账号或密码错误';
+    try {
+        // 从数据库验证管理员
+        $stmt = $pdo->prepare("SELECT id, password_hash FROM admins WHERE username = ?");
+        $stmt->execute([$inputUsername]);
+        $admin = $stmt->fetch();
+        
+        if ($admin && password_verify($inputPassword, $admin['password_hash'])) {
+            $_SESSION['loggedin'] = true;
+            $_SESSION['username'] = $inputUsername;
+            
+            // 更新最后登录时间
+            $pdo->prepare("UPDATE admins SET last_login = NOW() WHERE id = ?")
+                ->execute([$admin['id']]);
+        } else {
+            $loginError = '账号或密码错误';
+        }
+    } catch (PDOException $e) {
+        $loginError = '系统错误，请稍后再试';
+        error_log("登录错误: " . $e->getMessage());
     }
 }
 
@@ -54,10 +62,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && !empty($_GET['q'])) {
 ?>
 
 <!DOCTYPE html>
+<?php if ($pdo->query("SELECT setting_value FROM system_settings WHERE setting_key = 'splash_video_enabled'")->fetchColumn() !== '0'): ?>
+<!-- 开屏动画视频 -->
+<div id="splash-video-container">
+    <video id="splash-video" autoplay muted>
+    <source src="assets/videos/splash.mp4" type="video/mp4">
+    <source src="assets/videos/splash.webm" type="video/webm">
+        您的浏览器不支持视频标签。
+    </video>
+</div>
+<?php endif; ?>
+    <script src="assets/js/main.js"></script>
+
 <html>
 <head>
     <title><?= htmlspecialchars($pdo->query("SELECT setting_value FROM system_settings WHERE setting_key = 'system_title'")->fetchColumn() ?: '积分查询') ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="assets/css/main.css" rel="stylesheet">
 </head>
 <body>
     <?php showNav(); ?>

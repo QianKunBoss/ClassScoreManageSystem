@@ -37,6 +37,9 @@ try {
 // 会话超时时间（秒）
 define('SESSION_TIMEOUT', 144);
 
+// 系统版本
+define('SYSTEM_VERSION', '0.2.1');
+
 // 通用设置
 session_start();
 EOT;
@@ -52,14 +55,8 @@ $pdo->exec($sql);
 
 // 创建管理员账号
 $hashedPassword = password_hash($_POST['admin_pass'], PASSWORD_DEFAULT);
-$adminContent = <<<EOT
-<?php
-\$credentials = [
-    '{$_POST['admin_user']}' => '{$hashedPassword}'
-];
-EOT;
-
-file_put_contents('../includes/user_credentials.php', $adminContent);
+$stmt = $pdo->prepare("INSERT INTO admins (username, password_hash) VALUES (?, ?)");
+$stmt->execute([$_POST['admin_user'], $hashedPassword]);
 
 // 完成安装
 header('Location: complete.php');

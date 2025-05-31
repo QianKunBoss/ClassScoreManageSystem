@@ -65,6 +65,10 @@ function showNav() {
                 }
     echo '
                 </ul>
+                <div class="d-flex align-items-center ms-auto">
+                    <span class="text-white me-3" id="version-display">v'. SYSTEM_VERSION .'</span>
+                    <span id="update-status" class="badge bg-secondary">检查更新中...</span>
+                </div>
             </div>
         </div>
     </nav>';
@@ -85,22 +89,27 @@ function checkSessionTimeout() {
 
 // 检查用户是否已登录
 function isLoggedIn() {
-    if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
+    global $pdo;
+    
+    if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true || !isset($_SESSION['username'])) {
         return false;
     }
     
-    // 验证用户是否存在于凭据文件中
-    $credentialsFile = __DIR__ . '/user_credentials.php';
-    if (!file_exists($credentialsFile)) {
+    try {
+        // 验证用户是否存在于管理员表中
+        $stmt = $pdo->prepare("SELECT id FROM admins WHERE username = ?");
+        $stmt->execute([$_SESSION['username']]);
+        $admin = $stmt->fetch();
+        
+        if (!$admin) {
+            return false;
+        }
+        
+        return checkSessionTimeout();
+    } catch (PDOException $e) {
+        error_log("数据库错误: " . $e->getMessage());
         return false;
     }
-    
-    include $credentialsFile;
-    if (!isset($credentials[$_SESSION['username']])) {
-        return false;
-    }
-    
-    return checkSessionTimeout();
 }
 
 // 显示页脚
@@ -109,8 +118,42 @@ function showFooter() {
     <h6><br><br></h6>
     <h6 Align="center">该项目已开源至Github仓库（开源协议：MIT）<br>
     仓库地址：<a href="https://github.com/QianKunBoss/ClassScoreManageSystem">https://github.com/QianKunBoss/ClassScoreManageSystem</a><br>
-    该项目由Tianrld工作室成员开发</h6>
+    该项目由Tianrld工作室成员开发<br>
+    使用字体：HarmonyOS_Sans_SC_Black</h6>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    // 自动检查更新
+    document.addEventListener("DOMContentLoaded", function() {
+        const versionDisplay = document.getElementById("version-display");
+        const updateStatus = document.getElementById("update-status");
+        
+        // 从GitHub API获取最新版本
+        fetch("https://api.github.com/repos/QianKunBoss/ClassScoreManageSystem/releases/latest")
+            .then(response => response.json())
+            .then(data => {
+                const latestVersion = data.tag_name.replace(/^v/, "");
+                const currentVersion = "'. SYSTEM_VERSION .'";
+                
+                if (latestVersion > currentVersion) {
+                    updateStatus.textContent = "有新版本可用";
+                    updateStatus.className = "badge bg-warning";
+                    updateStatus.title = "最新版本: v" + latestVersion;
+                    updateStatus.style.cursor = "pointer";
+                    updateStatus.addEventListener("click", () => {
+                        window.open("https://github.com/QianKunBoss/ClassScoreManageSystem/releases/latest");
+                    });
+                } else {
+                    updateStatus.textContent = "已是最新版本";
+                    updateStatus.className = "badge bg-success";
+                }
+            })
+            .catch(error => {
+                updateStatus.textContent = "检查更新失败";
+                updateStatus.className = "badge bg-danger";
+                console.error("检查更新失败:", error);
+            });
+    });
+    </script>
     </body>
     </html>';
 }
