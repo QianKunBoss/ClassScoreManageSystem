@@ -38,7 +38,7 @@ try {
 define('SESSION_TIMEOUT', 144);
 
 // 系统版本
-define('SYSTEM_VERSION', '0.2.1');
+define('SYSTEM_VERSION', '0.2.2');
 
 // 通用设置
 session_start();

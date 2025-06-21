@@ -33,8 +33,51 @@ foreach ($defaultSettings as $key => $value) {
 
 // 处理表单提交
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // 处理密码验证请求
+    if (isset($_POST['verify_password'])) {
+        $password = $_POST['password'] ?? '';
+        $stmt = $pdo->prepare("SELECT password_hash FROM admins WHERE username = ?");
+        $stmt->execute([$_SESSION['username']]);
+        $admin = $stmt->fetch();
+        
+        if ($admin && password_verify($password, $admin['password_hash'])) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => true]);
+            exit;
+        } else {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false]);
+            exit;
+        }
+    }
+
+    // 处理新学期切换请求
+    if (isset($_POST['new_term'])) {
+        try {
+            $pdo->beginTransaction();
+            
+            // 根据选项清理数据
+            if ($_POST['keepUsers'] === 'false') {
+                // 清空用户表并重置自增ID
+                $pdo->exec("TRUNCATE TABLE users");
+            }
+            
+            if ($_POST['keepRecords'] === 'false') {
+                // 清空积分记录表并重置自增ID
+                $pdo->exec("TRUNCATE TABLE score_logs");
+            }
+            
+            $pdo->commit();
+            exit;
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            header('HTTP/1.1 500 Internal Server Error');
+            exit;
+        }
+    }
+    
     // 处理系统设置表单
-    if (!isset($_GET['user_management'])) {
+    if (!isset($_GET['user_management']) && !isset($_POST['new_term'])) {
         // 处理文本输入
         $textSettings = ['system_title', 'nav_title'];
         foreach ($textSettings as $key) {
@@ -137,7 +180,7 @@ while ($row = $stmt->fetch()) {
 <html>
 <head>
     <title>系统设置</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.2.3/css/bootstrap.min.css" rel="stylesheet">
     <link href="../assets/css/main.css" rel="stylesheet">
 </head>
 <body>
@@ -230,6 +273,196 @@ while ($row = $stmt->fetch()) {
                     
                     <button type="submit" class="btn btn-primary">保存更改</button>
                 </form>
+            </div>
+        </div>
+
+        <!-- 其他操作部分 -->
+        <div class="card mt-4">
+            <div class="card-header">其他操作</div>
+            <div class="card-body">
+                <div class="text-center">
+                    <button type="button" class="btn btn-primary m-2" data-bs-toggle="modal" data-bs-target="#confirmNewTermModal">切换新学期</button>
+                </div>
+
+                <!-- 确认新学期切换模态框 -->
+                <div class="modal fade" id="confirmNewTermModal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">新学期切换选项</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="keepUsers" checked>
+                                        <label class="form-check-label" for="keepUsers">
+                                            保留现有用户名单
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="keepRecords">
+                                        <label class="form-check-label" for="keepRecords">
+                                            保留历史积分记录
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="alert alert-warning">
+                                    注意：如果不保留用户名单，将清空所有用户数据！
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                                <button type="button" class="btn btn-primary" id="confirmNewTermBtn">确认切换</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 密码验证模态框 -->
+                <div class="modal fade" id="passwordModal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">管理员验证</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="passwordForm">
+                                    <div class="mb-3">
+                                        <label for="adminPassword" class="form-label">请输入管理员密码</label>
+                                        <input type="password" class="form-control" id="adminPassword" required>
+                                        <div id="passwordValidation" class="invalid-feedback d-none">
+                                            密码错误，请重试
+                                        </div>
+                                        <div id="passwordSuccess" class="valid-feedback d-none">
+                                            验证通过
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                                <button type="button" class="btn btn-primary" id="verifyPasswordBtn">验证</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+                <script>
+                $(document).ready(function() {
+
+                    $('#confirmNewTermBtn').click(function() {
+                        const keepUsers = $('#keepUsers').is(':checked');
+                        const keepRecords = $('#keepRecords').is(':checked');
+                        
+                        var confirmModal = bootstrap.Modal.getInstance($('#confirmNewTermModal')[0]);
+                        confirmModal.hide();
+                        
+                        // 显示密码验证模态框
+                        var passwordModal = new bootstrap.Modal($('#passwordModal')[0]);
+                        passwordModal.show();
+                        
+                        // 存储选项到全局变量
+                        window.newTermOptions = {
+                            keepUsers: keepUsers,
+                            keepRecords: keepRecords
+                        };
+                    });
+
+                    $('#verifyPasswordBtn').click(function() {
+                        const password = $('#adminPassword').val();
+                        const $btn = $(this);
+                        const originalText = $btn.text();
+                        
+                        // 清除之前的验证状态
+                        $('#passwordValidation').addClass('d-none');
+                        $('#passwordSuccess').addClass('d-none');
+                        $('#adminPassword').removeClass('is-invalid is-valid');
+                        
+                        // 显示加载状态
+                        $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 验证中...');
+                        
+                        // 直接使用当前页面的PHP逻辑验证密码
+                        $.ajax({
+                            url: 'settings.php',
+                            type: 'POST',
+                            data: { 
+                                verify_password: true,
+                                password: password 
+                            },
+                            success: function(response) {
+                                if(response.success) {
+                                    // 密码验证成功
+                                    $('#adminPassword').addClass('is-valid');
+                                    $('#passwordSuccess').removeClass('d-none');
+                                    
+                                    // 1秒后执行新学期切换
+                                    setTimeout(function() {
+                                        $('#passwordModal').modal('hide');
+                                        // 显示更明显的成功提示
+                                        // 创建并显示toast提示
+                                        const toastHtml = `
+                                        <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+                                            <div id="successToast" class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
+                                                <div class="toast-header bg-success text-white">
+                                                    <strong class="me-auto">系统提示</strong>
+                                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+                                                </div>
+                                                <div class="toast-body">
+                                                    验证成功！新学期已切换。
+                                                </div>
+                                            </div>
+                                        </div>
+                                        `;
+                                        $('body').append(toastHtml);
+                                        // 5秒后自动消失
+                                        setTimeout(() => {
+                                            $('#successToast').toast('hide');
+                                        }, 5000);
+                                        // 执行新学期切换操作
+                                        $.ajax({
+                                            url: 'settings.php',
+                                            type: 'POST',
+                                            data: {
+                                                new_term: true,
+                                                keepUsers: window.newTermOptions.keepUsers,
+                                                keepRecords: window.newTermOptions.keepRecords
+                                            },
+                                            success: function() {
+                                                // 刷新页面
+                                                location.reload();
+                                            },
+                                            error: function() {
+                                                alert('新学期切换失败，请重试！');
+                                            }
+                                        });
+                                    }, 1000);
+                                } else {
+                                    // 密码验证失败
+                                    $('#adminPassword').addClass('is-invalid');
+                                    $('#passwordValidation').removeClass('d-none');
+                                }
+                            },
+                            error: function() {
+                                alert('验证过程中出错，请重试！');
+                            },
+                            complete: function() {
+                                $btn.prop('disabled', false).text(originalText);
+                            }
+                        });
+                    });
+                    
+                    // 输入新密码时清除错误状态
+                    $('#adminPassword').on('input', function() {
+                        $(this).removeClass('is-invalid');
+                        $('#passwordValidation').addClass('d-none');
+                    });
+                });
+                </script>
             </div>
         </div>
     </div>

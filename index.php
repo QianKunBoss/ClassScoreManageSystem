@@ -77,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && !empty($_GET['q'])) {
 <html>
 <head>
     <title><?= htmlspecialchars($pdo->query("SELECT setting_value FROM system_settings WHERE setting_key = 'system_title'")->fetchColumn() ?: '积分查询') ?></title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.2.3/css/bootstrap.min.css" rel="stylesheet">
     <link href="assets/css/main.css" rel="stylesheet">
 </head>
 <body>
