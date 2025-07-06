@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reset_password'])) {
     } else {
         // 验证用户存在
         try {
-            $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ? AND is_admin = 1");
+            $stmt = $pdo->prepare("SELECT id FROM admins WHERE username = ?");
             $stmt->execute([$username]);
             $user = $stmt->fetch();
             
