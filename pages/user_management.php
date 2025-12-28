@@ -304,7 +304,7 @@ $allUsers = $pdo->query("SELECT * FROM users ORDER BY created_at DESC LIMIT 20")
                 // 创建表单并提交
                 const form = document.createElement('form');
                 form.method = 'post';
-                form.action = 'delete_user.php';
+                form.action = '../api/delete_user.php';
                 form.style.display = 'none';
                 
                 const input = document.createElement('input');
