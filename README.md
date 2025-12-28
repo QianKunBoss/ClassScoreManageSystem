@@ -40,9 +40,10 @@
 
 ### 项目图片预览
 ![image](https://github.com/user-attachments/assets/205cc5ec-eedd-4765-b390-54d737b0ca3f)
-![image](https://github.com/user-attachments/assets/5929ab06-54d5-41e9-bff1-29578501f76e)
-![image](https://github.com/user-attachments/assets/ad81d660-9969-4beb-b0f1-dd1456031da7)
+<img width="1612" height="616" alt="image" src="https://github.com/user-attachments/assets/45b213e2-b568-4dc5-897a-d091ac1933d3" />
+<img width="1355" height="480" alt="image" src="https://github.com/user-attachments/assets/c130ca87-66d5-4f32-a8e0-9f2f051d69f4" />
 ![image](https://github.com/user-attachments/assets/346cf499-3411-45aa-a95d-4a5681ce886f)
+<img width="890" height="866" alt="image" src="https://github.com/user-attachments/assets/bf24a63b-d7ec-4b16-870e-105306c14bcc" />
 ![image](https://github.com/user-attachments/assets/7c92f504-fbcc-4261-bb6c-021c5c0cdcc7)
 ![image](https://github.com/user-attachments/assets/5719cef0-5e4d-49f9-8645-7e13df7e1379)
 ![image](https://github.com/user-attachments/assets/9c5567a0-d0b7-4499-a1a0-7986b4f14ede)
