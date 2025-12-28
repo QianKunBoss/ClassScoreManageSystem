@@ -1,6 +1,6 @@
 <div align="center">
   <a href="https://github.com/QianKunBoss/ClassScoreManageSystem/">
-    <img src="/favicon.png" alt="Logo" width="120" height="120">
+    <img src="/favicon.ico" alt="Logo" width="120" height="120">
   </a>
 
 </div>
