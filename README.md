@@ -45,8 +45,8 @@
 ![image](https://github.com/user-attachments/assets/346cf499-3411-45aa-a95d-4a5681ce886f)
 <img width="890" height="866" alt="image" src="https://github.com/user-attachments/assets/bf24a63b-d7ec-4b16-870e-105306c14bcc" />
 ![image](https://github.com/user-attachments/assets/7c92f504-fbcc-4261-bb6c-021c5c0cdcc7)
-![image](https://github.com/user-attachments/assets/5719cef0-5e4d-49f9-8645-7e13df7e1379)
-![image](https://github.com/user-attachments/assets/9c5567a0-d0b7-4499-a1a0-7986b4f14ede)
+<img width="1079" height="580" alt="image" src="https://github.com/user-attachments/assets/ab81ccf4-4921-4827-995f-3906dc067880" />
+<img width="1073" height="845" alt="image" src="https://github.com/user-attachments/assets/c0f938f6-4e8c-4574-bf09-354d210cacb6" />
 ![image](https://github.com/user-attachments/assets/a818abd0-5328-45fc-9acb-7d716490163b)
 
 
@@ -63,7 +63,7 @@
 - **学生管理**：添加、删除、查看学生信息
 - **积分调整**：记录学生的加分和扣分情况
 - **排名统计**：自动计算学生积分排名，前三名显示奖牌标识
-- **数据导出**：支持将积分数据导出为Excel格式
+- **数据导出**：支持将积分数据导出为Excel xlsx格式（无需任何额外插件）
 - **系统设置**：自定义系统标题、导航栏等显示选项
 - **积分模板**：预设常用积分调整模板
 
@@ -78,7 +78,7 @@
 | **📝 批量名单导入** | ✅ | v0.1.1 |
 | **🗑 删除用户** | ✅ | v0.1.1 |
 | **👤 用户页面** | ✅ | v0.1.1 |
-| **📝 csv表格数据导出** | ✅ | v0.1.1 |
+| **📝 csv → Excel xlsx格式表格数据导出** | ✅ | v0.1.1 → v0.2.3 |
 | **📄 预设模板** | ✅ | v0.1.2 |
 | **📝 日志记录查询** | ✅ | v0.1.2 |
 | **📧 管理员账号重置密码** | ✅ | v0.2.0 |
@@ -94,6 +94,7 @@
 | **🗑 删除日志** | 🚧 | 预计v0.3.0 |
 | **🎈 404 页面** | 🚧 | 预计v0.3.0 |
 | **🎈 API 传输** | 🚧 | 预计v0.3.0 |
+| **📝 更快速的信息处理和反馈优化** | 🚧 | 预计v0.3.0 |
 | **🔒 数据安全** | ⏳ |        |
 | **📱 登录二步验证** | ⏳ |        |
 
@@ -120,7 +121,7 @@
 ## 使用说明
 
 1. **管理员登录**：
-   - 默认管理员账号：admin
+   - 默认管理员账号：admin（安装时可更改）
    - 密码：安装时设置
 
 2. **添加学生**：
@@ -143,7 +144,7 @@
 A: 请检查`includes/config.php`中的数据库配置是否正确
 
 **Q: 如何重置管理员密码？**
-A: 编辑`includes/user_credentials.php`文件，修改对应的密码哈希
+A: 在登录页点击忘记密码，完成相关流程以完成密码重置
 
 **Q: 如何备份数据？**
 A: 使用`pages/export.php`导出数据，或直接备份MySQL数据库（备份时推荐直接备份数据库，调取数据时推荐使用“导出数据功能”）
