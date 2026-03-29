@@ -3,7 +3,7 @@ require_once '../includes/config.php';
 require_once '../includes/functions.php';
 
 if (!isLoggedIn()) {
-    header('Location: ../dengluye.php');
+    header('Location: login.php');
     exit;
 }
 
@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         $pdo->commit();
-        header("Location: ../admin.php");
+        header("Location: admin.php");
     } catch(PDOException $e) {
         $pdo->rollBack();
         $error = "操作失败: " . $e->getMessage();
@@ -75,128 +75,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html>
 <head>
     <title>调整积分</title>
+    <script>
+    // 在CSS加载前立即应用保存的主题，防止闪烁
+    (function() {
+        var savedTheme = localStorage.getItem('theme') || 'light';
+        if (savedTheme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+    })();
+    </script>
     <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.2.3/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="../assets/css/main.css" rel="stylesheet">
-    <style>
-        .seat-container {
-            overflow-x: auto;
-            padding: 20px;
-        }
-        
-        .seat-table {
-            display: flex;
-            gap: 20px;
-            align-items: flex-start;
-        }
-        
-        .seat-group {
-            background: #f8f9fa;
-            border: 2px solid #dee2e6;
-            border-radius: 8px;
-            padding: 10px;
-            height: fit-content;
-        }
-        
-        .seat-row {
-            display: flex;
-            gap: 5px;
-            margin-bottom: 5px;
-        }
-        
-        .seat {
-            width: 80px;
-            height: 60px;
-            background: transparent;
-            border: 3px solid #667eea;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #667eea;
-            font-size: 12px;
-            font-weight: 500;
-            cursor: grab;
-            transition: all 0.2s ease;
-            user-select: none;
-        }
-        
-        .seat:hover {
-            border-color: #764ba2;
-            color: #764ba2;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        }
-        
-        .seat.selected {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-color: #667eea;
-        }
-        
-        .seat.selected:hover {
-            border-color: #667eea;
-        }
-        
-        .seat.dragging {
-            opacity: 0.5;
-            cursor: grabbing;
-        }
-        
-        .seat.drag-over {
-            border-color: #48bb78;
-            box-shadow: 0 0 10px rgba(72, 187, 120, 0.5);
-        }
-        
-        .seat.empty-seat {
-            border-color: #a0aec0;
-            color: #a0aec0;
-            cursor: not-allowed;
-        }
-        
-        .seat-user {
-            text-align: center;
-            word-break: break-all;
-            padding: 2px;
-        }
-        
-        .seat-label {
-            font-style: italic;
-        }
-        
-        .seat-aisle {
-            width: 40px;
-            height: 100%;
-            min-height: 60px;
-            background: repeating-linear-gradient(
-                45deg,
-                #f0f0f0,
-                #f0f0f0 10px,
-                #e0e0e0 10px,
-                #e0e0e0 20px
-            );
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .seat-aisle::after {
-            content: '走廊';
-            writing-mode: vertical-rl;
-            text-orientation: mixed;
-            color: #999;
-            font-size: 12px;
-            font-weight: bold;
-            letter-spacing: 2px;
-        }
-    </style>
+    <link href="../assets/css/int_main.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
 </head>
 <body>
     <?php showNav(); ?>
     
     <div class="container mt-4">
-        <a href="../admin.php" class="btn btn-secondary mb-3">← 返回排名</a>
+        <a href="admin.php" class="btn btn-secondary mb-3 return-button">← 返回排名</a>
      
         <!-- 列表视图 -->
         <div class="card" id="listView">
@@ -216,7 +114,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="alert alert-danger"><?= $error ?></div>
                 <?php endif; ?>
 
-                <form method="post" class="need-password">
+                <form method="post" class="need-password" id="listViewForm">
                     <div class="mb-3">
                         <label>选择学生 <span class="badge bg-primary" id="selectedCount">已选择: 0人</span></label>
                         <div class="user-list">
@@ -312,6 +210,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // 拖动相关变量
         let draggedSeat = null;
+        let draggedUser = null;
 
         // DOM加载完成后添加事件监听器
         document.addEventListener('DOMContentLoaded', function() {
@@ -336,7 +235,153 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 });
             }
+            
+            // 初始化用户列表
+            initializeUserList();
+            
+            // 添加搜索功能
+            const searchInput = document.getElementById('userSearchInput');
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    filterUsers(this.value);
+                });
+            }
+
+            // 绑定提交按钮事件
+            const submitListBtn = document.getElementById('submitListBtn');
+            if (submitListBtn) {
+                submitListBtn.addEventListener('click', function() {
+                    submitForm('listViewForm', 'submitListBtn');
+                });
+            }
+
+            const submitSeatBtn = document.getElementById('submitSeatBtn');
+            if (submitSeatBtn) {
+                submitSeatBtn.addEventListener('click', function() {
+                    submitForm('seatViewForm', 'submitSeatBtn');
+                });
+            }
         });
+        
+        // 初始化用户列表
+        function initializeUserList() {
+            const userListContainer = document.getElementById('userList');
+            if (!userListContainer) return;
+            
+            userListContainer.innerHTML = '';
+            
+            users.forEach(user => {
+                const userItem = document.createElement('div');
+                userItem.className = 'user-item';
+                userItem.dataset.userId = user.id;
+                userItem.textContent = user.username;
+                userItem.draggable = true;
+                
+                // 添加拖拽事件
+                userItem.addEventListener('dragstart', handleUserDragStart);
+                userItem.addEventListener('dragend', handleUserDragEnd);
+                userItem.addEventListener('dragover', handleUserDragOver);
+                userItem.addEventListener('dragleave', handleUserDragLeave);
+                userItem.addEventListener('drop', handleUserDrop);
+                
+                userListContainer.appendChild(userItem);
+            });
+        }
+        
+        // 切换用户列表面板显示/隐藏
+        function toggleUserList() {
+            const panel = document.getElementById('userListPanel');
+            if (!panel) return;
+            
+            if (panel.style.display === 'none') {
+                panel.style.display = 'block';
+                // 添加进入动画
+                panel.style.opacity = '0';
+                panel.style.transform = 'translateX(20px)';
+                
+                setTimeout(() => {
+                    panel.style.transition = 'all 0.3s ease';
+                    panel.style.opacity = '1';
+                    panel.style.transform = 'translateX(0)';
+                }, 10);
+            } else {
+                // 添加退出动画
+                panel.style.transition = 'all 0.3s ease';
+                panel.style.opacity = '0';
+                panel.style.transform = 'translateX(20px)';
+                
+                setTimeout(() => {
+                    panel.style.display = 'none';
+                }, 300);
+            }
+        }
+        
+        // 处理用户拖拽开始
+        function handleUserDragStart(e) {
+            draggedUser = this;
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', this.dataset.userId);
+        }
+        
+        // 处理用户拖拽结束
+        function handleUserDragEnd(e) {
+            this.classList.remove('dragging');
+            draggedUser = null;
+        }
+        
+        // 处理用户列表项的拖拽悬停
+        function handleUserDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            this.style.backgroundColor = '#e7f3ff';
+        }
+        
+        // 处理用户列表项的拖拽离开
+        function handleUserDragLeave(e) {
+            this.style.backgroundColor = '';
+        }
+        
+        // 处理用户列表项的拖拽放置
+        function handleUserDrop(e) {
+            e.preventDefault();
+            this.style.backgroundColor = '';
+            
+            // 检查是否是从座位拖拽过来的
+            if (draggedSeat && draggedSeat.classList.contains('seat')) {
+                const userId = draggedSeat.dataset.userId;
+                const userName = draggedSeat.innerHTML;
+                
+                // 找到对应的用户项并显示
+                const userItem = document.querySelector(`.user-item[data-user-id="${userId}"]`);
+                if (userItem) {
+                    userItem.classList.remove('hidden');
+                }
+                
+                // 清空座位
+                delete draggedSeat.dataset.userId;
+                draggedSeat.innerHTML = '<span class="seat-label">空座</span>';
+                draggedSeat.classList.add('empty-seat');
+                
+                // 更新样式
+                updateSeatStyles(draggedSeat);
+            }
+        }
+        
+        // 过滤用户列表
+        function filterUsers(searchTerm) {
+            const userItems = document.querySelectorAll('.user-item');
+            const term = searchTerm.toLowerCase();
+            
+            userItems.forEach(item => {
+                const username = item.textContent.toLowerCase();
+                if (username.includes(term)) {
+                    item.classList.remove('hidden');
+                } else {
+                    item.classList.add('hidden');
+                }
+            });
+        }
 
         function toggleSeatSelection(seat) {
             const userId = seat.dataset.userId;
@@ -580,7 +625,41 @@ function selectGroup(groupIndex) {
             e.preventDefault();
             this.classList.remove('drag-over');
 
-            if (draggedSeat !== this) {
+            // 检查是否是从用户列表拖拽过来的
+            if (draggedUser && draggedUser.classList.contains('user-item')) {
+                // 从用户列表拖拽到座位
+                const userId = draggedUser.dataset.userId;
+                const userName = draggedUser.textContent;
+                
+                // 如果座位已有用户，先将其放回用户列表
+                if (this.dataset.userId) {
+                    const existingUserItem = document.querySelector(`.user-item[data-user-id="${this.dataset.userId}"]`);
+                    if (existingUserItem) {
+                        existingUserItem.classList.remove('hidden');
+                    }
+                }
+                
+                // 将用户放到座位上
+                this.dataset.userId = userId;
+                this.innerHTML = `<span class="seat-user">${userName}</span>`;
+                this.classList.remove('empty-seat');
+                
+                // 隐藏用户列表中的该项
+                draggedUser.classList.add('hidden');
+                
+                // 添加点击选择事件
+                if (!this.hasClickListener) {
+                    this.addEventListener('click', function(e) {
+                        if (!this.classList.contains('dragging')) {
+                            toggleSeatSelection(this);
+                        }
+                    });
+                    this.hasClickListener = true;
+                }
+                
+                // 更新样式
+                updateSeatStyles(this);
+            } else if (draggedSeat !== this) {
                 // 交换座位数据
                 const draggedUserId = draggedSeat.dataset.userId;
                 const targetUserId = this.dataset.userId;
@@ -640,8 +719,6 @@ function selectGroup(groupIndex) {
             table.dataset.rowsPerGroup = rowsPerGroup;
             table.dataset.colsPerGroup = colsPerGroup;
             table.dataset.hasAisle = hasAisle ? 1 : 0;
-
-            let userIndex = 0;
             
             for (let g = 0; g < groupCount; g++) {
                 const groupDiv = document.createElement('div');
@@ -654,20 +731,12 @@ function selectGroup(groupIndex) {
 
                     for (let c = 0; c < colsPerGroup; c++) {
                         const seat = document.createElement('div');
-                        seat.className = 'seat';
+                        seat.className = 'seat empty-seat';
                         seat.dataset.groupIndex = g;
                         seat.dataset.rowIndex = r;
                         seat.dataset.colIndex = c;
                         seat.draggable = true;
-
-                        if (userIndex < users.length) {
-                            seat.dataset.userId = users[userIndex].id;
-                            seat.innerHTML = `<span class="seat-user">${users[userIndex].username}</span>`;
-                            userIndex++;
-                        } else {
-                            seat.classList.add('empty-seat');
-                            seat.innerHTML = '<span class="seat-label">空座</span>';
-                        }
+                        seat.innerHTML = '<span class="seat-label">空座</span>';
 
                         // 拖动事件
                         if (seat && typeof seat.addEventListener === 'function') {
@@ -675,15 +744,6 @@ function selectGroup(groupIndex) {
                             seat.addEventListener('dragover', handleDragOver);
                             seat.addEventListener('drop', handleDrop);
                             seat.addEventListener('dragend', handleDragEnd);
-                            
-                            // 点击选择事件（仅非空座位）
-                            if (seat.dataset.userId) {
-                                seat.addEventListener('click', function(e) {
-                                    if (!this.classList.contains('dragging')) {
-                                        toggleSeatSelection(this);
-                                    }
-                                });
-                            }
                         }
 
                         rowDiv.appendChild(seat);
@@ -712,13 +772,15 @@ function selectGroup(groupIndex) {
             const modal = bootstrap.Modal.getInstance(modalEl);
             if (modal) {
                 modal.hide();
-                // 移除遮罩层
+                // 移除遮罩层和恢复滚动
                 setTimeout(() => {
                     const backdrop = document.querySelector('.modal-backdrop');
                     if (backdrop) {
                         backdrop.remove();
                     }
                     document.body.classList.remove('modal-open');
+                    document.body.style.overflow = '';
+                    document.body.style.paddingRight = '';
                 }, 300);
             }
         }
@@ -727,9 +789,12 @@ function selectGroup(groupIndex) {
                 function saveSeatLayout() {
             const table = document.querySelector('.seat-table');
             if (!table) {
-                alert('请先生成座位表');
+                showSaveResultModal('请先生成座位表', false);
                 return;
             }
+
+            // 显示保存进度模态框
+            showSaveProgressModal();
 
             const seats = [];
             document.querySelectorAll('.seat').forEach(seat => {
@@ -756,15 +821,19 @@ function selectGroup(groupIndex) {
             })
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
-                    alert('座位表保存成功');
-                } else {
-                    alert('保存失败: ' + data.message);
-                }
+                setTimeout(() => {
+                    if (data.success) {
+                        showSaveResultModal('座位表保存成功', true);
+                    } else {
+                        showSaveResultModal('保存失败: ' + data.message, false);
+                    }
+                }, 1000); // 至少显示1秒进度条
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('保存失败');
+                setTimeout(() => {
+                    showSaveResultModal('保存失败', false);
+                }, 1000);
             });
         }
 
@@ -778,6 +847,10 @@ function selectGroup(groupIndex) {
                     } else {
                         document.getElementById('seatContainer').innerHTML = 
                             '<p class="text-muted">请先配置座位表参数</p>';
+                        // 确保所有用户项都显示
+                        document.querySelectorAll('.user-item').forEach(item => {
+                            item.classList.remove('hidden');
+                        });
                     }
                 })
                 .catch(error => {
@@ -831,6 +904,7 @@ function selectGroup(groupIndex) {
                             if (user) {
                                 seat.dataset.userId = userId;
                                 seat.innerHTML = `<span class="seat-user">${user.username}</span>`;
+                                seat.classList.remove('empty-seat');
                             } else {
                                 seat.classList.add('empty-seat');
                                 seat.innerHTML = '<span class="seat-label">空座</span>';
@@ -877,10 +951,297 @@ function selectGroup(groupIndex) {
 
             // 生成组选择按钮
             generateGroupButtons(config.group_count);
+            
+            // 隐藏已入座的用户
+            document.querySelectorAll('.user-item').forEach(item => {
+                item.classList.remove('hidden');
+            });
+            
+            document.querySelectorAll('.seat[data-user-id]').forEach(seat => {
+                const userId = seat.dataset.userId;
+                const userItem = document.querySelector(`.user-item[data-user-id="${userId}"]`);
+                if (userItem) {
+                    userItem.classList.add('hidden');
+                }
+            });
         }
+        
+        // 显示保存进度模态框
+        function showSaveProgressModal() {
+            // 检查是否已存在模态框，如果存在则先移除
+            const existingModal = document.getElementById('saveProgressModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            const modalHtml = `
+                <div class="modal fade" id="saveProgressModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+                    <div class="modal-dialog modal-sm modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-body text-center py-4">
+                                <div class="spinner-border text-primary mb-3" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <h5 class="mb-2">正在保存座位表</h5>
+                                <p class="text-muted mb-0">请稍候...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            const modal = new bootstrap.Modal(document.getElementById('saveProgressModal'));
+            modal.show();
+        }
+        
+        // 显示保存结果模态框
+        function showSaveResultModal(message, success) {
+            const progressModal = document.getElementById('saveProgressModal');
+            const progressModalInstance = bootstrap.Modal.getInstance(progressModal);
+            
+            if (progressModal && progressModalInstance) {
+                // 更新进度模态框内容为结果
+                const modalBody = progressModal.querySelector('.modal-body');
+                modalBody.innerHTML = `
+                    <div class="text-center py-4">
+                        <div class="mb-3">
+                            ${success ? 
+                                '<div class="checkmark-circle success"><div class="checkmark"></div></div>' : 
+                                '<div class="crossmark-circle error"><div class="crossmark"></div></div>'
+                            }
+                        </div>
+                        <h5 class="mb-2">${success ? '保存成功' : '保存失败'}</h5>
+                        <p class="text-muted mb-3">${message}</p>
+                        <button type="button" class="btn btn-${success ? 'success' : 'danger'}" onclick="closeSaveResultModal()">确定</button>
+                    </div>
+                `;
+                
+                // 2秒后自动关闭成功提示
+                if (success) {
+                    setTimeout(() => {
+                        closeSaveResultModal();
+                    }, 2000);
+                }
+            }
+        }
+        
+        // 关闭保存结果模态框
+        function closeSaveResultModal() {
+            const modal = document.getElementById('saveProgressModal');
+            const modalInstance = bootstrap.Modal.getInstance(modal);
+            if (modal && modalInstance) {
+                modalInstance.hide();
+                setTimeout(() => {
+                    modal.remove();
+                }, 300);
+            }
+        }
+
+        // 提交表单（AJAX）
+        function submitForm(formId, btnId) {
+            const form = document.getElementById(formId);
+            const btn = document.getElementById(btnId);
+            
+            // 收集表单数据
+            const formData = new FormData(form);
+            const data = {};
+            formData.forEach((value, key) => {
+                if (data[key]) {
+                    if (Array.isArray(data[key])) {
+                        data[key].push(value);
+                    } else {
+                        data[key] = [data[key], value];
+                    }
+                } else {
+                    data[key] = value;
+                }
+            });
+            
+            // 获取选中的用户ID
+            if (formId === 'listViewForm') {
+                const checkboxes = form.querySelectorAll('.user-checkbox:checked');
+                const userIds = Array.from(checkboxes).map(cb => cb.value);
+                data.user_ids = userIds;
+            } else if (formId === 'seatViewForm') {
+                data.user_ids = selectedUserIds;
+            }
+            
+            // 验证
+            if (!data.user_ids || data.user_ids.length === 0) {
+                showToast('请选择至少一个学生', 'error');
+                return;
+            }
+            
+            if (!data.score || data.score === '') {
+                showToast('请输入分数变化', 'error');
+                return;
+            }
+            
+            // 显示提交动画
+            showSubmitModal();
+            
+            // 禁用按钮
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 提交中...';
+            
+            // 发送 AJAX 请求
+            fetch(window.location.href, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams(data)
+            })
+            .then(response => {
+                // 检查是否重定向到 admin.php（成功）
+                if (response.redirected && response.url.includes('admin.php')) {
+                    return { success: true, message: '积分调整成功' };
+                }
+                return response.text().then(text => {
+                    // 检查是否包含错误信息
+                    if (text.includes('alert alert-danger')) {
+                        const match = text.match(/alert alert-danger.*?>(.*?)</);
+                        return { success: false, message: match ? match[1] : '操作失败' };
+                    }
+                    return { success: true, message: '积分调整成功' };
+                });
+            })
+            .then(result => {
+                setTimeout(() => {
+                    if (result.success) {
+                        showSubmitSuccess(result.message);
+                    } else {
+                        showSubmitError(result.message);
+                    }
+                    
+                    // 重新启用按钮
+                    btn.disabled = false;
+                    btn.innerHTML = '提交';
+                    
+                    // 清空表单
+                    form.reset();
+                    if (formId === 'listViewForm') {
+                        updateSelectedCount();
+                    } else if (formId === 'seatViewForm') {
+                        selectedUserIds = [];
+                        updateSelectedUsersDisplay();
+                    }
+                }, 1500);
+            })
+            .catch(error => {
+                setTimeout(() => {
+                    showSubmitError('提交失败，请重试');
+                    btn.disabled = false;
+                    btn.innerHTML = '提交';
+                }, 1500);
+            });
+        }
+
+        // 显示提交模态框
+        function showSubmitModal() {
+            const modalHtml = `
+                <div class="modal fade" id="submitModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+                    <div class="modal-dialog modal-sm modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-body text-center py-4">
+                                <div id="submitLoading" class="mb-3">
+                                    <div class="spinner-border" role="status" style="width: 3rem; height: 3rem;">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </div>
+                                <div id="submitSuccess" class="mb-3" style="display: none;">
+                                    <div class="checkmark-circle success">
+                                        <div class="checkmark"></div>
+                                    </div>
+                                </div>
+                                <div id="submitError" class="mb-3" style="display: none;">
+                                    <div class="crossmark-circle error">
+                                        <div class="crossmark"></div>
+                                    </div>
+                                </div>
+                                <h5 id="submitStatus" class="mb-2">正在提交</h5>
+                                <p id="submitMessage" class="text-muted mb-3">请稍候...</p>
+                                <button type="button" class="btn btn-primary" id="submitCloseBtn" style="display: none;" onclick="closeSubmitModal()">确定</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            const modal = new bootstrap.Modal(document.getElementById('submitModal'));
+            modal.show();
+        }
+
+        // 显示提交成功
+        function showSubmitSuccess(message) {
+            document.getElementById('submitLoading').style.display = 'none';
+            document.getElementById('submitSuccess').style.display = 'block';
+            document.getElementById('submitError').style.display = 'none';
+            document.getElementById('submitStatus').textContent = '提交成功';
+            document.getElementById('submitMessage').textContent = message;
+            document.getElementById('submitCloseBtn').style.display = 'inline-block';
+            
+            // 2秒后自动关闭
+            setTimeout(() => {
+                closeSubmitModal();
+            }, 2000);
+        }
+
+        // 显示提交错误
+        function showSubmitError(message) {
+            document.getElementById('submitLoading').style.display = 'none';
+            document.getElementById('submitSuccess').style.display = 'none';
+            document.getElementById('submitError').style.display = 'block';
+            document.getElementById('submitStatus').textContent = '提交失败';
+            document.getElementById('submitMessage').textContent = message;
+            document.getElementById('submitCloseBtn').style.display = 'inline-block';
+        }
+
+        // 关闭提交模态框
+        function closeSubmitModal() {
+            const modal = document.getElementById('submitModal');
+            const modalInstance = bootstrap.Modal.getInstance(modal);
+            if (modal && modalInstance) {
+                modalInstance.hide();
+                setTimeout(() => {
+                    modal.remove();
+                }, 300);
+            }
+        }
+
+        // Toast 提示函数
+        function showToast(message, type = 'info') {
+            const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
+            const toastClass = type === 'success' ? 'bg-success' : type === 'error' ? 'bg-danger' : 'bg-info';
+            const toastBodyClass = isDarkMode ? 'bg-dark text-white' : '';
+            const toastHtml = `
+            <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 9999">
+                <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="toast-header ${toastClass} text-white">
+                        <strong class="me-auto">系统提示</strong>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                    <div class="toast-body ${toastBodyClass}">
+                        ${message}
+                    </div>
+                </div>
+            </div>
+            `;
+            
+            $('.toast').parent().remove();
+            $('body').append(toastHtml);
+            
+            setTimeout(() => {
+                $('.toast').toast('hide');
+            }, 5000);
+        }
+        
+        
     </script>
                     
-                    <button type="submit" class="btn btn-primary">提交</button>
+                    <button type="button" class="btn btn-primary" id="submitListBtn">提交</button>
                 </form>
             </div>
         </div>
@@ -903,7 +1264,7 @@ function selectGroup(groupIndex) {
                     <div class="alert alert-danger"><?= $error ?></div>
                 <?php endif; ?>
 
-                <form method="post" class="need-password">
+                <form method="post" class="need-password" id="seatViewForm">
                     <div class="mb-3 d-flex justify-content-between align-items-start">
                         <div class="flex-grow-1">
                             <label>选择学生（点击座位选择） <span class="badge bg-primary" id="seatSelectedCount">已选择: 0人</span></label>
@@ -924,14 +1285,37 @@ function selectGroup(groupIndex) {
                             <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#seatConfigModal">
                                 ⚙️ 配置座位表
                             </button>
+                            <button type="button" class="btn btn-sm btn-warning" onclick="toggleUserList()">
+                                👥 编辑座位表
+                            </button>
                             <button type="button" class="btn btn-sm btn-success" onclick="saveSeatLayout()">
                                 💾 保存布局
                             </button>
                         </div>
                     </div>
 
-                    <div id="seatContainer" class="seat-container mb-3">
-                        <p class="text-muted">请先配置座位表参数</p>
+                    <div class="d-flex gap-3">
+                        <div id="seatContainer" class="seat-container mb-3 flex-grow-1">
+                            <p class="text-muted">请先配置座位表参数</p>
+                        </div>
+                        
+                        <!-- 用户列表面板 -->
+                        <div id="userListPanel" class="user-list-panel" style="display: none;">
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0">用户名单</h6>
+                                    <button type="button" class="btn-close btn-close-sm" onclick="toggleUserList()"></button>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="mb-2">
+                                        <input type="text" class="form-control form-control-sm" id="userSearchInput" placeholder="搜索用户...">
+                                    </div>
+                                    <div id="userList" class="user-list">
+                                        <!-- 用户列表将通过JavaScript动态生成 -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="mb-3">
@@ -979,8 +1363,36 @@ function selectGroup(groupIndex) {
                         </div>
                     </div>
                     
-                    <button type="submit" class="btn btn-primary">提交</button>
+                    <button type="button" class="btn btn-primary" id="submitSeatBtn">提交</button>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 提交动画模态框 -->
+    <div class="modal fade" id="submitModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body text-center py-4">
+                    <div id="submitLoading" class="mb-3">
+                        <div class="spinner-border" role="status" style="width: 3rem; height: 3rem;">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                    <div id="submitSuccess" class="mb-3" style="display: none;">
+                        <div class="checkmark-circle success">
+                            <div class="checkmark"></div>
+                        </div>
+                    </div>
+                    <div id="submitError" class="mb-3" style="display: none;">
+                        <div class="crossmark-circle error">
+                            <div class="crossmark"></div>
+                        </div>
+                    </div>
+                    <h5 id="submitStatus" class="mb-2">正在提交</h5>
+                    <p id="submitMessage" class="text-muted mb-3">请稍候...</p>
+                    <button type="button" class="btn btn-primary" id="submitCloseBtn" style="display: none;" onclick="closeSubmitModal()">确定</button>
+                </div>
             </div>
         </div>
     </div>
@@ -1015,7 +1427,7 @@ function selectGroup(groupIndex) {
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" onclick="generateSeatLayout()">生成座位表</button>
+                    <button type="button" class="btn btn-primary" onclick="generateSeatLayout()">生成空表格</button>
                 </div>
             </div>
         </div>
@@ -1023,5 +1435,6 @@ function selectGroup(groupIndex) {
 
     <?php showFooter(); ?>
     <script src="https://cdn.bootcdn.net/ajax/libs/bootstrap/5.2.3/js/bootstrap.bundle.min.js"></script>
+    <script src="../assets/js/background_image.js"></script>
 </body>
 </html>

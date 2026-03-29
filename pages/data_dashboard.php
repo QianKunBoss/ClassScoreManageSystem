@@ -3,7 +3,7 @@ require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/functions.php';
 
 if (!isLoggedIn()) {
-    header('Location: ../dengluye.php');
+    header('Location: login.php');
     exit;
 }
 
@@ -55,14 +55,16 @@ $topUsers = $pdo->query("
 
 
 // 获取本月积分变化
+$currentMonth = date('m');
+$currentYear = date('Y');
 $monthlyStats = $pdo->query("
-    SELECT 
+    SELECT
         SUM(CASE WHEN score_change > 0 THEN score_change ELSE 0 END) as monthly_positive,
         SUM(CASE WHEN score_change < 0 THEN score_change ELSE 0 END) as monthly_negative,
         COUNT(*) as monthly_logs
-    FROM score_logs 
-    WHERE MONTH(created_at) = MONTH(CURDATE()) 
-    AND YEAR(created_at) = YEAR(CURDATE())
+    FROM score_logs
+    WHERE strftime('%m', created_at) = '$currentMonth'
+    AND strftime('%Y', created_at) = '$currentYear'
 ")->fetch();
 
 
@@ -72,34 +74,26 @@ $monthlyStats = $pdo->query("
 <html>
 <head>
     <title>数据仪表板</title>
+    <script>
+    // 在CSS加载前立即应用保存的主题，防止闪烁
+    (function() {
+        var savedTheme = localStorage.getItem('theme') || 'light';
+        if (savedTheme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+    })();
+    </script>
     <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.2.3/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="../assets/css/main.css" rel="stylesheet">
+    <link href="../assets/css/int_main.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        .stat-card {
-            transition: transform 0.2s;
-        }
-        .stat-card:hover {
-            transform: translateY(-5px);
-        }
-        .chart-container {
-            position: relative;
-            height: 300px;
-        }
-        .number-display {
-            font-size: 2.5rem;
-            font-weight: bold;
-        }
-        .positive { color: #28a745; }
-        .negative { color: #dc3545; }
-    </style>
+    
 </head>
 <body>
     <?php showNav(); ?>
     
     <div class="container mt-4">
-        <a href="../admin.php" class="btn btn-secondary mb-3">← 返回管理后台</a>
+        <a href="admin.php" class="btn btn-secondary mb-3 return-button">← 返回管理后台</a>
         
         <h2 class="mb-4">
             <i class="fas fa-chart-line me-2"></i>数据仪表板
@@ -267,19 +261,19 @@ $monthlyStats = $pdo->query("
                             <table class="table">
                                 <thead>
                                     <tr>
-                                        <th>排名</th>
+                                        <th class="text-center">排名</th>
                                         <th>用户名</th>
-                                        <th>总积分</th>
-                                        <th>记录数</th>
+                                        <th class="text-center">总积分</th>
+                                        <th class="text-center">记录数</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php foreach ($topUsers as $index => $user): ?>
                                     <tr>
-                                        <td><?= $index + 1 ?></td>
+                                        <td class="text-center"><?= $index + 1 ?></td>
                                         <td><?= htmlspecialchars($user['username']) ?></td>
-                                        <td><?= $user['total_score'] ?? 0 ?></td>
-                                        <td><?= $user['log_count'] ?></td>
+                                        <td class="text-center"><?= $user['total_score'] ?? 0 ?></td>
+                                        <td class="text-center"><?= $user['log_count'] ?></td>
                                     </tr>
                                     <?php endforeach; ?>
                                 </tbody>
@@ -498,5 +492,8 @@ $monthlyStats = $pdo->query("
             }
         }
     </script>
+
+    <!-- 背景图片脚本 -->
+    <script src="../assets/js/background_image.js"></script>
 </body>
 </html>

@@ -1,11 +1,19 @@
+/* 定义全局字体 */
+@font-face {
+    font-family: 'HarmonyOS Sans';
+    src: url('../assets/fonts/HarmonyOS_Sans_SC_Black.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
 /* 安装向导基础样式 */
 body {
     background-color: #f8f9fa;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'HarmonyOS Sans', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 .install-container {
-    max-width: 600px;
+    max-width: 800px;
     margin: 50px auto;
     padding: 0 15px;
 }
@@ -38,8 +46,194 @@ body {
     border-color: #0a58ca;
 }
 
+.btn:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
 .alert {
     margin-bottom: 1.5rem;
+}
+
+/* 进度条样式 */
+.progress {
+    height: 25px;
+    background-color: #e9ecef;
+    border-radius: 5px;
+    margin-bottom: 10px;
+}
+
+#installProgressBar {
+    transition: width 0.3s ease;
+}
+
+#installProgressText {
+    font-weight: 500;
+    color: #495057;
+}
+
+/* 步骤指示器 */
+.step-indicator {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 5px;
+}
+
+.step-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    opacity: 0.5;
+    transition: all 0.3s ease;
+}
+
+.step-item.active {
+    opacity: 1;
+}
+
+.step-item.completed .step-number {
+    background: #28a745;
+    color: white;
+}
+
+.step-number {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #0d6efd;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-bottom: 10px;
+    font-size: 18px;
+}
+
+.step-title {
+    font-size: 14px;
+    font-weight: 500;
+    text-align: center;
+}
+
+/* 步骤内容 */
+.step-content {
+    display: none;
+}
+
+.step-content.active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 检查项样式 */
+.check-item {
+    padding: 15px;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    transition: all 0.5s ease;
+}
+
+.check-item .check-content {
+    flex: 1;
+}
+
+/* 更新按钮样式 */
+.check-item .btn-outline-primary {
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.check-item.success {
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+}
+
+.check-item.error {
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+}
+
+.check-item.warning {
+    background-color: #fff3cd;
+    border-color: #ffeaa7;
+}
+
+.check-icon {
+    font-size: 20px;
+    margin-right: 10px;
+}
+
+.check-item.success .check-icon {
+    color: #28a745;
+}
+
+.check-item.error .check-icon {
+    color: #dc3545;
+}
+
+.check-item.warning .check-icon {
+    color: #ffc107;
+}
+
+.check-details {
+    font-size: 0.9em;
+    color: #666;
+}
+
+/* 安装日志样式 */
+#installLogs {
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.log-item {
+    padding: 5px 10px;
+    border-radius: 3px;
+    background: white;
+    border-left: 3px solid #dee2e6;
+    margin-bottom: 5px;
+}
+
+.log-item .text-success {
+    border-left-color: #28a745;
+}
+
+.log-item .text-error {
+    border-left-color: #dc3545;
+}
+
+.log-item .text-warning {
+    border-left-color: #ffc107;
+}
+
+.log-item .text-primary {
+    border-left-color: #0d6efd;
+}
+
+.log-item i {
+    margin-right: 8px;
 }
 
 /* 响应式调整 */
@@ -47,8 +241,32 @@ body {
     .install-container {
         margin: 20px auto;
     }
-    
+
     .card-body {
         padding: 1.5rem;
+    }
+
+    .step-indicator {
+        padding: 15px;
+    }
+
+    .step-number {
+        width: 35px;
+        height: 35px;
+        font-size: 16px;
+    }
+
+    .step-title {
+        font-size: 12px;
+    }
+
+    .check-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .check-item .btn-outline-primary {
+        width: 100%;
+        margin-top: 10px;
     }
 }

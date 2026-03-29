@@ -3,7 +3,7 @@ require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/functions.php';
 
 if (!isLoggedIn()) {
-    header('Location: ../dengluye.php');
+    header('Location: login.php');
     exit;
 }
 
@@ -72,24 +72,34 @@ $allUsers = $pdo->query("SELECT * FROM users ORDER BY created_at DESC LIMIT 20")
 <html>
 <head>
     <title>用户管理</title>
+    <script>
+    // 在CSS加载前立即应用保存的主题，防止闪烁
+    (function() {
+        var savedTheme = localStorage.getItem('theme') || 'light';
+        if (savedTheme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+    })();
+    </script>
     <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.2.3/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="../assets/css/main.css" rel="stylesheet">
+    <link href="../assets/css/int_main.css" rel="stylesheet">
     <style>
         .nav-tabs .nav-link {
             border-bottom: 2px solid transparent;
             border-radius: 0.375rem 0.375rem 0 0;
             padding: 0.5rem 1rem;
-            color: #495057;
+            color: var(--text-dark);
             transition: color 0.15s ease-in-out, border-color 0.15s ease-in-out;
         }
         .nav-tabs .nav-link:hover {
-            border-color: #e9ecef;
-            color: #495057;
+            border-color: var(--medium-gray);
+            color: var(--primary-color);
         }
         .nav-tabs .nav-link.active {
-            color: #0d6efd;
-            border-color: #0d6efd;
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+            font-weight: 500;
         }
         .user-list {
             max-height: 300px;
@@ -105,7 +115,7 @@ $allUsers = $pdo->query("SELECT * FROM users ORDER BY created_at DESC LIMIT 20")
     <?php showNav(); ?>
     
     <div class="container mt-4">
-        <a href="../admin.php" class="btn btn-secondary mb-3">← 返回排名</a>
+        <a href="admin.php" class="btn btn-secondary mb-3 return-button">← 返回排名</a>
         
         <h2 class="mb-4">
             <i class="fas fa-users me-2"></i>用户管理
@@ -247,9 +257,18 @@ $allUsers = $pdo->query("SELECT * FROM users ORDER BY created_at DESC LIMIT 20")
                                     <?php foreach ($allUsers as $user): ?>
                                     <tr>
                                         <td><?= $user['id'] ?></td>
-                                        <td><?= htmlspecialchars($user['username']) ?></td>
+                                        <td>
+                                            <?= htmlspecialchars($user['username']) ?>
+                                            <?php if (!empty($user['qq_number'])): ?>
+                                                <span class="badge bg-info ms-1">[<?= htmlspecialchars($user['qq_number']) ?>]</span>
+                                            <?php endif; ?>
+                                        </td>
                                         <td><?= date('Y-m-d H:i', strtotime($user['created_at'])) ?></td>
                                         <td>
+                                            <button type="button" class="btn btn-sm btn-outline-primary me-1" 
+                                                    onclick="showEditQQModal(<?= $user['id'] ?>, '<?= htmlspecialchars($user['username']) ?>', '<?= htmlspecialchars($user['qq_number'] ?? '') ?>')">
+                                                <i class="fab fa-qq"></i> 编辑QQ
+                                            </button>
                                             <button type="button" class="btn btn-sm btn-outline-danger" 
                                                     onclick="showDeleteUserModal(<?= $user['id'] ?>, '<?= htmlspecialchars($user['username']) ?>')">
                                                 <i class="fas fa-trash"></i> 删除
@@ -288,12 +307,58 @@ $allUsers = $pdo->query("SELECT * FROM users ORDER BY created_at DESC LIMIT 20")
                 </div>
             </div>
         </div>
+
+        <!-- 编辑QQ号码模态框 -->
+        <div class="modal fade" id="editQQModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">编辑QQ号码</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>正在为学生 <strong id="editQQUserName"></strong> 编辑QQ号码</p>
+                        <div class="mb-3">
+                            <label for="qqNumberInput" class="form-label">QQ号码</label>
+                            <input type="text" class="form-control" id="qqNumberInput" placeholder="请输入QQ号码，留空则取消绑定" maxlength="20">
+                            <div class="form-text">QQ号码为5-15位数字，留空则取消绑定</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-primary" id="confirmEditQQBtn">保存</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <?php showFooter(); ?>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../assets/js/background_image.js"></script>
     
     <script>
+        // 安全关闭模态框并清理backdrop
+        function safeCloseModal(modalId) {
+            const modalElement = document.getElementById(modalId);
+            if (modalElement) {
+                const modal = bootstrap.Modal.getInstance(modalElement);
+                if (modal) {
+                    modal.hide();
+                    // 等待动画完成后清理
+                    setTimeout(() => {
+                        // 移除所有backdrop元素
+                        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+                        // 移除body上的modal-open类
+                        document.body.classList.remove('modal-open');
+                        // 恢复body的overflow
+                        document.body.style.overflow = '';
+                        document.body.style.paddingRight = '';
+                    }, 300);
+                }
+            }
+        }
+
         // 显示删除确认模态框
         function showDeleteUserModal(userId, userName) {
             // 设置要删除的学生名称
@@ -320,6 +385,119 @@ $allUsers = $pdo->query("SELECT * FROM users ORDER BY created_at DESC LIMIT 20")
             // 显示模态框
             const modal = new bootstrap.Modal(document.getElementById('deleteUserModal'));
             modal.show();
+        }
+
+        // 显示编辑QQ号码模态框
+        function showEditQQModal(userId, userName, currentQQ) {
+            // 设置学生名称和当前QQ号码
+            document.getElementById('editQQUserName').textContent = userName;
+            document.getElementById('qqNumberInput').value = currentQQ || '';
+            
+            // 设置保存按钮的点击事件
+            document.getElementById('confirmEditQQBtn').onclick = function() {
+                const qqNumber = document.getElementById('qqNumberInput').value.trim();
+                
+                // 验证QQ号码格式
+                if (qqNumber && !/^[1-9][0-9]{4,14}$/.test(qqNumber)) {
+                    showToast('QQ号码格式不正确，请输入5-15位数字', 'error');
+                    return;
+                }
+                
+                // 发送AJAX请求更新QQ号码
+                fetch('../api/update_user_qq.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `user_id=${userId}&qq_number=${encodeURIComponent(qqNumber)}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('QQ号码更新成功！', 'success');
+                        // 关闭模态框并清理backdrop
+                        safeCloseModal('editQQModal');
+                        // 更新表格中的用户信息
+                        updateUserRow(userId, userName, qqNumber);
+                    } else {
+                        showToast('更新失败：' + data.error, 'error');
+                    }
+                })
+                .catch(error => {
+                    showToast('请求失败：' + error, 'error');
+                });
+            };
+            
+            // 显示模态框
+            const modal = new bootstrap.Modal(document.getElementById('editQQModal'));
+            modal.show();
+        }
+
+        // 更新表格中的用户行
+        function updateUserRow(userId, userName, qqNumber) {
+            // 查找对应的tr元素
+            const rows = document.querySelectorAll('#list tbody tr');
+            rows.forEach(row => {
+                const idCell = row.querySelector('td:first-child');
+                if (idCell && parseInt(idCell.textContent) === userId) {
+                    // 更新姓名列
+                    const nameCell = row.querySelector('td:nth-child(2)');
+                    if (nameCell) {
+                        if (qqNumber) {
+                            nameCell.innerHTML = `${userName} <span class="badge bg-info ms-1">[${qqNumber}]</span>`;
+                        } else {
+                            nameCell.textContent = userName;
+                        }
+                    }
+                    // 更新编辑按钮的数据
+                    const editBtn = row.querySelector('button[onclick^="showEditQQModal"]');
+                    if (editBtn) {
+                        editBtn.setAttribute('onclick', `showEditQQModal(${userId}, '${userName}', '${qqNumber}')`);
+                    }
+                    // 更新删除按钮的数据
+                    const deleteBtn = row.querySelector('button[onclick^="showDeleteUserModal"]');
+                    if (deleteBtn) {
+                        deleteBtn.setAttribute('onclick', `showDeleteUserModal(${userId}, '${userName}')`);
+                    }
+                }
+            });
+        }
+
+        // 显示toast提示
+        function showToast(message, type = 'info') {
+            const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
+            const toastClass = type === 'success' ? 'bg-success' : type === 'error' ? 'bg-danger' : 'bg-info';
+            const toastBodyClass = isDarkMode ? 'bg-dark text-white' : '';
+            const toastHtml = `
+            <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 9999">
+                <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="toast-header ${toastClass} text-white">
+                        <strong class="me-auto">系统提示</strong>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                    <div class="toast-body ${toastBodyClass}">
+                        ${message}
+                    </div>
+                </div>
+            </div>
+            `;
+            
+            // 移除现有的toast
+            const existingToast = document.querySelector('.toast');
+            if (existingToast) {
+                existingToast.parentElement.remove();
+            }
+            
+            // 添加新的toast
+            document.body.insertAdjacentHTML('beforeend', toastHtml);
+            
+            // 5秒后自动消失
+            setTimeout(() => {
+                const toastElement = document.querySelector('.toast');
+                if (toastElement) {
+                    toastElement.parentElement.remove();
+                }
+            }, 5000);
         }
     </script>
 </body>

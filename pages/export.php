@@ -3,7 +3,7 @@ require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/functions.php';
 
 if (!isLoggedIn()) {
-    header('Location: ../dengluye.php');
+    header('Location: login.php');
     exit;
 }
 
@@ -32,9 +32,9 @@ unset($user);
 $dailyLogs = [];
 foreach ($users as $user) {
     $logs = $pdo->prepare("
-        SELECT 
+        SELECT
             DATE(sl.created_at) AS date,
-            GROUP_CONCAT(CONCAT(sl.score_change, '（', sl.description, '）') SEPARATOR ' ') AS details
+            GROUP_CONCAT(sl.score_change || '（' || sl.description || '）', ' ') AS details
         FROM score_logs sl
         WHERE sl.user_id = ?
         GROUP BY DATE(sl.created_at)

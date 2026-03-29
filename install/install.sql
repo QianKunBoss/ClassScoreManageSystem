@@ -2,9 +2,11 @@
 CREATE TABLE IF NOT EXISTS users (
   `id` int NOT NULL AUTO_INCREMENT,
   `username` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
+  `qq_number` varchar(20) COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT 'QQ号码',
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `username` (`username`)
+  UNIQUE KEY `username` (`username`),
+  KEY `idx_qq_number` (`qq_number`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- 创建积分模板表
@@ -47,10 +49,12 @@ CREATE TABLE IF NOT EXISTS admins (
   `id` int NOT NULL AUTO_INCREMENT,
   `username` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
   `password_hash` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
+  `api_token` varchar(64) DEFAULT NULL COMMENT 'API授权token',
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   `last_login` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `username` (`username`)
+  UNIQUE KEY `username` (`username`),
+  KEY `idx_api_token` (`api_token`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- 创建系统设置表
@@ -110,3 +114,12 @@ CREATE TABLE IF NOT EXISTS seat_data (
 -- 初始化默认座位表配置
 INSERT IGNORE INTO seat_layout_config (group_count, rows_per_group, cols_per_group, has_aisle) VALUES
 (4, 5, 6, 1);
+
+-- 创建第三方图片API表
+CREATE TABLE IF NOT EXISTS third_party_apis (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `api_name` varchar(100) COLLATE utf8mb4_general_ci NOT NULL COMMENT 'API名称',
+  `api_url` varchar(500) COLLATE utf8mb4_general_ci NOT NULL COMMENT 'API图片URL',
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

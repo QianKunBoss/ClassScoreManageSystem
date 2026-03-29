@@ -3,13 +3,13 @@ require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/functions.php';
 
 if (!isLoggedIn()) {
-    header('Location: ../dengluye.php');
+    header('Location: login.php');
     exit;
 }
 
 // 验证用户ID
 if (!isset($_GET['id'])) {
-    header("Location: ../index.php");
+    header("Location: home.php");
     exit;
 }
 
@@ -39,10 +39,10 @@ $stats = $stats->fetch();
 
 // 获取每日明细（按天分组）
 $daily = $pdo->prepare("
-    SELECT 
+    SELECT
         DATE(created_at) AS date,
         SUM(score_change) AS daily_total,
-        GROUP_CONCAT(CONCAT(score_change, ' (', description, ')') SEPARATOR '<br>') AS details
+        GROUP_CONCAT(score_change || ' (' || description || ')', '<br>') AS details
     FROM score_logs
     WHERE user_id = ?
     GROUP BY DATE(created_at)
@@ -52,17 +52,18 @@ $daily->execute([$userId]);
 $dailyData = $daily->fetchAll();
 
 // 获取图表数据（最后30天）
+$thirtyDaysAgo = date('Y-m-d H:i:s', strtotime('-30 days'));
 $chart = $pdo->prepare("
-    SELECT 
+    SELECT
         DATE(created_at) AS date,
         SUM(score_change) AS daily_score
     FROM score_logs
-    WHERE user_id = ? 
-    AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+    WHERE user_id = ?
+    AND created_at >= ?
     GROUP BY DATE(created_at)
     ORDER BY date ASC
 ");
-$chart->execute([$userId]);
+$chart->execute([$userId, $thirtyDaysAgo]);
 $chartData = $chart->fetchAll();
 
 // 处理分数调整（新增部分）
@@ -101,16 +102,25 @@ if (!empty($errorMsg)) {
 <html>
 <head>
     <title><?= $user['username'] ?> 的详情</title>
+    <script>
+    // 在CSS加载前立即应用保存的主题，防止闪烁
+    (function() {
+        var savedTheme = localStorage.getItem('theme') || 'light';
+        if (savedTheme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+    })();
+    </script>
     <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.2.3/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="../assets/css/main.css" rel="stylesheet">
+    <link href="../assets/css/int_main.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <?php showNav(); ?>
     
     <div class="container mt-4">
-        <a href="../admin.php" class="btn btn-secondary mb-3">← 返回排名</a>
+        <a href="admin.php" class="btn btn-secondary mb-3 return-button">← 返回排名</a>
         
         <?php
         // 获取所有用户排名
@@ -277,5 +287,8 @@ if (!empty($errorMsg)) {
     </script>
 
     <?php showFooter(); ?>
+
+<!-- 背景图片脚本 -->
+<script src="../assets/js/background_image.js"></script>
 </body>
 </html>

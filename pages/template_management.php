@@ -3,7 +3,7 @@ require_once '../includes/config.php';
 require_once '../includes/functions.php';
 
 if (!isLoggedIn()) {
-    header('Location: ../dengluye.php');
+    header('Location: login.php');
     exit;
 }
 /*
@@ -64,15 +64,24 @@ $templates = $pdo->query("SELECT * FROM score_templates ORDER BY id DESC")->fetc
 <html>
 <head>
     <title>积分预设管理</title>
+    <script>
+    // 在CSS加载前立即应用保存的主题，防止闪烁
+    (function() {
+        var savedTheme = localStorage.getItem('theme') || 'light';
+        if (savedTheme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+    })();
+    </script>
     <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.2.3/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="../assets/css/main.css" rel="stylesheet">
+    <link href="../assets/css/int_main.css" rel="stylesheet">
 </head>
 <body>
     <?php showNav(); ?>
     
     <div class="container mt-4">
-        <a href="../admin.php" class="btn btn-secondary mb-3">← 返回排名</a>
+        <a href="admin.php" class="btn btn-secondary mb-3 return-button">← 返回排名</a>
      
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
@@ -108,7 +117,7 @@ $templates = $pdo->query("SELECT * FROM score_templates ORDER BY id DESC")->fetc
                                     编辑
                                 </button>
                                 <a href="template_management.php?delete=<?= $template['id'] ?>" 
-                                   class="btn btn-sm btn-danger"
+                                   class="btn btn-sm btn-danger delete-button"
                                    onclick="return confirm('确定要删除这个模板吗？')">
                                     删除
                                 </a>
@@ -199,5 +208,8 @@ $templates = $pdo->query("SELECT * FROM score_templates ORDER BY id DESC")->fetc
     </script>
     
     <?php showFooter(); ?>
+
+<!-- 背景图片脚本 -->
+<script src="../assets/js/background_image.js"></script>
 </body>
 </html>
