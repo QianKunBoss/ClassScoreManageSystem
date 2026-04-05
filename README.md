@@ -2,8 +2,16 @@
   <a href="https://github.com/QianKunBoss/ClassScoreManageSystem/">
     <img src="/favicon.png" alt="Logo" width="120" height="120">
   </a>
+  
+![Static Badge](https://img.shields.io/badge/LICENSE-MIT-blue)
+[![Static Badge](https://img.shields.io/badge/QQ%E7%BE%A4-1074247379-green)](https://qm.qq.com/cgi-bin/qm/qr?k=zq6abuB_dFlnKdZ8m-xbEYSf2dbbT_wH&jump_from=webapi&authKey=hDGw4OP4pavLFl5MmqaiivM5Ki9q4rx8pixuzKN7xk2hFTnQQ8s1j3ECcfAPY39V)
+
+
+
 
 </div>
+
+
 
 # ClassScoreManageSystem（CSMS）
 ## 班级操行分管理系统（CSMS）
@@ -70,15 +78,31 @@
 使用指南
 
 ### 项目图片预览
-![image](https://github.com/user-attachments/assets/205cc5ec-eedd-4765-b390-54d737b0ca3f)
-<img width="1612" height="616" alt="image" src="https://github.com/user-attachments/assets/45b213e2-b568-4dc5-897a-d091ac1933d3" />
-<img width="1355" height="480" alt="image" src="https://github.com/user-attachments/assets/c130ca87-66d5-4f32-a8e0-9f2f051d69f4" />
-![image](https://github.com/user-attachments/assets/346cf499-3411-45aa-a95d-4a5681ce886f)
-<img width="890" height="866" alt="image" src="https://github.com/user-attachments/assets/bf24a63b-d7ec-4b16-870e-105306c14bcc" />
-![image](https://github.com/user-attachments/assets/7c92f504-fbcc-4261-bb6c-021c5c0cdcc7)
-<img width="1079" height="580" alt="image" src="https://github.com/user-attachments/assets/ab81ccf4-4921-4827-995f-3906dc067880" />
-<img width="1073" height="845" alt="image" src="https://github.com/user-attachments/assets/c0f938f6-4e8c-4574-bf09-354d210cacb6" />
-![image](https://github.com/user-attachments/assets/a818abd0-5328-45fc-9acb-7d716490163b)
+主页
+<img width="1919" height="947" alt="image" src="https://github.com/user-attachments/assets/7e321b39-1479-4a57-95e9-945722be68ed" />
+管理页首页
+<img width="1919" height="952" alt="image" src="https://github.com/user-attachments/assets/17fc1f17-56bc-42dd-adc1-5f6203f0afb2" />
+用户管理
+<img width="1919" height="472" alt="image" src="https://github.com/user-attachments/assets/9b7e80b3-725b-4ece-b022-9ab0d98abadb" />
+<img width="1919" height="712" alt="image" src="https://github.com/user-attachments/assets/52046103-2ee5-436b-bc63-be128c4a7248" />
+<img width="1919" height="949" alt="image" src="https://github.com/user-attachments/assets/0cdaf298-0c45-4a59-bed5-1773a537dec5" />
+调整积分
+<img width="1778" height="876" alt="image" src="https://github.com/user-attachments/assets/549f3c76-b938-4ca9-a357-5b03daf586d3" />
+<img width="1919" height="886" alt="image" src="https://github.com/user-attachments/assets/e676eb44-43a9-4708-904f-708a4b6c223d" />
+预设管理
+<img width="1919" height="949" alt="image" src="https://github.com/user-attachments/assets/b8f00c28-04f4-4d93-9aed-00497398873c" />
+数据仪表盘
+<img width="1089" height="944" alt="image" src="https://github.com/user-attachments/assets/d0e5c226-51c0-4fdb-8b2a-7ca648d57577" />
+设置
+<img width="1919" height="955" alt="image" src="https://github.com/user-attachments/assets/7f87ca2a-18a5-45ae-a652-6808621edf14" />
+<img width="1918" height="2282" alt="image" src="https://github.com/user-attachments/assets/ee4d374c-a9c2-4f6a-b677-13fbcb951914" />
+<img width="1919" height="954" alt="image" src="https://github.com/user-attachments/assets/34eb6c3e-6f80-485b-977d-9a7c2197629a" />
+<img width="1919" height="952" alt="image" src="https://github.com/user-attachments/assets/77d4bd8e-59ea-49f2-b3ed-952020399c2d" />
+<img width="1919" height="954" alt="image" src="https://github.com/user-attachments/assets/b6682fd6-24df-462f-a81e-70d6889bf7d5" />
+<img width="1919" height="673" alt="image" src="https://github.com/user-attachments/assets/2597ef5f-1280-4abc-9f2a-8132703298d0" />
+<img width="1919" height="953" alt="image" src="https://github.com/user-attachments/assets/c4a0edeb-ff74-42d6-aa15-bdbca8513135" />
+
+
 
 
 ## 项目简介
@@ -155,10 +179,10 @@
 
 ## 系统要求
 
-- PHP 7.4+（推荐使用8.0）
+- [PHP 7.4+](https://img.shields.io/badge/PHP-%3E%3D7.4-purple)（推荐使用[8.0](https://img.shields.io/badge/%20-8.0-purple)）
 - **数据库二选一**：
-  - MySQL 5.7+ / MariaDB 10.0+
-  - SQLite 3.0+（无需配置数据库，开箱即用）
+  - ![Static Badge](https://img.shields.io/badge/MySQL-%3E%3D5.7-green) / ![Static Badge](https://img.shields.io/badge/MariaDB-%3E%3D10.0-orange)
+  - ![Static Badge](https://img.shields.io/badge/SQlite-%3E%3D3.0-red)（无需配置数据库，开箱即用）
 - Web服务器（Apache/Nginx）
 
 # 🛠️ 快速开始
