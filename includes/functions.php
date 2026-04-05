@@ -301,4 +301,86 @@ EOT;
 }
 
 
+// ─────────────────────────────────────────────
+// 数据库方言适配辅助函数
+// 用法：在 SQL 里用 db_month('col') / db_year('col') 替代
+// ─────────────────────────────────────────────
+
+/**
+ * 返回当前使用的数据库类型：'mysql' 或 'sqlite'
+ */
+function db_type(): string {
+    return $GLOBALS['db_type'] ?? 'mysql';
+}
+
+/**
+ * 返回提取月份的 SQL 片段
+ * MySQL : MONTH(`col`)
+ * SQLite: CAST(strftime('%m', `col`) AS INTEGER)
+ */
+function db_month(string $col): string {
+    return db_type() === 'sqlite'
+        ? "CAST(strftime('%m', {$col}) AS INTEGER)"
+        : "MONTH({$col})";
+}
+
+/**
+ * 返回提取年份的 SQL 片段
+ * MySQL : YEAR(`col`)
+ * SQLite: CAST(strftime('%Y', `col`) AS INTEGER)
+ */
+function db_year(string $col): string {
+    return db_type() === 'sqlite'
+        ? "CAST(strftime('%Y', {$col}) AS INTEGER)"
+        : "YEAR({$col})";
+}
+
+/**
+ * 返回日期格式化 SQL 片段（用于按天/周分组等）
+ * $format 支持：'%Y-%m-%d'（日）、'%Y-%m'（月）
+ * MySQL : DATE_FORMAT(`col`, '%Y-%m-%d')
+ * SQLite: strftime('%Y-%m-%d', `col`)
+ */
+function db_date_format(string $col, string $format = '%Y-%m-%d'): string {
+    if (db_type() === 'sqlite') {
+        return "strftime('{$format}', {$col})";
+    }
+    // MySQL DATE_FORMAT 格式与 strftime 相同，直接复用
+    return "DATE_FORMAT({$col}, '{$format}')";
+}
+
+
+/**
+ * 返回 GROUP_CONCAT 的 SQL 片段，兼容 MySQL 和 SQLite
+ *
+ * MySQL : GROUP_CONCAT(expr SEPARATOR sep)
+ * SQLite: GROUP_CONCAT(expr, sep)
+ *
+ * 注意：$expr 内部的字符串拼接请用 db_concat() 而非 ||
+ *
+ * @param string $expr  要聚合的表达式（已包含拼接逻辑）
+ * @param string $sep   分隔符，默认逗号
+ */
+function db_group_concat(string $expr, string $sep = ','): string {
+    $escaped = addslashes($sep);
+    return db_type() === 'sqlite'
+        ? "GROUP_CONCAT({$expr}, '{$escaped}')"
+        : "GROUP_CONCAT({$expr} SEPARATOR '{$escaped}')";
+}
+
+/**
+ * 返回字符串拼接的 SQL 片段，兼容 MySQL 和 SQLite
+ *
+ * MySQL : CONCAT(a, b, c)
+ * SQLite: a || b || c
+ *
+ * @param string ...$parts  要拼接的各部分（可以是列名或带引号的字面量）
+ */
+function db_concat(string ...$parts): string {
+    if (db_type() === 'sqlite') {
+        return implode(' || ', $parts);
+    }
+    return 'CONCAT(' . implode(', ', $parts) . ')';
+}
+
 ?>

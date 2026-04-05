@@ -37,7 +37,7 @@ $daily = $pdo->prepare("
     SELECT
         DATE(created_at) AS date,
         SUM(score_change) AS daily_total,
-        GROUP_CONCAT(score_change || ' (' || description || ')', '<br>') AS details
+        " . db_group_concat(db_concat('score_change', "' ('", 'description', "')'"), '<br>') . " AS details
     FROM score_logs
     WHERE user_id = ?
     GROUP BY DATE(created_at)

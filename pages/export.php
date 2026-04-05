@@ -34,7 +34,7 @@ foreach ($users as $user) {
     $logs = $pdo->prepare("
         SELECT
             DATE(sl.created_at) AS date,
-            GROUP_CONCAT(sl.score_change || '（' || sl.description || '）', ' ') AS details
+            " . db_group_concat(db_concat('sl.score_change', "'（'", 'sl.description', "'）'"), ' ') . " AS details
         FROM score_logs sl
         WHERE sl.user_id = ?
         GROUP BY DATE(sl.created_at)

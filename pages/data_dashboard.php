@@ -55,16 +55,16 @@ $topUsers = $pdo->query("
 
 
 // 获取本月积分变化
-$currentMonth = date('m');
-$currentYear = date('Y');
+$currentMonth = (int) date('n'); // 无前导零，兼容 SQLite INTEGER 比较
+$currentYear  = (int) date('Y');
 $monthlyStats = $pdo->query("
     SELECT
         SUM(CASE WHEN score_change > 0 THEN score_change ELSE 0 END) as monthly_positive,
         SUM(CASE WHEN score_change < 0 THEN score_change ELSE 0 END) as monthly_negative,
         COUNT(*) as monthly_logs
     FROM score_logs
-    WHERE strftime('%m', created_at) = '$currentMonth'
-    AND strftime('%Y', created_at) = '$currentYear'
+    WHERE " . db_month('created_at') . " = $currentMonth
+    AND "   . db_year('created_at')  . " = $currentYear
 ")->fetch();
 
 
