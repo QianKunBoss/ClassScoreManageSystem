@@ -598,6 +598,22 @@ GET /api/global_api.php?action=add_score&data={"users":[{"username":"张三","sc
 
 **注意**：这些接口仅供系统内部使用，请勿直接调用
 
-## 声明：
-该仓库严格按照MIT开源协议\
-如有问题请提issue
+
+## 贡献者
+
+Thanks goes to these wonderful people:
+
+[![Contributors](https://contrib.rocks/image?repo=QianKunBoss/ClassScoreManageSystem)](https://github.com/QianKunBoss/ClassScoreManageSystem/graphs/contributors)
+
+
+## 许可证
+
+[MIT](LICENSE)
+
+## 星标历史
+
+<picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=QianKunBoss/ClassScoreManageSystem&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=QianKunBoss/ClassScoreManageSystem&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=QianKunBoss/ClassScoreManageSystem&type=Date" />
+ </picture>
