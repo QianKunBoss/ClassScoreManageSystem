@@ -155,8 +155,8 @@ if ($table === null) {
 // 获取操作类型（通过 action 参数）
 $action = $_GET['action'] ?? 'read';
 
-// 特殊操作：add_score 不需要验证表名
-if ($action !== 'add_score') {
+// 特殊操作：add_score 和 validate_token 不需要验证表名
+if ($action !== 'add_score' && $action !== 'validate_token') {
     // 验证表访问权限
     validateTableAccess($table, $action);
     $table_config = $allowed_tables[$table];
@@ -356,6 +356,37 @@ if ($method === 'GET') {
             sendResponse(['error' => '数据库错误: ' . $e->getMessage()], 500);
         }
     }
+    elseif ($action === 'validate_token') {
+        // 验证 token 有效性
+        try {
+            // 验证 token
+            if (!verifyAdminToken()) {
+                // verifyAdminToken 已经会发送响应并退出
+                exit;
+            }
+            
+            // 获取管理员信息
+            $token = $_SERVER['HTTP_AUTHORIZATION'] ?? $_GET['token'] ?? $_POST['token'] ?? null;
+            $stmt = $pdo->prepare("SELECT id, username FROM admins WHERE api_token = ?");
+            $stmt->execute([$token]);
+            $admin = $stmt->fetch();
+            
+            if ($admin) {
+                sendResponse([
+                    'success' => true,
+                    'message' => 'Token 验证成功',
+                    'data' => [
+                        'admin_id' => $admin['id'],
+                        'username' => $admin['username']
+                    ]
+                ]);
+            } else {
+                sendResponse(['error' => '管理员不存在'], 401);
+            }
+        } catch (PDOException $e) {
+            sendResponse(['error' => '数据库错误: ' . $e->getMessage()], 500);
+        }
+    }
     elseif ($action === 'add_score') {
         // 批量加/减分
         try {
@@ -493,7 +524,7 @@ if ($method === 'GET') {
             // 如果有 ID，查询单条记录
             if ($id !== null) {
                 if ($table === 'users') {
-                    $query .= " WHERE u.id = ? GROUP BY u.id";
+                    $query .= " WHERE u.id = ? GROUP BY u.id, sd.group_index, sd.row_index, sd.col_index";
                 } else {
                     $query .= " WHERE id = ?";
                 }
@@ -565,8 +596,9 @@ if ($method === 'GET') {
                 }
 
                 // 添加 GROUP BY（必须在 WHERE 之后）
+                // 注意: 所有非聚合列都需要在 GROUP BY 中（sql_mode=only_full_group_by）
                 if ($table === 'users') {
-                    $query .= " GROUP BY u.id";
+                    $query .= " GROUP BY u.id, sd.group_index, sd.row_index, sd.col_index";
                 }
 
                 // 添加 HAVING 子句（用于过滤聚合字段，必须在 GROUP BY 之后）
@@ -643,7 +675,7 @@ if ($method === 'GET') {
                         if (!empty($conditions)) {
                             $countQuery .= ' WHERE ' . implode(' AND ', $conditions);
                         }
-                        $countQuery .= " GROUP BY u.id";
+                        $countQuery .= " GROUP BY u.id, sd.group_index, sd.row_index, sd.col_index";
                         $countQuery .= ' HAVING ' . implode(' AND ', $havingConditions);
                         $countQuery .= ") AS subquery";
                         $countStmt = $pdo->prepare($countQuery);
