@@ -18,41 +18,23 @@ if (!$input) {
 try {
     $pdo->beginTransaction();
 
-    // 更新或插入座位表配置
-    // 检查是否已有配置
-    $checkStmt = $pdo->query("SELECT COUNT(*) FROM seat_layout_config");
-    $hasConfig = $checkStmt->fetchColumn() > 0;
+    // 插入新的座位表配置记录
+    $stmt = $pdo->prepare("
+        INSERT INTO seat_layout_config (group_count, rows_per_group, cols_per_group, has_aisle)
+        VALUES (?, ?, ?, ?)
+    ");
+    $stmt->execute([
+        $input['group_count'],
+        $input['rows_per_group'],
+        $input['cols_per_group'],
+        $input['has_aisle']
+    ]);
 
-    if ($hasConfig) {
-        // 更新现有配置
-        $stmt = $pdo->prepare("
-            UPDATE seat_layout_config
-            SET group_count = ?,
-                rows_per_group = ?,
-                cols_per_group = ?,
-                has_aisle = ?,
-                updated_at = CURRENT_TIMESTAMP
-            LIMIT 1
-        ");
-        $stmt->execute([
-            $input['group_count'],
-            $input['rows_per_group'],
-            $input['cols_per_group'],
-            $input['has_aisle']
-        ]);
-    } else {
-        // 插入新配置
-        $stmt = $pdo->prepare("
-            INSERT INTO seat_layout_config (group_count, rows_per_group, cols_per_group, has_aisle)
-            VALUES (?, ?, ?, ?)
-        ");
-        $stmt->execute([
-            $input['group_count'],
-            $input['rows_per_group'],
-            $input['cols_per_group'],
-            $input['has_aisle']
-        ]);
-    }
+    // 获取刚插入的记录ID
+    $newConfigId = $pdo->lastInsertId();
+
+    // 删除除最新记录外的所有旧配置记录
+    $pdo->prepare("DELETE FROM seat_layout_config WHERE id != ?")->execute([$newConfigId]);
 
     // 删除旧的座位数据
     $pdo->exec("DELETE FROM seat_data");
