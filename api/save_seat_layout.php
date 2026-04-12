@@ -32,7 +32,7 @@ try {
                 cols_per_group = ?,
                 has_aisle = ?,
                 updated_at = CURRENT_TIMESTAMP
-            WHERE id = (SELECT id FROM seat_layout_config LIMIT 1)
+            LIMIT 1
         ");
         $stmt->execute([
             $input['group_count'],
