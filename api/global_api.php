@@ -10,7 +10,10 @@
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
+
+// 全局：存储本次请求轮换后的新 token，由 verifyAdminToken() 写入，sendResponse() 读取并注入响应体
+$_NEW_TOKEN = null;
 
 // 处理 OPTIONS 预检请求
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -22,9 +25,17 @@ require_once __DIR__ . '/../includes/config.php';
 
 /**
  * 验证管理员授权token
- * token必须由数字和英文大写字母组成，且必须在数据库中存在
+ * token必须由数字和英文大写字母组成，且必须在数据库中存在。
+ *
+ * 验证通过后会自动滚动刷新 token（以用户名为 salt，
+ * 对「password_hash + 新时间戳」取 SHA256 哈希），
+ * 新 token 随 JSON 响应的 X-New-Token 头一同返回，
+ * 客户端应在下次请求时使用新 token。
+ *
+ * @param bool $rotateToken 是否在验证成功后触发 token 轮换，默认 false
+ * @return array 返回包含 admin id 和 username 的数组
  */
-function verifyAdminToken() {
+function verifyAdminToken(bool $rotateToken = false) {
     global $pdo;
     
     // 从请求头或参数中获取token
@@ -41,7 +52,7 @@ function verifyAdminToken() {
     
     // 验证token是否在数据库中存在
     try {
-        $stmt = $pdo->prepare("SELECT id, username FROM admins WHERE api_token = ?");
+        $stmt = $pdo->prepare("SELECT id, username, password_hash FROM admins WHERE api_token = ?");
         $stmt->execute([$token]);
         $admin = $stmt->fetch();
         
@@ -49,9 +60,24 @@ function verifyAdminToken() {
             sendResponse(['error' => '无效的token，token不存在或已失效'], 401);
         }
         
-        // 可以在这里添加更多验证逻辑，如检查token是否过期等
+        // —— Token 滚动刷新（仅当 $rotateToken = true 时）——
+        // 验证通过后立即生成新 token 并写回数据库，旧 token 立即作废。
+        // 生成算法：以用户名为 salt，对「password_hash + 当前时间戳」取 SHA256。
+        if ($rotateToken) {
+            $newToken = strtoupper(hash('sha256', $admin['username'] . $admin['password_hash'] . time()));
+            $updateStmt = $pdo->prepare("UPDATE admins SET api_token = ? WHERE id = ?");
+            $updateStmt->execute([$newToken, $admin['id']]);
+            // 通过响应头将新 token 告知调用方
+            header('X-New-Token: ' . $newToken);
+            // 同时写入全局变量，sendResponse() 会将其注入响应体
+            global $_NEW_TOKEN;
+            $_NEW_TOKEN = $newToken;
+        }
         
-        return true;
+        return [
+            'id'       => $admin['id'],
+            'username' => $admin['username']
+        ];
     } catch (PDOException $e) {
         sendResponse(['error' => 'token验证失败：数据库错误'], 500);
     }
@@ -73,7 +99,7 @@ $allowed_tables = [
     ],
     'score_logs' => [
         'fields' => ['id', 'user_id', 'score_change', 'description', 'created_at'],
-        'readonly_fields' => ['id', 'created_at'],
+        'readonly_fields' => ['id'],
         'searchable_fields' => ['description']
     ],
     'seat_layout_config' => [
@@ -103,9 +129,9 @@ function validateTableAccess($table, $action) {
         ], 403);
     }
     
-    // 检查操作是否需要token
+    // 检查操作是否需要token（仅验证token有效性，不触发token轮换）
     if ($action !== 'read' && in_array($table, $token_required_tables)) {
-        verifyAdminToken();
+        verifyAdminToken(false);
     }
     
     return true;
@@ -113,9 +139,15 @@ function validateTableAccess($table, $action) {
 
 /**
  * 统一响应函数
+ * 若本次请求触发了 token 轮换，会自动在响应体中追加 new_token 字段。
  */
 function sendResponse($data, $statusCode = 200) {
+    global $_NEW_TOKEN;
     http_response_code($statusCode);
+    // 若有新 token，注入到响应体（仅在成功响应中追加，错误响应保持原样）
+    if (!empty($_NEW_TOKEN) && $statusCode < 400 && is_array($data)) {
+        $data['new_token'] = $_NEW_TOKEN;
+    }
     echo json_encode($data, JSON_UNESCAPED_UNICODE);
     exit;
 }
@@ -155,8 +187,18 @@ if ($table === null) {
 // 获取操作类型（通过 action 参数）
 $action = $_GET['action'] ?? 'read';
 
-// 特殊操作：add_score 和 validate_token 不需要验证表名
-if ($action !== 'add_score' && $action !== 'validate_token') {
+// 特殊操作：verify_token 仅验证 token 有效性并触发轮换，无需表名
+if ($action === 'verify_token') {
+    $admin = verifyAdminToken(true); // 触发轮换，新 token 会自动注入响应体
+    sendResponse([
+        'success'  => true,
+        'message'  => 'token 有效',
+        'username' => $admin['username']
+    ]);
+}
+
+// 特殊操作：add_score 不需要验证表名
+if ($action !== 'add_score') {
     // 验证表访问权限
     validateTableAccess($table, $action);
     $table_config = $allowed_tables[$table];
@@ -298,7 +340,6 @@ if ($method === 'GET') {
         }
     }
     elseif ($action === 'delete') {
-        // 删除记录
         try {
             $conditions = [];
             $params = [];
@@ -351,37 +392,6 @@ if ($method === 'GET') {
                 ]);
             } else {
                 sendResponse(['error' => '删除失败'], 500);
-            }
-        } catch (PDOException $e) {
-            sendResponse(['error' => '数据库错误: ' . $e->getMessage()], 500);
-        }
-    }
-    elseif ($action === 'validate_token') {
-        // 验证 token 有效性
-        try {
-            // 验证 token
-            if (!verifyAdminToken()) {
-                // verifyAdminToken 已经会发送响应并退出
-                exit;
-            }
-            
-            // 获取管理员信息
-            $token = $_SERVER['HTTP_AUTHORIZATION'] ?? $_GET['token'] ?? $_POST['token'] ?? null;
-            $stmt = $pdo->prepare("SELECT id, username FROM admins WHERE api_token = ?");
-            $stmt->execute([$token]);
-            $admin = $stmt->fetch();
-            
-            if ($admin) {
-                sendResponse([
-                    'success' => true,
-                    'message' => 'Token 验证成功',
-                    'data' => [
-                        'admin_id' => $admin['id'],
-                        'username' => $admin['username']
-                    ]
-                ]);
-            } else {
-                sendResponse(['error' => '管理员不存在'], 401);
             }
         } catch (PDOException $e) {
             sendResponse(['error' => '数据库错误: ' . $e->getMessage()], 500);
@@ -524,7 +534,7 @@ if ($method === 'GET') {
             // 如果有 ID，查询单条记录
             if ($id !== null) {
                 if ($table === 'users') {
-                    $query .= " WHERE u.id = ? GROUP BY u.id, sd.group_index, sd.row_index, sd.col_index";
+                    $query .= " WHERE u.id = ? GROUP BY u.id";
                 } else {
                     $query .= " WHERE id = ?";
                 }
@@ -596,9 +606,8 @@ if ($method === 'GET') {
                 }
 
                 // 添加 GROUP BY（必须在 WHERE 之后）
-                // 注意: 所有非聚合列都需要在 GROUP BY 中（sql_mode=only_full_group_by）
                 if ($table === 'users') {
-                    $query .= " GROUP BY u.id, sd.group_index, sd.row_index, sd.col_index";
+                    $query .= " GROUP BY u.id";
                 }
 
                 // 添加 HAVING 子句（用于过滤聚合字段，必须在 GROUP BY 之后）
@@ -675,7 +684,7 @@ if ($method === 'GET') {
                         if (!empty($conditions)) {
                             $countQuery .= ' WHERE ' . implode(' AND ', $conditions);
                         }
-                        $countQuery .= " GROUP BY u.id, sd.group_index, sd.row_index, sd.col_index";
+                        $countQuery .= " GROUP BY u.id";
                         $countQuery .= ' HAVING ' . implode(' AND ', $havingConditions);
                         $countQuery .= ") AS subquery";
                         $countStmt = $pdo->prepare($countQuery);

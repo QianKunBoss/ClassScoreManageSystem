@@ -257,18 +257,9 @@ $allUsers = $pdo->query("SELECT * FROM users ORDER BY created_at DESC LIMIT 20")
                                     <?php foreach ($allUsers as $user): ?>
                                     <tr>
                                         <td><?= $user['id'] ?></td>
-                                        <td>
-                                            <?= htmlspecialchars($user['username']) ?>
-                                            <?php if (!empty($user['qq_number'])): ?>
-                                                <span class="badge bg-info ms-1">[<?= htmlspecialchars($user['qq_number']) ?>]</span>
-                                            <?php endif; ?>
-                                        </td>
+                                        <td><?= htmlspecialchars($user['username']) ?></td>
                                         <td><?= date('Y-m-d H:i', strtotime($user['created_at'])) ?></td>
                                         <td>
-                                            <button type="button" class="btn btn-sm btn-outline-primary me-1" 
-                                                    onclick="showEditQQModal(<?= $user['id'] ?>, '<?= htmlspecialchars($user['username']) ?>', '<?= htmlspecialchars($user['qq_number'] ?? '') ?>')">
-                                                <i class="fab fa-qq"></i> 编辑QQ
-                                            </button>
                                             <button type="button" class="btn btn-sm btn-outline-danger" 
                                                     onclick="showDeleteUserModal(<?= $user['id'] ?>, '<?= htmlspecialchars($user['username']) ?>')">
                                                 <i class="fas fa-trash"></i> 删除
@@ -308,29 +299,6 @@ $allUsers = $pdo->query("SELECT * FROM users ORDER BY created_at DESC LIMIT 20")
             </div>
         </div>
 
-        <!-- 编辑QQ号码模态框 -->
-        <div class="modal fade" id="editQQModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">编辑QQ号码</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <p>正在为学生 <strong id="editQQUserName"></strong> 编辑QQ号码</p>
-                        <div class="mb-3">
-                            <label for="qqNumberInput" class="form-label">QQ号码</label>
-                            <input type="text" class="form-control" id="qqNumberInput" placeholder="请输入QQ号码，留空则取消绑定" maxlength="20">
-                            <div class="form-text">QQ号码为5-15位数字，留空则取消绑定</div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                        <button type="button" class="btn btn-primary" id="confirmEditQQBtn">保存</button>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
     <?php showFooter(); ?>
@@ -385,82 +353,6 @@ $allUsers = $pdo->query("SELECT * FROM users ORDER BY created_at DESC LIMIT 20")
             // 显示模态框
             const modal = new bootstrap.Modal(document.getElementById('deleteUserModal'));
             modal.show();
-        }
-
-        // 显示编辑QQ号码模态框
-        function showEditQQModal(userId, userName, currentQQ) {
-            // 设置学生名称和当前QQ号码
-            document.getElementById('editQQUserName').textContent = userName;
-            document.getElementById('qqNumberInput').value = currentQQ || '';
-            
-            // 设置保存按钮的点击事件
-            document.getElementById('confirmEditQQBtn').onclick = function() {
-                const qqNumber = document.getElementById('qqNumberInput').value.trim();
-                
-                // 验证QQ号码格式
-                if (qqNumber && !/^[1-9][0-9]{4,14}$/.test(qqNumber)) {
-                    showToast('QQ号码格式不正确，请输入5-15位数字', 'error');
-                    return;
-                }
-                
-                // 发送AJAX请求更新QQ号码
-                fetch('../api/update_user_qq.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: `user_id=${userId}&qq_number=${encodeURIComponent(qqNumber)}`
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showToast('QQ号码更新成功！', 'success');
-                        // 关闭模态框并清理backdrop
-                        safeCloseModal('editQQModal');
-                        // 更新表格中的用户信息
-                        updateUserRow(userId, userName, qqNumber);
-                    } else {
-                        showToast('更新失败：' + data.error, 'error');
-                    }
-                })
-                .catch(error => {
-                    showToast('请求失败：' + error, 'error');
-                });
-            };
-            
-            // 显示模态框
-            const modal = new bootstrap.Modal(document.getElementById('editQQModal'));
-            modal.show();
-        }
-
-        // 更新表格中的用户行
-        function updateUserRow(userId, userName, qqNumber) {
-            // 查找对应的tr元素
-            const rows = document.querySelectorAll('#list tbody tr');
-            rows.forEach(row => {
-                const idCell = row.querySelector('td:first-child');
-                if (idCell && parseInt(idCell.textContent) === userId) {
-                    // 更新姓名列
-                    const nameCell = row.querySelector('td:nth-child(2)');
-                    if (nameCell) {
-                        if (qqNumber) {
-                            nameCell.innerHTML = `${userName} <span class="badge bg-info ms-1">[${qqNumber}]</span>`;
-                        } else {
-                            nameCell.textContent = userName;
-                        }
-                    }
-                    // 更新编辑按钮的数据
-                    const editBtn = row.querySelector('button[onclick^="showEditQQModal"]');
-                    if (editBtn) {
-                        editBtn.setAttribute('onclick', `showEditQQModal(${userId}, '${userName}', '${qqNumber}')`);
-                    }
-                    // 更新删除按钮的数据
-                    const deleteBtn = row.querySelector('button[onclick^="showDeleteUserModal"]');
-                    if (deleteBtn) {
-                        deleteBtn.setAttribute('onclick', `showDeleteUserModal(${userId}, '${userName}')`);
-                    }
-                }
-            });
         }
 
         // 显示toast提示

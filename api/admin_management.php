@@ -157,9 +157,10 @@ try {
             exit;
         }
         
-        // 生成token：使用密码和用户名作为salt的哈希值
-        // 使用SHA256哈希算法
-        $token = strtoupper(hash('sha256', $password . $admin['username']));
+        // 生成token：以用户名为 salt，对「密码 + 生成时间戳」取 SHA256 哈希
+        // 格式：hash(username_salt + password + timestamp)，每次生成结果唯一
+        $timestamp = time();
+        $token = strtoupper(hash('sha256', $admin['username'] . $password . $timestamp));
         
         // 存储token到数据库
         $stmt = $pdo->prepare("UPDATE admins SET api_token = ? WHERE id = ?");

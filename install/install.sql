@@ -2,11 +2,9 @@
 CREATE TABLE IF NOT EXISTS users (
   `id` int NOT NULL AUTO_INCREMENT,
   `username` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
-  `qq_number` varchar(20) COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT 'QQ号码',
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `username` (`username`),
-  KEY `idx_qq_number` (`qq_number`)
+  UNIQUE KEY `username` (`username`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- 创建积分模板表

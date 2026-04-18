@@ -10,7 +10,7 @@ if (!defined('INSTALL_ACCESS')) {
 }
 
 // ==================== 系统版本信息 ====================
-define('SYSTEM_VERSION', '0.2.4');
+define('SYSTEM_VERSION', '0.2.5');
 define('SYSTEM_NAME', '班级操行分管理系统');
 
 // ==================== 系统要求 ====================
