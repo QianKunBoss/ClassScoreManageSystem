@@ -78,3 +78,12 @@ export const thirdPartyApis = sqliteTable('third_party_apis', {
   createdAt: text('created_at').notNull().$defaultFn(() => new Date().toISOString()),
 })
 
+// ===== system_settings（主库，全局系统设置）=====
+export const systemSettings = sqliteTable('system_settings', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  settingKey: text('setting_key').notNull().unique(),
+  settingValue: text('setting_value'),
+  description: text('description'),
+  updatedAt: text('updated_at').$defaultFn(() => new Date().toISOString()),
+})
+
