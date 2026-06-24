@@ -1,0 +1,39 @@
+{
+  "name": "csms",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.17.4",
+    "@tailwindcss/vite": "^4.3.1",
+    "@vueuse/core": "^13.5.0",
+    "bcryptjs": "^2.4.3",
+    "chart.js": "^4.4.8",
+    "clsx": "^2.1.1",
+    "drizzle-orm": "^0.44.2",
+    "nuxt": "^4.4.8",
+    "tailwind-merge": "^3.3.1",
+    "vue": "^3.5.35",
+    "vue-chartjs": "^5.3.2",
+    "vue-router": "^5.1.0"
+  },
+  "devDependencies": {
+    "@nuxtjs/color-mode": "^3.5.2",
+    "@types/bcryptjs": "^2.4.6",
+    "drizzle-kit": "^0.31.4",
+    "esbuild": "^0.28.1",
+    "nuxt-auth-utils": "^0.5.7",
+    "tailwindcss": "^4.1.11",
+    "vite": "^8.0.16"
+  }
+}

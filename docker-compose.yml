@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  csms:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: csms-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"      # IPv4
+      - "[::]:3000:3000"  # IPv6
+    volumes:
+      # SQLite 数据持久化（关键！）
+      - csms-data:/app/data
+      # 日志持久化
+      - csms-logs:/app/logs
+    environment:
+      - NODE_ENV=production
+      - SESSION_SECRET=${SESSION_SECRET:-change-this-to-a-random-secret}
+      - HOST=::
+      - PORT=3000
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/settings"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # Nginx 反向代理（可选，推荐用于生产环境）
+  nginx:
+    image: nginx:alpine
+    container_name: csms-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"           # IPv4
+      - "[::]:80:80"      # IPv6
+    volumes:
+      - ./deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./deploy/nginx/conf.d:/etc/nginx/conf.d:ro
+      # HTTPS 证书目录（如果需要）
+      # - ./deploy/nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      csms:
+        condition: service_healthy
+    networks:
+      - csms-network
+
+volumes:
+  csms-data:
+    driver: local
+  csms-logs:
+    driver: local
+
+networks:
+  csms-network:
+    driver: bridge
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: "fd00:csms::/64"
