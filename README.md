@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![CSMS Logo](./docs/favicon.png)
+![CSMS Logo](./favicon.png)
 
 </div>
 
