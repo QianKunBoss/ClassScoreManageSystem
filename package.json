@@ -30,6 +30,7 @@
   "devDependencies": {
     "@nuxtjs/color-mode": "^3.5.2",
     "@types/bcryptjs": "^2.4.6",
+    "@vite-pwa/nuxt": "^1.1.1",
     "drizzle-kit": "^0.31.4",
     "esbuild": "^0.28.1",
     "nuxt-auth-utils": "^0.5.7",

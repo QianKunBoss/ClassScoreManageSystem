@@ -1,6 +1,7 @@
 <script setup lang="ts">
-// 认证状态
+// 认证状态（固定 key，便于登录/切换账号后用 refreshNuxtData('auth-me') 刷新）
 const { data: authData, status } = useFetch('/api/auth/me', {
+  key: 'auth-me',
   credentials: 'include',
   server: false,
   immediate: true,

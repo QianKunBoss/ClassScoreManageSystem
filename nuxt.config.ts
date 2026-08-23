@@ -7,7 +7,59 @@ export default defineNuxtConfig({
   // 生产环境关闭 devtools
   devtools: { enabled: process.env.NODE_ENV !== 'production' },
 
-  modules: ['@nuxtjs/color-mode', 'nuxt-auth-utils'],
+  modules: ['@nuxtjs/color-mode', 'nuxt-auth-utils', '@vite-pwa/nuxt'],
+
+  // ============ PWA ============
+  pwa: {
+    registerType: 'autoUpdate',
+    manifest: {
+      name: 'CSMS - 班级积分管理系统',
+      short_name: 'CSMS',
+      description: '基于 Nuxt 4 的多级班级积分管理系统',
+      lang: 'zh-CN',
+      theme_color: '#070b14',
+      background_color: '#070b14',
+      display: 'standalone',
+      start_url: '/',
+      scope: '/',
+      icons: [
+        { src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+        { src: '/pwa-512x512.png', sizes: '512x512', type: 'image/png' },
+        { src: '/pwa-maskable-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+      ],
+    },
+    workbox: {
+      // 预缓存构建产物（JS/CSS/字体/图标）
+      globPatterns: ['**/*.{js,css,html,png,svg,ico,woff,woff2}'],
+      // SSR 应用，禁用 navigateFallback 避免拦截导航
+      navigateFallback: null,
+      cleanupOutdatedCaches: true,
+      // 运行时缓存：API 永不缓存，静态资源走 CacheFirst
+      runtimeCaching: [
+        {
+          urlPattern: /\/api\/.*/,
+          handler: 'NetworkOnly',
+          options: { cacheName: 'csms-no-cache' },
+        },
+        {
+          urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp|woff2?|ttf|otf)$/i,
+          handler: 'CacheFirst',
+          options: {
+            cacheName: 'csms-static',
+            expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },
+            cacheableResponse: { statuses: [0, 200] },
+          },
+        },
+      ],
+    },
+    devOptions: {
+      // 开发模式关闭 PWA，避免 HMR 与 SW 互相干扰
+      enabled: false,
+    },
+    client: {
+      installPrompt: true,
+    },
+  },
 
   vite: {
     plugins: [tailwindcss()],
@@ -78,10 +130,15 @@ export default defineNuxtConfig({
       viewport: 'width=500, initial-scale=1',
       title: 'CSMS - 班级积分管理系统',
       meta: [
-        { name: 'description', content: '班级积分管理系统 v0.3.0' },
+        { name: 'description', content: '班级积分管理系统 v0.3.1' },
+        { name: 'theme-color', content: '#070b14' },
+        { name: 'apple-mobile-web-app-capable', content: 'yes' },
+        { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
+        { name: 'apple-mobile-web-app-title', content: 'CSMS' },
       ],
       link: [
         { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
+        { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
       ],
     },
   },

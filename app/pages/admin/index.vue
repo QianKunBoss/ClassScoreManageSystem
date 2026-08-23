@@ -496,10 +496,18 @@ function cancelImport() {
           暂无学校，<NuxtLink to="/admin/schools" class="text-brand-400">立即添加</NuxtLink>
         </div>
         <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div v-for="s in schools" :key="s.id" class="glass-card p-5">
-            <h3 class="text-base font-bold text-slate-100 mb-1">{{ s.name }}</h3>
+          <NuxtLink
+            v-for="s in schools"
+            :key="s.id"
+            :to="`/superadmin/schools/${s.id}`"
+            class="glass-card p-5 block transition-all hover:border-brand-500/40 hover:-translate-y-0.5"
+          >
+            <div class="flex items-center justify-between mb-1">
+              <h3 class="text-base font-bold text-slate-100">{{ s.name }}</h3>
+              <span class="text-xs text-brand-400 shrink-0">管理 →</span>
+            </div>
             <p class="text-xs text-slate-500">创建于 {{ formatDate(s.createdAt) }}</p>
-          </div>
+          </NuxtLink>
         </div>
       </div>
 

@@ -1,0 +1,14 @@
+{
+  "slideStyle": "Tech",
+  "colorScheme": "Cosmic Tech (Deep Space Steel Blue)",
+  "primaryColor": "#4a7ab5",
+  "accentColor1": "#8b99b0",
+  "accentColor2": "#c2cfe0",
+  "neutralColor": "#64748b",
+  "background": {
+    "type": "color",
+    "value": "#070b14"
+  },
+  "fontTitle": "'Montserrat', 'Noto Sans SC', sans-serif",
+  "fontBody": "'Inter', 'Noto Sans SC', sans-serif"
+}

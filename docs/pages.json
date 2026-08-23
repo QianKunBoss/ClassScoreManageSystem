@@ -1,0 +1,86 @@
+[
+  {
+    "pageKey": "ppt-1",
+    "title": "CSMS 封面",
+    "url": "/index.html?page=1",
+    "poster": "/assets/images/posters/pages/page-1.png",
+    "pageNum": 1
+  },
+  {
+    "pageKey": "ppt-2",
+    "title": "痛点 · 传统困境",
+    "url": "/index.html?page=2",
+    "poster": "/assets/images/posters/pages/page-2.png",
+    "pageNum": 2
+  },
+  {
+    "pageKey": "ppt-3",
+    "title": "CSMS 是什么",
+    "url": "/index.html?page=3",
+    "poster": "/assets/images/posters/pages/page-3.png",
+    "pageNum": 3
+  },
+  {
+    "pageKey": "ppt-4",
+    "title": "多级管理架构",
+    "url": "/index.html?page=4",
+    "poster": "/assets/images/posters/pages/page-4.png",
+    "pageNum": 4
+  },
+  {
+    "pageKey": "ppt-5",
+    "title": "实时积分追踪",
+    "url": "/index.html?page=5",
+    "poster": "/assets/images/posters/pages/page-5.png",
+    "pageNum": 5
+  },
+  {
+    "pageKey": "ppt-6",
+    "title": "可视化座位表",
+    "url": "/index.html?page=6",
+    "poster": "/assets/images/posters/pages/page-6.png",
+    "pageNum": 6
+  },
+  {
+    "pageKey": "ppt-7",
+    "title": "快捷模板",
+    "url": "/index.html?page=7",
+    "poster": "/assets/images/posters/pages/page-7.png",
+    "pageNum": 7
+  },
+  {
+    "pageKey": "ppt-8",
+    "title": "数据统计",
+    "url": "/index.html?page=8",
+    "poster": "/assets/images/posters/pages/page-8.png",
+    "pageNum": 8
+  },
+  {
+    "pageKey": "ppt-9",
+    "title": "安全可靠",
+    "url": "/index.html?page=9",
+    "poster": "/assets/images/posters/pages/page-9.png",
+    "pageNum": 9
+  },
+  {
+    "pageKey": "ppt-10",
+    "title": "谁在用 CSMS",
+    "url": "/index.html?page=10",
+    "poster": "/assets/images/posters/pages/page-10.png",
+    "pageNum": 10
+  },
+  {
+    "pageKey": "ppt-11",
+    "title": "为什么选择 CSMS",
+    "url": "/index.html?page=11",
+    "poster": "/assets/images/posters/pages/page-11.png",
+    "pageNum": 11
+  },
+  {
+    "pageKey": "ppt-12",
+    "title": "开启智能化班级管理新时代",
+    "url": "/index.html?page=12",
+    "poster": "/assets/images/posters/pages/page-12.png",
+    "pageNum": 12
+  }
+]

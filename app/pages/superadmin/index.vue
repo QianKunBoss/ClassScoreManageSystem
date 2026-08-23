@@ -98,6 +98,18 @@ async function updatePassword() {
   finally { detailLoading.value = false }
 }
 
+async function loginAs(a: Admin) {
+  try {
+    const res = await $fetch<{ success: boolean; admin: any }>(`/api/admin/manage/${a.id}/login`, { method: 'POST' })
+    if (res.success) {
+      toast.success(`已切换为 ${a.username}`)
+      // 刷新缓存的认证状态，让导航栏立即更新
+      await refreshNuxtData('auth-me')
+      await navigateTo('/admin', { external: false })
+    }
+  } catch (err) { toast.error(err.data?.statusMessage || '登录失败') }
+}
+
 // 所属学校显示文本
 function schoolDisplay(a: Admin): string {
   if (!a.schoolName) return '-'
@@ -345,6 +357,7 @@ watchEffect(async () => {
                     >
                       启用
                     </button>
+                    <button v-if="a.id !== currentUser?.id && a.disabled !== 1" @click="loginAs(a)" class="btn btn-ghost text-xs py-1 px-2 text-brand-400 hover:!bg-brand-500/10">登录</button>
                     <button @click="openDetail(a)" class="btn btn-ghost text-xs py-1 px-2 text-brand-400 hover:!bg-brand-500/10">详情</button>
                     <button v-if="a.id !== currentUser?.id" @click="confirmDeleteAdmin = a" class="btn btn-ghost text-xs py-1 px-2 !text-red-400 hover:!bg-red-500/10">删除</button>
                   </div>

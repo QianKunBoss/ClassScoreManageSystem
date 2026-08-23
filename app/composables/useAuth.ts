@@ -3,14 +3,14 @@ export function useAuth() {
   // 从 API 获取登录状态
   const { data: authData, refresh: refreshAuth } = useFetch('/api/auth/me', {
     key: 'auth-me',
-    default: () => ({ success: false, data: null }),
+    default: () => ({ success: false, admin: null as null | { id: number; username: string; role: string } }),
   })
 
   // 是否已登录
   const loggedIn = computed(() => authData.value?.success === true)
 
   // 当前用户
-  const user = computed(() => authData.value?.data || null)
+  const user = computed(() => authData.value?.admin || null)
 
   // 退出登录
   async function clear() {

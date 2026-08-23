@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSMS 班级操行分管理系统 · 宣传片</title>
+    <!-- Font imports (dynamically inserted based on configuration) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Inter:wght@300;400;600&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #4a7ab5;
+            --accent-color-1: #8b99b0;
+            --accent-color-2: #c2cfe0;
+            --neutral-color: #64748b;
+            --slide-background: #070b14;
+            --font-title: 'Montserrat', 'Noto Sans SC', sans-serif;
+            --font-body: 'Inter', 'Noto Sans SC', sans-serif;
+        }
+    </style>
+    <style>
+        .nav-btn, .page-indicator, .progress-bar {
+            display: none !important;
+        }
+    </style>
+    <script>
+        // # 禁止修改
+        window.slideDataMap = new Map();
+    </script>
+</head>
+<body>
+    <!-- PPT 容器 -->
+    <div class="ppt-container">
+        <div class="ppt-viewport" id="ppt-viewport">
+            <!-- 幻灯片将由 JavaScript 动态插入 -->
+        </div>
+    </div>
+    
+    <!-- 导航按钮 -->
+    <button class="nav-btn nav-btn-prev" id="prevBtn" aria-label="上一页">
+        ←
+    </button>
+    <button class="nav-btn nav-btn-next" id="nextBtn" aria-label="下一页">
+        →
+    </button>
+    
+    <!-- 进度条 -->
+    <div class="progress-bar">
+        <div class="progress-bar-fill" id="progressBarFill"></div>
+    </div>
+    
+    <!-- 页码指示器 -->
+    <div class="page-indicator" id="pageIndicator">
+        1 / 1
+    </div>
+    
+    <!-- Vite Main Entry -->
+    <script type="module" src="/src/main.js"></script>
+
+    <!--  开始加载slide-N.js区域 -->
+    <!-- <script type="module" src="/src/slides/slide-{N}.js"></script> -->
+    <!--  结束加载slide-N.js区域 -->
+    <script type="module" src="/src/slides/slide-1.js"></script>
+      <script type="module" src="/src/slides/slide-2.js"></script>
+      <script type="module" src="/src/slides/slide-3.js"></script>
+      <script type="module" src="/src/slides/slide-4.js"></script>
+      <script type="module" src="/src/slides/slide-5.js"></script>
+      <script type="module" src="/src/slides/slide-6.js"></script>
+      <script type="module" src="/src/slides/slide-7.js"></script>
+      <script type="module" src="/src/slides/slide-8.js"></script>
+      <script type="module" src="/src/slides/slide-9.js"></script>
+      <script type="module" src="/src/slides/slide-10.js"></script>
+      <script type="module" src="/src/slides/slide-11.js"></script>
+      <script type="module" src="/src/slides/slide-12.js"></script>
+  </body>
+</html>
