@@ -29,8 +29,8 @@ async function handleLogout() {
       <!-- 左侧 Logo + 导航 -->
       <div class="flex items-center gap-6">
         <NuxtLink to="/student" class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold">
-            C
+          <div class="w-8 h-8 rounded-lg overflow-hidden bg-brand-500 p-1">
+            <img src="/favicon.ico" alt="CSMS" class="w-full h-full object-contain" />
           </div>
           <span class="text-sm font-bold text-slate-100 hidden sm:inline">CSMS 学生端</span>
         </NuxtLink>
@@ -39,7 +39,7 @@ async function handleLogout() {
           <NuxtLink
             to="/student"
             class="text-xs px-3 py-1.5 rounded-lg transition-all duration-200"
-            :class="$route.path === '/student' ? 'bg-indigo-500/10 text-indigo-400' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'"
+            :class="$route.path === '/student' ? 'bg-brand-500/10 text-brand-400' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'"
           >
             🏠 我的积分
           </NuxtLink>
@@ -47,14 +47,14 @@ async function handleLogout() {
             v-if="showRanking"
             to="/student/ranking"
             class="text-xs px-3 py-1.5 rounded-lg transition-all duration-200"
-            :class="$route.path.includes('/student/ranking') ? 'bg-indigo-500/10 text-indigo-400' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'"
+            :class="$route.path.includes('/student/ranking') ? 'bg-brand-500/10 text-brand-400' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'"
           >
             📊 班级排名
           </NuxtLink>
           <NuxtLink
             to="/student/settings"
             class="text-xs px-3 py-1.5 rounded-lg transition-all duration-200"
-            :class="$route.path.includes('/student/settings') ? 'bg-indigo-500/10 text-indigo-400' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'"
+            :class="$route.path.includes('/student/settings') ? 'bg-brand-500/10 text-brand-400' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'"
           >
             ⚙️ 个人设置
           </NuxtLink>

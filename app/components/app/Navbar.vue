@@ -80,10 +80,10 @@ const navLinks = computed(() => {
         <div class="flex items-center justify-between h-16">
           <!-- Logo -->
           <NuxtLink to="/" class="flex items-center gap-2.5 group">
-            <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-indigo-500/30 group-hover:scale-105 transition-transform">
-              C
+            <div class="w-9 h-9 rounded-xl overflow-hidden bg-brand-500 p-1.5 shadow-lg shadow-brand-500/30 group-hover:scale-105 transition-transform">
+              <img src="/favicon.ico" alt="CSMS" class="w-full h-full object-contain" />
             </div>
-            <span class="text-lg font-bold gradient-text hidden sm:block">CSMS</span>
+            <span class="text-lg font-bold highlight-text hidden sm:block">CSMS</span>
           </NuxtLink>
 
           <!-- 桌面端导航 -->
@@ -94,7 +94,7 @@ const navLinks = computed(() => {
                 :key="link.to"
                 :to="link.to"
                 class="px-3.5 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all duration-200"
-                active-class="!text-indigo-400 !bg-indigo-500/10"
+                active-class="!text-brand-400 !bg-brand-500/10"
               >
                 {{ link.label }}
               </NuxtLink>
@@ -144,7 +144,7 @@ const navLinks = computed(() => {
               <div class="flex sm:hidden items-center gap-3">
                 <NuxtLink
                   to="/settings"
-                  class="text-xs text-slate-400 hover:text-indigo-400 transition-colors"
+                  class="text-xs text-slate-400 hover:text-brand-400 transition-colors"
                 >
                   ⚙️
                 </NuxtLink>
@@ -185,7 +185,7 @@ const navLinks = computed(() => {
                 :to="link.to"
                 @click="mobileMenuOpen = false"
                 class="block px-4 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all"
-                active-class="!text-indigo-400 !bg-indigo-500/10"
+                active-class="!text-brand-400 !bg-brand-500/10"
               >
                 {{ link.label }}
               </NuxtLink>
@@ -209,7 +209,7 @@ const navLinks = computed(() => {
               <NuxtLink
                 to="/login"
                 @click="mobileMenuOpen = false"
-                class="block px-4 py-2.5 rounded-lg text-sm font-medium text-indigo-400 hover:bg-indigo-500/10 transition-all"
+                class="block px-4 py-2.5 rounded-lg text-sm font-medium text-brand-400 hover:bg-brand-500/10 transition-all"
               >
                 登录
               </NuxtLink>

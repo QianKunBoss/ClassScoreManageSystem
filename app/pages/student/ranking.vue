@@ -54,7 +54,7 @@ function formatTime(t: string) {
 
       <!-- 我的排名卡片 -->
       <div class="glass-card p-5 mb-8 flex items-center gap-4 animate-slide-up">
-        <div class="w-12 h-12 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 text-xl font-bold">
+        <div class="w-12 h-12 rounded-xl bg-brand-500/10 flex items-center justify-center text-brand-400 text-xl font-bold">
           {{ classmates.findIndex((u: any) => u.id === student.id) + 1 || '-' }}
         </div>
         <div class="flex-1 min-w-0">
@@ -62,7 +62,7 @@ function formatTime(t: string) {
           <p class="text-xs text-slate-500">我的当前排名</p>
         </div>
         <div class="text-right">
-          <p class="text-lg font-black text-indigo-400">{{ student.totalScore ?? 0 }}</p>
+          <p class="text-lg font-black text-brand-400">{{ student.totalScore ?? 0 }}</p>
           <p class="text-xs text-slate-500">积分</p>
         </div>
       </div>
@@ -80,7 +80,7 @@ function formatTime(t: string) {
             v-for="(u, idx) in classmates"
             :key="u.id"
             class="flex items-center gap-4 px-5 py-3.5 transition-all duration-150"
-            :class="u.id === student.id ? 'bg-indigo-500/5 border-l-2 border-indigo-500' : 'hover:bg-slate-800/20'"
+            :class="u.id === student.id ? 'bg-brand-500/5 border-l-2 border-brand-500' : 'hover:bg-slate-800/20'"
           >
             <!-- 名次 -->
             <div
@@ -92,9 +92,9 @@ function formatTime(t: string) {
 
             <!-- 姓名 -->
             <div class="flex-1 min-w-0">
-              <p class="text-sm" :class="u.id === student.id ? 'font-bold text-indigo-300' : 'text-slate-300'">
+              <p class="text-sm" :class="u.id === student.id ? 'font-bold text-brand-300' : 'text-slate-300'">
                 {{ u.actualName || u.username }}
-                <span v-if="u.id === student.id" class="text-xs text-indigo-400 ml-1">(我)</span>
+                <span v-if="u.id === student.id" class="text-xs text-brand-400 ml-1">(我)</span>
               </p>
             </div>
 

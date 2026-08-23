@@ -263,7 +263,7 @@ async function deleteUser() {
               <tr v-for="u in users" :key="u.id">
                 <td>
                   <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-lg bg-indigo-500/10 flex items-center justify-center font-bold text-indigo-400 text-sm">
+                    <div class="w-9 h-9 rounded-lg bg-brand-500/10 flex items-center justify-center font-bold text-brand-400 text-sm">
                       {{ u.username.charAt(0).toUpperCase() }}
                     </div>
                     <div>
@@ -276,7 +276,7 @@ async function deleteUser() {
                   {{ u.gradeName ? u.gradeName + ' - ' : '' }}{{ u.className || '-' }}
                 </td>
                 <td>
-                  <span class="text-sm font-bold text-indigo-400">{{ u.totalScore }}</span>
+                  <span class="text-sm font-bold text-brand-400">{{ u.totalScore }}</span>
                 </td>
                 <td>
                   <span class="text-sm text-green-400">+{{ u.addScore }}</span>

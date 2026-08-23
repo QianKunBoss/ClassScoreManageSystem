@@ -89,9 +89,9 @@ function getTypeStyle(type: string) {
       }
     default:
       return {
-        bg: 'bg-indigo-500/10',
-        border: 'border-indigo-500/30',
-        text: 'text-indigo-200',
+        bg: 'bg-brand-500/10',
+        border: 'border-brand-500/30',
+        text: 'text-brand-200',
         icon: '📢',
       }
   }

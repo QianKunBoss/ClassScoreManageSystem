@@ -162,7 +162,7 @@ function getTypeStyle(type: string) {
     case 'important':
       return 'bg-red-500/10 text-red-400 border-red-500/20'
     default:
-      return 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+      return 'bg-brand-500/10 text-brand-400 border-brand-500/20'
   }
 }
 
@@ -310,7 +310,7 @@ function getTypeLabel(type: string) {
                   v-model="newAnnouncement.active"
                   :true-value="1"
                   :false-value="0"
-                  class="w-4 h-4 rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500"
+                  class="w-4 h-4 rounded border-slate-600 bg-slate-800 text-brand-500 focus:ring-brand-500"
                 />
                 <label class="text-sm text-slate-300">立即启用</label>
               </div>
@@ -362,7 +362,7 @@ function getTypeLabel(type: string) {
                   v-model="editingAnnouncement.active"
                   :true-value="1"
                   :false-value="0"
-                  class="w-4 h-4 rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500"
+                  class="w-4 h-4 rounded border-slate-600 bg-slate-800 text-brand-500 focus:ring-brand-500"
                 />
                 <label class="text-sm text-slate-300">启用</label>
               </div>

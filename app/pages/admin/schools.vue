@@ -146,7 +146,7 @@ onMounted(() => {
                 <td><span class="text-sm font-medium text-slate-200">{{ school.name }}</span></td>
                 <td class="text-xs text-slate-500">{{ formatDate(school.createdAt) }}</td>
                 <td>
-                  <button @click="editSchool(school)" class="btn btn-ghost text-xs py-1 px-2 !text-indigo-400 hover:!bg-indigo-500/10 mr-2">编辑</button>
+                  <button @click="editSchool(school)" class="btn btn-ghost text-xs py-1 px-2 !text-brand-400 hover:!bg-brand-500/10 mr-2">编辑</button>
                   <button @click="confirmDelete = { ...school, password: '' }" class="btn btn-ghost text-xs py-1 px-2 !text-red-400 hover:!bg-red-500/10">删除</button>
                 </td>
               </tr>

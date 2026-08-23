@@ -86,15 +86,15 @@ async function handleLogin() {
   <div class="w-full max-w-md px-4">
     <!-- 背景光效 -->
     <div class="fixed inset-0 overflow-hidden pointer-events-none -z-10">
-      <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-500/5 rounded-full blur-3xl"></div>
-      <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl"></div>
+      <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-brand-500/5 rounded-full blur-3xl"></div>
+      <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-brand-500/5 rounded-full blur-3xl"></div>
     </div>
 
     <div class="animate-fade-in">
       <!-- Logo -->
       <div class="text-center mb-8">
-        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold text-2xl shadow-2xl shadow-indigo-500/25 mb-4">
-          C
+        <div class="inline-flex w-16 h-16 rounded-2xl overflow-hidden bg-brand-500 p-2 shadow-2xl shadow-brand-500/25 mb-4">
+          <img src="/favicon.ico" alt="CSMS" class="w-full h-full object-contain" />
         </div>
         <h1 class="text-2xl font-bold text-slate-100 mb-1">欢迎回来</h1>
         <p class="text-sm text-slate-500">登录班级积分管理系统</p>
@@ -107,14 +107,14 @@ async function handleLogin() {
           <button
             @click="loginMode = 'admin'"
             class="flex-1 py-2 rounded-md text-sm font-medium transition-all duration-200"
-            :class="loginMode === 'admin' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/25' : 'text-slate-400 hover:text-slate-200'"
+            :class="loginMode === 'admin' ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/25' : 'text-slate-400 hover:text-slate-200'"
           >
             🔐 管理员
           </button>
           <button
             @click="loginMode = 'student'"
             class="flex-1 py-2 rounded-md text-sm font-medium transition-all duration-200"
-            :class="loginMode === 'student' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/25' : 'text-slate-400 hover:text-slate-200'"
+            :class="loginMode === 'student' ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/25' : 'text-slate-400 hover:text-slate-200'"
           >
             🎓 学生
           </button>
@@ -190,7 +190,7 @@ async function handleLogin() {
 
         <div class="mt-6 pt-5 border-t border-slate-700/50 text-center">
           <p v-if="loginMode === 'admin'" class="text-xs text-slate-500">
-            还没有账号？<NuxtLink to="/apply" class="text-indigo-400 hover:text-indigo-300 transition-colors">点此申请入驻</NuxtLink>
+            还没有账号？<NuxtLink to="/apply" class="text-brand-400 hover:text-brand-300 transition-colors">点此申请入驻</NuxtLink>
           </p>
           <p v-else class="text-xs text-slate-500">
             学生账号由管理员创建，请联系管理员获取登录信息

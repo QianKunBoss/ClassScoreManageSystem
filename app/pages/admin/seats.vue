@@ -225,13 +225,13 @@ const groups = computed(() => {
                   :data-seat-id="seat.id"
                   class="w-20 h-20 rounded-xl border-2 border-dashed transition-all duration-200 flex flex-col items-center justify-center text-xs cursor-pointer select-none relative group"
                   :class="seat.userId
-                    ? 'border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/20'
-                    : 'border-slate-700/30 bg-slate-800/20 hover:border-indigo-500/40 hover:bg-slate-800/40'"
+                    ? 'border-brand-500/30 bg-brand-500/10 hover:bg-brand-500/20'
+                    : 'border-slate-700/30 bg-slate-800/20 hover:border-brand-500/40 hover:bg-slate-800/40'"
                   @dragover="onDragOver"
                   @drop="onDropOntoSeat($event, seat.id)"
                 >
                   <template v-if="seat.userId">
-                    <span class="text-xs font-bold text-indigo-200 leading-tight text-center px-1 truncate w-full">
+                    <span class="text-xs font-bold text-brand-200 leading-tight text-center px-1 truncate w-full">
                       {{ seat.actualName || seat.username }}
                     </span>
                     <button
@@ -257,9 +257,9 @@ const groups = computed(() => {
                   :key="u.id"
                   draggable="true"
                   @dragstart="onDragStart($event, u.id, u.username, u.actualName || '')"
-                  class="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-800/50 transition-all cursor-grab active:cursor-grabbing border border-transparent hover:border-indigo-500/30"
+                  class="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-800/50 transition-all cursor-grab active:cursor-grabbing border border-transparent hover:border-brand-500/30"
                 >
-                  <div class="w-7 h-7 rounded-lg bg-indigo-500/10 flex items-center justify-center font-bold text-indigo-400 text-xs shrink-0">
+                  <div class="w-7 h-7 rounded-lg bg-brand-500/10 flex items-center justify-center font-bold text-brand-400 text-xs shrink-0">
                     {{ (u.actualName || u.username).charAt(0).toUpperCase() }}
                   </div>
                   <div class="flex-1 min-w-0">

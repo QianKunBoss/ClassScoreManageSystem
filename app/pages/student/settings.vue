@@ -192,7 +192,7 @@ async function updatePassword() {
             </div>
             <div class="flex justify-between items-center">
               <span class="text-sm text-slate-500">当前积分</span>
-              <span class="text-sm text-indigo-400 font-bold">{{ student.totalScore ?? 0 }}</span>
+              <span class="text-sm text-brand-400 font-bold">{{ student.totalScore ?? 0 }}</span>
             </div>
             <div class="flex justify-between items-center">
               <span class="text-sm text-slate-500">所属班级</span>

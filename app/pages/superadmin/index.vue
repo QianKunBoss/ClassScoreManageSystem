@@ -345,7 +345,7 @@ watchEffect(async () => {
                     >
                       启用
                     </button>
-                    <button @click="openDetail(a)" class="btn btn-ghost text-xs py-1 px-2 text-sky-400 hover:!bg-sky-500/10">详情</button>
+                    <button @click="openDetail(a)" class="btn btn-ghost text-xs py-1 px-2 text-brand-400 hover:!bg-brand-500/10">详情</button>
                     <button v-if="a.id !== currentUser?.id" @click="confirmDeleteAdmin = a" class="btn btn-ghost text-xs py-1 px-2 !text-red-400 hover:!bg-red-500/10">删除</button>
                   </div>
                 </td>

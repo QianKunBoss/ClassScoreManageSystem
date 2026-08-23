@@ -48,7 +48,7 @@ watchEffect(async () => {
 
     <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div v-if="loading" class="flex justify-center py-20">
-        <div class="w-8 h-8 border-2 border-slate-700 border-t-indigo-500 rounded-full animate-spin"></div>
+        <div class="w-8 h-8 border-2 border-slate-700 border-t-brand-500 rounded-full animate-spin"></div>
       </div>
 
       <div v-else-if="user" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -56,7 +56,7 @@ watchEffect(async () => {
         <div class="lg:col-span-1">
           <div class="glass-card p-6 animate-slide-up">
             <div class="flex flex-col items-center text-center mb-6">
-              <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-3xl mb-4 shadow-lg shadow-indigo-500/20">
+              <div class="w-20 h-20 rounded-2xl bg-brand-500 flex items-center justify-center text-white font-bold text-3xl mb-4 shadow-lg shadow-brand-500/20">
                 {{ user.username.charAt(0).toUpperCase() }}
               </div>
               <h2 class="text-lg font-bold text-slate-100">{{ user.username }}</h2>
@@ -66,7 +66,7 @@ watchEffect(async () => {
             <div class="space-y-3">
               <div class="flex items-center justify-between p-3 rounded-lg bg-slate-800/30">
                 <span class="text-sm text-slate-500">总积分</span>
-                <span class="text-lg font-bold text-indigo-400">{{ user.totalScore }}</span>
+                <span class="text-lg font-bold text-brand-400">{{ user.totalScore }}</span>
               </div>
               <div class="flex items-center justify-between p-3 rounded-lg bg-slate-800/30">
                 <span class="text-sm text-slate-500">加分总计</span>

@@ -241,7 +241,7 @@ watchEffect(async () => {
                       'text-xs px-2 py-0.5 rounded-full': true,
                       'bg-blue-500/10 text-blue-400': a.role === 'school_admin',
                       'bg-emerald-500/10 text-emerald-400': a.role === 'grade_admin',
-                      'bg-purple-500/10 text-purple-400': a.role === 'class_admin',
+                      'bg-brand-500/10 text-brand-400': a.role === 'class_admin',
                     }"
                   >
                     {{ { school_admin: '学校管理员', grade_admin: '年级管理员', class_admin: '班级管理员' }[a.role] || a.role }}
@@ -251,7 +251,7 @@ watchEffect(async () => {
                 <td class="text-xs text-slate-500">{{ a.lastLogin ? formatDate(a.lastLogin) : '从未' }}</td>
                 <td>
                   <div class="flex items-center gap-1">
-                    <button @click="openDetail(a)" class="btn btn-ghost text-xs py-1 px-2 text-sky-400 hover:!bg-sky-500/10">详情</button>
+                    <button @click="openDetail(a)" class="btn btn-ghost text-xs py-1 px-2 text-brand-400 hover:!bg-brand-500/10">详情</button>
                     <button
                       v-if="a.id !== currentUser?.id"
                       @click="confirmDelete = a"

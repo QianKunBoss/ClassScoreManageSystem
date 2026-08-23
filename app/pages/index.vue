@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { sanitizeHtml } from '~/utils/sanitizeHtml'
 
 definePageMeta({ auth: false })
@@ -22,7 +22,6 @@ const sanitizedAnnouncements = computed(() =>
   }))
 )
 
-// 加载公告
 async function loadAnnouncements() {
   announcementsLoading.value = true
   try {
@@ -38,36 +37,12 @@ async function loadAnnouncements() {
 onMounted(loadAnnouncements)
 
 const features = [
-  {
-    icon: '🏫',
-    title: '多级管理架构',
-    desc: '支持总系统 → 学校 → 年级 → 班级四级管理，权限清晰，责任明确。上级管理下级，层层把控。',
-  },
-  {
-    icon: '📊',
-    title: '实时积分追踪',
-    desc: '学生积分实时更新，排行榜自动排序。支持加减分操作，完整记录可追溯。',
-  },
-  {
-    icon: '🪑',
-    title: '可视化座位表',
-    desc: '拖拽式座位编排，支持分组、行列自定义。直观展示班级座位分布。',
-  },
-  {
-    icon: '⚡',
-    title: '快捷模板',
-    desc: '预设常用积分模板，一键应用。支持自定义模板，提升日常操作效率。',
-  },
-  {
-    icon: '📈',
-    title: '数据统计',
-    desc: '多维度数据统计，趋势图表直观展示。帮助老师掌握班级整体情况。',
-  },
-  {
-    icon: '🔒',
-    title: '安全可靠',
-    desc: '基于 Session 的安全认证，密码 BCrypt 加密存储。操作需二次确认，防止误触。',
-  },
+  { icon: '🏫', title: '多级管理架构', desc: '支持总系统 → 学校 → 年级 → 班级四级管理，权限清晰，责任明确。上级管理下级，层层把控。' },
+  { icon: '📊', title: '实时积分追踪', desc: '学生积分实时更新，排行榜自动排序。支持加减分操作，完整记录可追溯。' },
+  { icon: '🪑', title: '可视化座位表', desc: '拖拽式座位编排，支持分组、行列自定义。直观展示班级座位分布。' },
+  { icon: '⚡', title: '快捷模板', desc: '预设常用积分模板，一键应用。支持自定义模板，提升日常操作效率。' },
+  { icon: '📈', title: '数据统计', desc: '多维度数据统计，趋势图表直观展示。帮助老师掌握班级整体情况。' },
+  { icon: '🔒', title: '安全可靠', desc: '基于 Session 的安全认证，密码 BCrypt 加密存储。操作需二次确认，防止误触。' },
 ]
 
 const steps = [
@@ -87,112 +62,395 @@ const faqs = [
 const openFaq = ref(-1)
 function toggleFaq(i: number) { openFaq.value = openFaq.value === i ? -1 : i }
 
-// 公告类型样式
 function getTypeStyle(type: string) {
   switch (type) {
-    case 'warning':
-      return 'bg-yellow-500/10 border-yellow-500/20'
-    case 'important':
-      return 'bg-red-500/10 border-red-500/20'
-    default:
-      return 'bg-indigo-500/10 border-indigo-500/20'
+    case 'warning': return 'cosmic-warn'
+    case 'important': return 'cosmic-danger'
+    default: return 'cosmic-info'
   }
 }
 
-// 公告类型图标
 function getTypeIcon(type: string) {
   switch (type) {
-    case 'warning':
-      return '⚠️'
-    case 'important':
-      return '🔴'
-    default:
-      return '📢'
+    case 'warning': return '⚠️'
+    case 'important': return '🔴'
+    default: return '📢'
   }
 }
+
+/* 悬浮星尘（固定数据，避免 SSR 水合不一致） */
+const stardust = [
+  { left: '6%', top: '22%', size: 3, delay: '0s', dur: '14s' },
+  { left: '18%', top: '68%', size: 2, delay: '1.2s', dur: '18s' },
+  { left: '32%', top: '12%', size: 4, delay: '0.6s', dur: '13s' },
+  { left: '45%', top: '80%', size: 2, delay: '2s', dur: '20s' },
+  { left: '58%', top: '30%', size: 3, delay: '0.3s', dur: '15s' },
+  { left: '70%', top: '55%', size: 4, delay: '1.6s', dur: '17s' },
+  { left: '84%', top: '18%', size: 2, delay: '0.9s', dur: '14s' },
+  { left: '92%', top: '72%', size: 3, delay: '2.4s', dur: '19s' },
+  { left: '12%', top: '42%', size: 2, delay: '1.8s', dur: '16s' },
+  { left: '52%', top: '8%', size: 2, delay: '0.1s', dur: '12s' },
+  { left: '76%', top: '86%', size: 3, delay: '2.8s', dur: '21s' },
+  { left: '40%', top: '48%', size: 2, delay: '3.2s', dur: '15s' },
+]
+
+/* ===================== 沉浸式交互 ===================== */
+const pageRef = ref<HTMLElement | null>(null)
+const heroRef = ref<HTMLElement | null>(null)
+const glowRef = ref<HTMLElement | null>(null)
+const progressRef = ref<HTMLElement | null>(null)
+const reduceMotion = ref(false)
+
+function onMouseMove(e: MouseEvent) {
+  const h = heroRef.value
+  if (!h) return
+  const r = h.getBoundingClientRect()
+  const mx = (e.clientX - r.left) / r.width - 0.5
+  const my = (e.clientY - r.top) / r.height - 0.5
+  h.style.setProperty('--mx', mx.toFixed(4))
+  h.style.setProperty('--my', my.toFixed(4))
+  if (glowRef.value) {
+    glowRef.value.style.transform = `translate(${e.clientX - r.left}px, ${e.clientY - r.top}px)`
+  }
+}
+function onMouseEnter() {
+  if (glowRef.value) glowRef.value.style.opacity = '1'
+}
+function onMouseLeave() {
+  const h = heroRef.value
+  if (h) { h.style.setProperty('--mx', '0'); h.style.setProperty('--my', '0') }
+  if (glowRef.value) glowRef.value.style.opacity = '0'
+}
+
+function onHeroClick(e: MouseEvent) {
+  const h = heroRef.value
+  if (!h || reduceMotion.value) return
+  const r = h.getBoundingClientRect()
+  const ring = document.createElement('span')
+  ring.className = 'ripple'
+  ring.style.left = `${e.clientX - r.left}px`
+  ring.style.top = `${e.clientY - r.top}px`
+  h.appendChild(ring)
+  window.setTimeout(() => ring.remove(), 720)
+}
+
+/* 星海（纯色实心 + 辉光 + 鼠标视差） */
+let canvas: HTMLCanvasElement | null = null
+let ctx: CanvasRenderingContext2D | null = null
+let stars: any[] = []
+let shooting: any[] = []
+let rafId = 0
+let w = 0
+let hgt = 0
+let gmx = 0
+let gmy = 0
+
+function onGlobalMouse(e: MouseEvent) {
+  gmx = (e.clientX / window.innerWidth - 0.5) * 2
+  gmy = (e.clientY / window.innerHeight - 0.5) * 2
+}
+
+function resizeCanvas() {
+  if (!canvas) return
+  w = canvas.clientWidth
+  hgt = canvas.clientHeight
+  const dpr = Math.min(window.devicePixelRatio || 1, 2)
+  canvas.width = w * dpr
+  canvas.height = hgt * dpr
+  ctx?.setTransform(dpr, 0, 0, dpr, 0, 0)
+}
+
+function initStars() {
+  const count = Math.min(260, Math.floor((w * hgt) / 5000))
+  stars = Array.from({ length: count }, () => ({
+    x: Math.random() * w,
+    y: Math.random() * hgt,
+    z: Math.random() * 0.85 + 0.15,
+    r: Math.random() * 1.5 + 0.3,
+    tw: Math.random() * Math.PI * 2,
+    tws: Math.random() * 0.04 + 0.01,
+  }))
+  shooting = []
+}
+
+function spawnShooting() {
+  if (Math.random() < 0.014 && shooting.length < 3) {
+    shooting.push({
+      x: Math.random() * w * 0.7,
+      y: Math.random() * hgt * 0.4,
+      len: Math.random() * 130 + 80,
+      speed: Math.random() * 7 + 6,
+      angle: Math.PI / 4 + (Math.random() - 0.5) * 0.3,
+    })
+  }
+}
+
+function draw() {
+  if (!ctx) return
+  ctx.clearRect(0, 0, w, hgt)
+  ctx.shadowBlur = 6
+  ctx.shadowColor = 'rgba(150, 180, 215, 0.7)'
+
+  for (const s of stars) {
+    s.y += s.z * 0.14
+    if (s.y > hgt) { s.y = 0; s.x = Math.random() * w }
+    s.tw += s.tws
+    const px = s.x - gmx * s.z * 16
+    const py = s.y - gmy * s.z * 12
+    const alpha = Math.max(0.15, 0.42 + Math.sin(s.tw) * 0.32 + s.z * 0.2)
+    ctx.beginPath()
+    ctx.arc(px, py, s.r * s.z, 0, Math.PI * 2)
+    ctx.fillStyle = `rgba(205, 224, 245, ${alpha.toFixed(3)})`
+    ctx.fill()
+  }
+  ctx.shadowBlur = 0
+
+  spawnShooting()
+  for (let i = shooting.length - 1; i >= 0; i--) {
+    const sh = shooting[i]
+    sh.x += Math.cos(sh.angle) * sh.speed
+    sh.y += Math.sin(sh.angle) * sh.speed
+    const tailX = sh.x - Math.cos(sh.angle) * sh.len
+    const tailY = sh.y - Math.sin(sh.angle) * sh.len
+    ctx.strokeStyle = 'rgba(170, 205, 240, 0.85)'
+    ctx.shadowBlur = 8
+    ctx.shadowColor = 'rgba(170, 205, 240, 0.8)'
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.moveTo(sh.x, sh.y)
+    ctx.lineTo(tailX, tailY)
+    ctx.stroke()
+    ctx.shadowBlur = 0
+    if (sh.x > w + 50 || sh.y > hgt + 50) shooting.splice(i, 1)
+  }
+
+  rafId = requestAnimationFrame(draw)
+}
+
+function startStarfield() {
+  canvas = document.getElementById('starfield') as HTMLCanvasElement
+  if (!canvas) return
+  ctx = canvas.getContext('2d')
+  if (!ctx) return
+  reduceMotion.value = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  resizeCanvas()
+  initStars()
+  if (!reduceMotion.value) {
+    draw()
+  } else {
+    ctx.shadowBlur = 4
+    ctx.shadowColor = 'rgba(150,180,215,0.6)'
+    for (const s of stars) {
+      ctx.beginPath()
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2)
+      ctx.fillStyle = 'rgba(205,224,245,0.7)'
+      ctx.fill()
+    }
+  }
+  window.addEventListener('resize', resizeCanvas)
+}
+
+function onScroll() {
+  const h = document.documentElement
+  const max = h.scrollHeight - h.clientHeight
+  const p = max > 0 ? h.scrollTop / max : 0
+  if (progressRef.value) progressRef.value.style.width = `${(p * 100).toFixed(2)}%`
+  if (pageRef.value) pageRef.value.style.setProperty('--scroll', p.toFixed(4))
+}
+
+let observer: IntersectionObserver | null = null
+function initReveal() {
+  const els = document.querySelectorAll('[data-reveal]')
+  if (!('IntersectionObserver' in window)) {
+    els.forEach(el => el.classList.add('is-visible'))
+    return
+  }
+  observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        ;(e.target as HTMLElement).classList.add('is-visible')
+        observer?.unobserve(e.target)
+      }
+    })
+  }, { threshold: 0.12 })
+  els.forEach(el => observer?.observe(el))
+}
+
+let magneticEls: HTMLElement[] = []
+function initMagnetic() {
+  magneticEls = Array.from(document.querySelectorAll<HTMLElement>('[data-magnetic]'))
+  magneticEls.forEach(el => {
+    el.addEventListener('mousemove', onMagneticMove)
+    el.addEventListener('mouseleave', onMagneticLeave)
+  })
+}
+function onMagneticMove(e: Event) {
+  if (reduceMotion.value) return
+  const el = e.currentTarget as HTMLElement
+  const r = el.getBoundingClientRect()
+  const dx = (e as MouseEvent).clientX - (r.left + r.width / 2)
+  const dy = (e as MouseEvent).clientY - (r.top + r.height / 2)
+  el.style.transform = `translate(${(dx * 0.25).toFixed(1)}px, ${(dy * 0.3).toFixed(1)}px)`
+}
+function onMagneticLeave(e: Event) {
+  ;(e.currentTarget as HTMLElement).style.transform = ''
+}
+
+let tiltEls: HTMLElement[] = []
+function initTilt() {
+  tiltEls = Array.from(document.querySelectorAll<HTMLElement>('[data-tilt]'))
+  tiltEls.forEach(el => {
+    el.addEventListener('mousemove', onTiltMove)
+    el.addEventListener('mouseleave', onTiltLeave)
+  })
+}
+function onTiltMove(e: Event) {
+  if (reduceMotion.value) return
+  const el = e.currentTarget as HTMLElement
+  const r = el.getBoundingClientRect()
+  const px = (e as MouseEvent).clientX - (r.left + r.width / 2)
+  const py = (e as MouseEvent).clientY - (r.top + r.height / 2)
+  const rx = (-py / r.height) * 10
+  const ry = (px / r.width) * 12
+  el.style.transform = `perspective(800px) rotateX(${rx.toFixed(2)}deg) rotateY(${ry.toFixed(2)}deg) translateY(-4px)`
+}
+function onTiltLeave(e: Event) {
+  ;(e.currentTarget as HTMLElement).style.transform = ''
+}
+
+onMounted(() => {
+  startStarfield()
+  initReveal()
+  initMagnetic()
+  initTilt()
+  onScroll()
+  window.addEventListener('mousemove', onGlobalMouse, { passive: true })
+  window.addEventListener('scroll', onScroll, { passive: true })
+})
+
+onBeforeUnmount(() => {
+  cancelAnimationFrame(rafId)
+  window.removeEventListener('resize', resizeCanvas)
+  window.removeEventListener('mousemove', onGlobalMouse)
+  window.removeEventListener('scroll', onScroll)
+  observer?.disconnect()
+  magneticEls.forEach(el => {
+    el.removeEventListener('mousemove', onMagneticMove)
+    el.removeEventListener('mouseleave', onMagneticLeave)
+  })
+  tiltEls.forEach(el => {
+    el.removeEventListener('mousemove', onTiltMove)
+    el.removeEventListener('mouseleave', onTiltLeave)
+  })
+})
 </script>
 
 <template>
-  <div class="min-h-screen bg-[#0a0a1a]">
-    <!-- Hero -->
-    <section class="relative overflow-hidden">
-      <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-transparent"></div>
-      <div class="absolute top-20 left-10 w-72 h-72 bg-indigo-500/20 rounded-full blur-3xl"></div>
-      <div class="absolute bottom-10 right-10 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl"></div>
+  <div ref="pageRef" class="cosmic-page">
+    <canvas id="starfield" class="starfield"></canvas>
+    <div class="stardust-layer" aria-hidden="true">
+      <span
+        v-for="(d, i) in stardust"
+        :key="i"
+        class="stardust-dot"
+        :style="{ left: d.left, top: d.top, width: d.size + 'px', height: d.size + 'px', animationDelay: d.delay, animationDuration: d.dur }"
+      ></span>
+    </div>
+    <div ref="progressRef" class="scroll-progress"></div>
 
-      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-20 text-center">
-        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-sm text-indigo-400 mb-8 animate-fade-in">
-          <span class="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
+    <!-- ============ HERO ============ -->
+    <section
+      ref="heroRef"
+      class="hero"
+      @mousemove="onMouseMove"
+      @mouseenter="onMouseEnter"
+      @mouseleave="onMouseLeave"
+      @click="onHeroClick"
+    >
+      <div class="bg-field">
+        <div class="nebula nebula-1"></div>
+        <div class="nebula nebula-2"></div>
+        <div class="nebula nebula-3"></div>
+        <div class="grid-floor"></div>
+      </div>
+      <div class="aurora aurora-1"></div>
+      <div class="aurora aurora-2"></div>
+      <div ref="glowRef" class="cursor-glow"></div>
+
+      <div class="hero-content">
+        <div class="badge-pill animate-fade-in">
+          <span class="badge-dot"></span>
           多租户班级管理系统 · 全新升级
         </div>
 
-        <h1 class="text-4xl md:text-6xl font-extrabold text-slate-100 mb-6 animate-fade-in" style="animation-delay: 0.1s">
+        <h1 class="hero-title animate-fade-in" style="animation-delay: 0.1s">
           让班级管理<br />
-          <span class="gradient-text">更智能、更高效</span>
+          <span class="accent-text">更智能、更高效</span>
         </h1>
 
-        <p class="text-lg text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed animate-fade-in" style="animation-delay: 0.2s">
+        <p class="hero-sub animate-fade-in" style="animation-delay: 0.2s">
           CSMS 是一款面向各级学校的班级积分管理系统。<br />
           支持多级管理架构，让积分管理变得简单、透明、有趣。
         </p>
 
-        <div class="flex items-center justify-center gap-4 animate-fade-in" style="animation-delay: 0.3s">
-          <NuxtLink to="/apply" class="btn btn-primary text-base px-8 py-3">
-            立即申请入驻
-          </NuxtLink>
-          <NuxtLink to="/login" class="btn btn-ghost text-base px-8 py-3">
-            已有账号？登录
-          </NuxtLink>
+        <div class="hero-cta animate-fade-in" style="animation-delay: 0.3s">
+          <NuxtLink to="/apply" class="btn-neon" data-magnetic>立即申请入驻</NuxtLink>
+          <NuxtLink to="/login" class="btn-ghost-neon" data-magnetic>已有账号？登录</NuxtLink>
         </div>
 
-        <!-- 预览卡片 -->
-        <div class="mt-16 animate-slide-up" style="animation-delay: 0.5s">
-          <div class="glass-card p-2 max-w-4xl mx-auto overflow-hidden">
-            <div class="rounded-xl bg-slate-900/80 p-6 text-left">
-              <div class="flex items-center gap-2 mb-4">
-                <div class="w-3 h-3 rounded-full bg-red-500/70"></div>
-                <div class="w-3 h-3 rounded-full bg-yellow-500/70"></div>
-                <div class="w-3 h-3 rounded-full bg-green-500/70"></div>
-                <div class="ml-4 flex-1 h-7 rounded-lg bg-slate-800/60"></div>
-              </div>
-              <div class="space-y-3">
-                <div class="h-4 rounded bg-indigo-500/20 w-1/3"></div>
-                <div class="h-3 rounded bg-slate-800/60 w-full"></div>
-                <div class="h-3 rounded bg-slate-800/60 w-5/6"></div>
-                <div class="h-3 rounded bg-slate-800/60 w-2/3"></div>
-                <div class="flex gap-2 mt-4">
-                  <div class="h-8 rounded-lg bg-indigo-500/20 w-20"></div>
-                  <div class="h-8 rounded-lg bg-slate-800/60 w-20"></div>
-                  <div class="h-8 rounded-lg bg-slate-800/60 w-20"></div>
-                </div>
+        <!-- 星轨装置 -->
+        <div class="orbit-wrap animate-slide-up" style="animation-delay: 0.5s">
+          <div class="orbit-ring ring-1"><span class="sat sat-a"></span></div>
+          <div class="orbit-ring ring-2"><span class="sat sat-b"></span></div>
+          <div class="orbit-ring ring-3"></div>
+          <div class="planet"></div>
+          <div class="glass-console">
+            <div class="console-bar">
+              <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+              <span class="console-path">csms://dashboard</span>
+            </div>
+            <div class="console-body">
+              <div class="console-line w-1-3"></div>
+              <div class="console-line w-full"></div>
+              <div class="console-line w-5-6"></div>
+              <div class="console-line w-2-3"></div>
+              <div class="console-chips">
+                <span class="chip chip-1"></span>
+                <span class="chip chip-2"></span>
+                <span class="chip chip-3"></span>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      <div class="scroll-indicator">
+        <span>向下探索</span>
+        <div class="mouse"><span class="wheel"></span></div>
+      </div>
     </section>
 
-    <!-- 公告区域 -->
-    <section v-if="announcements.length > 0 || announcementsLoading" class="border-t border-slate-800/50">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div class="flex items-center justify-between mb-6">
-          <h2 class="text-lg font-bold text-slate-100">📢 系统公告</h2>
-        </div>
+    <!-- ============ 公告 ============ -->
+    <section v-if="announcements.length > 0 || announcementsLoading" class="section">
+      <div class="container">
+        <h2 class="section-title" data-reveal="up"><span class="title-mark">▰</span> 系统公告</h2>
         <div v-if="announcementsLoading" class="space-y-3">
-          <div v-for="i in 2" :key="i" class="h-16 rounded-xl bg-slate-800/40 animate-pulse"></div>
+          <div v-for="i in 2" :key="i" class="hud-panel h-20 pulse"></div>
         </div>
         <div v-else class="space-y-3">
           <div
             v-for="a in sanitizedAnnouncements"
             :key="a.id"
-            class="p-4 rounded-xl border transition-all hover:-translate-y-0.5"
+            class="hud-panel"
             :class="getTypeStyle(a.type)"
+            data-reveal="up"
           >
+            <div class="hud-corner"></div>
             <div class="flex items-start gap-3">
               <span class="text-xl shrink-0">{{ getTypeIcon(a.type) }}</span>
               <div class="flex-1 min-w-0">
-                <h3 class="text-sm font-bold text-slate-100 mb-1">{{ a.title }}</h3>
-                <p class="text-sm text-slate-400 announcement-content" v-html="a.safeContent"></p>
+                <h3 class="hud-title">{{ a.title }}</h3>
+                <p class="announcement-content" v-html="a.safeContent"></p>
               </div>
             </div>
           </div>
@@ -200,145 +458,128 @@ function getTypeIcon(type: string) {
       </div>
     </section>
 
-    <!-- 特性 -->
-    <section class="border-t border-slate-800/50">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div class="text-center mb-14">
-          <h2 class="text-2xl md:text-3xl font-bold text-slate-100 mb-3">为什么选择 CSMS？</h2>
-          <p class="text-slate-500 max-w-xl mx-auto">从学校到班级，每一层都有专属管理面板，权限分明，操作高效。</p>
+    <!-- ============ 特性 ============ -->
+    <section class="section">
+      <div class="container">
+        <div class="text-center mb-14" data-reveal="up">
+          <h2 class="section-title inline-block">为什么选择 CSMS？</h2>
+          <p class="section-sub">从学校到班级，每一层都有专属管理面板，权限分明，操作高效。</p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div
             v-for="(f, i) in features"
             :key="i"
-            class="glass-card p-6 animate-slide-up hover:border-indigo-500/20 hover:-translate-y-1 transition-all duration-300"
-            :style="`animation-delay: ${i * 0.1}s`"
+            class="reveal-cell"
+            :data-reveal="i % 3 === 1 ? 'scale' : 'up'"
+            :style="`transition-delay: ${i * 0.08}s`"
           >
-            <div class="w-12 h-12 rounded-xl bg-indigo-500/10 flex items-center justify-center text-2xl mb-4">
-              {{ f.icon }}
+            <div class="neon-card" data-tilt>
+              <div class="neon-card-icon">{{ f.icon }}</div>
+              <h3 class="neon-card-title">{{ f.title }}</h3>
+              <p class="neon-card-desc">{{ f.desc }}</p>
+              <span class="scan-line"></span>
             </div>
-            <h3 class="text-base font-bold text-slate-100 mb-2">{{ f.title }}</h3>
-            <p class="text-sm text-slate-500 leading-relaxed">{{ f.desc }}</p>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- 使用流程 -->
-    <section class="border-t border-slate-800/50 bg-slate-900/30">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div class="text-center mb-14">
-          <h2 class="text-2xl md:text-3xl font-bold text-slate-100 mb-3">四步快速上手</h2>
-          <p class="text-slate-500">从入驻到使用，全程引导，无需技术背景</p>
+    <!-- ============ 流程 ============ -->
+    <section class="section">
+      <div class="container">
+        <div class="text-center mb-14" data-reveal="up">
+          <h2 class="section-title inline-block">四步快速上手</h2>
+          <p class="section-sub">从入驻到使用，全程引导，无需技术背景。</p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative">
           <div
             v-for="(s, i) in steps"
             :key="i"
-            class="relative animate-slide-up"
-            :style="`animation-delay: ${i * 0.15}s`"
+            class="reveal-cell"
+            :data-reveal="i % 2 ? 'right' : 'left'"
+            :style="`transition-delay: ${i * 0.12}s`"
           >
-            <div class="glass-card p-6 text-center h-full">
-              <div class="text-5xl font-extrabold text-indigo-500/10 mb-4">{{ s.n }}</div>
-              <h3 class="text-base font-bold text-slate-100 mb-2">{{ s.title }}</h3>
-              <p class="text-sm text-slate-500 leading-relaxed">{{ s.desc }}</p>
-            </div>
-            <!-- 箭头（桌面端） -->
-            <div v-if="i < steps.length - 1" class="hidden lg:block absolute top-1/2 -right-3 transform -translate-y-1/2 text-slate-700 text-2xl">→</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- 架构说明 -->
-    <section class="border-t border-slate-800/50">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div class="text-center mb-14">
-          <h2 class="text-2xl md:text-3xl font-bold text-slate-100 mb-3">清晰的多级权限架构</h2>
-          <p class="text-slate-500 max-w-xl mx-auto">每一级管理员只能管理自己的下级，保证数据安全和管理规范</p>
-        </div>
-
-        <div class="max-w-3xl mx-auto">
-          <div class="space-y-4">
-            <div class="glass-card p-5 flex items-center gap-5 animate-slide-up">
-              <div class="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center text-xl flex-shrink-0">👑</div>
-              <div class="flex-1">
-                <h3 class="text-base font-bold text-slate-100">超级管理员</h3>
-                <p class="text-sm text-slate-500">管理所有学校，审核入驻申请，系统全局配置</p>
-              </div>
-              <div class="text-xs text-slate-600 bg-slate-800/40 px-2 py-1 rounded">总系统</div>
-            </div>
-
-            <div class="glass-card p-5 flex items-center gap-5 animate-slide-up" style="animation-delay: 0.1s">
-              <div class="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-xl flex-shrink-0">🏫</div>
-              <div class="flex-1">
-                <h3 class="text-base font-bold text-slate-100">学校管理员</h3>
-                <p class="text-sm text-slate-500">管理本校年级，配置学校信息，管理年级管理员账号</p>
-              </div>
-              <div class="text-xs text-slate-600 bg-slate-800/40 px-2 py-1 rounded">学校</div>
-            </div>
-
-            <div class="glass-card p-5 flex items-center gap-5 animate-slide-up" style="animation-delay: 0.2s">
-              <div class="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center text-xl flex-shrink-0">📚</div>
-              <div class="flex-1">
-                <h3 class="text-base font-bold text-slate-100">年级管理员</h3>
-                <p class="text-sm text-slate-500">管理本年级班级，创建班级，管理班级管理员账号</p>
-              </div>
-              <div class="text-xs text-slate-600 bg-slate-800/40 px-2 py-1 rounded">年级</div>
-            </div>
-
-            <div class="glass-card p-5 flex items-center gap-5 animate-slide-up" style="animation-delay: 0.3s">
-              <div class="w-12 h-12 rounded-xl bg-indigo-500/10 flex items-center justify-center text-xl flex-shrink-0">👨🏫</div>
-              <div class="flex-1">
-                <h3 class="text-base font-bold text-slate-100">班级管理员（班主任）</h3>
-                <p class="text-sm text-slate-500">管理本班学生，日常积分操作、座位编排、数据统计</p>
-              </div>
-              <div class="text-xs text-slate-600 bg-slate-800/40 px-2 py-1 rounded">班级</div>
+            <div class="step-card" data-tilt>
+              <div class="step-num">{{ s.n }}</div>
+              <h3 class="step-title">{{ s.title }}</h3>
+              <p class="step-desc">{{ s.desc }}</p>
+              <div v-if="i < steps.length - 1" class="step-arrow">→</div>
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- FAQ -->
-    <section class="border-t border-slate-800/50 bg-slate-900/30">
-      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div class="text-center mb-14">
-          <h2 class="text-2xl md:text-3xl font-bold text-slate-100 mb-3">常见问题</h2>
+    <!-- ============ 架构 ============ -->
+    <section class="section section-alt">
+      <div class="container">
+        <div class="text-center mb-14" data-reveal="up">
+          <h2 class="section-title inline-block">清晰的多级权限架构</h2>
+          <p class="section-sub">每一级管理员只能管理自己的下级，保证数据安全和管理规范。</p>
+        </div>
+
+        <div class="arch-tree">
+          <div
+            v-for="(node, i) in [
+              { icon: '👑', title: '超级管理员', desc: '管理所有学校，审核入驻申请，系统全局配置', tag: '总系统', cls: 'arch-red' },
+              { icon: '🏫', title: '学校管理员', desc: '管理本校年级，配置学校信息，管理年级管理员账号', tag: '学校', cls: 'arch-blue' },
+              { icon: '📚', title: '年级管理员', desc: '管理本年级班级，创建班级，管理班级管理员账号', tag: '年级', cls: 'arch-green' },
+              { icon: '👨‍🏫', title: '班级管理员（班主任）', desc: '管理本班学生，日常积分操作、座位编排、数据统计', tag: '班级', cls: 'arch-cyan' },
+            ]"
+            :key="i"
+            class="arch-node"
+            :class="node.cls"
+            data-reveal="left"
+            :style="`transition-delay: ${i * 0.1}s`"
+          >
+            <div class="arch-icon">{{ node.icon }}</div>
+            <div class="flex-1">
+              <h3 class="arch-title">{{ node.title }}</h3>
+              <p class="arch-desc">{{ node.desc }}</p>
+            </div>
+            <div class="arch-tag">{{ node.tag }}</div>
+            <div v-if="i < 3" class="arch-link"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FAQ ============ -->
+    <section class="section">
+      <div class="container container-narrow">
+        <div class="text-center mb-14" data-reveal="up">
+          <h2 class="section-title inline-block">常见问题</h2>
         </div>
 
         <div class="space-y-3">
           <div
             v-for="(item, i) in faqs"
             :key="i"
-            class="glass-card overflow-hidden animate-slide-up"
-            :style="`animation-delay: ${i * 0.1}s`"
+            class="faq-card"
+            data-reveal="up"
+            :style="`transition-delay: ${i * 0.08}s`"
           >
-            <button
-              @click="toggleFaq(i)"
-              class="w-full flex items-center justify-between p-5 text-left"
-            >
-              <span class="text-sm font-medium text-slate-200">{{ item.q }}</span>
-              <span class="text-indigo-400 text-lg transition-transform" :class="{ 'rotate-180': openFaq === i }">▼</span>
+            <button class="faq-q" @click="toggleFaq(i)">
+              <span>{{ item.q }}</span>
+              <span class="faq-chevron" :class="{ open: openFaq === i }">▼</span>
             </button>
-            <div v-if="openFaq === i" class="px-5 pb-5 text-sm text-slate-500 leading-relaxed animate-fade-in">
-              {{ item.a }}
-            </div>
+            <div v-if="openFaq === i" class="faq-a">{{ item.a }}</div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- CTA -->
-    <section class="border-t border-slate-800/50">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
-        <h2 class="text-2xl md:text-3xl font-bold text-slate-100 mb-4">准备好提升班级管理效率了吗？</h2>
-        <p class="text-slate-500 mb-8 max-w-xl mx-auto">联系超级管理员获取入驻资格，开启智能化班级管理新时代。</p>
-        <div class="flex items-center justify-center gap-4">
-          <NuxtLink to="/apply" class="btn btn-primary text-base px-8 py-3">立即申请入驻</NuxtLink>
-          <NuxtLink to="/login" class="btn btn-ghost text-base px-8 py-3">已有账号？登录</NuxtLink>
+    <!-- ============ CTA ============ -->
+    <section class="section cta-section">
+      <div class="cta-glow"></div>
+      <div class="container text-center" data-reveal="scale">
+        <h2 class="cta-title">准备好提升班级管理效率了吗？</h2>
+        <p class="cta-sub">联系超级管理员获取入驻资格，开启智能化班级管理新时代。</p>
+        <div class="hero-cta">
+          <NuxtLink to="/apply" class="btn-neon" data-magnetic>立即申请入驻</NuxtLink>
+          <NuxtLink to="/login" class="btn-ghost-neon" data-magnetic>已有账号？登录</NuxtLink>
         </div>
       </div>
     </section>
@@ -346,60 +587,676 @@ function getTypeIcon(type: string) {
 </template>
 
 <style scoped>
-.announcement-content :deep(a) {
-  color: #818cf8;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  opacity: 0.9;
+/* ============ 基础（宇宙科技 · 深空蓝黑，纯色无渐变） ============ */
+.cosmic-page {
+  position: relative;
+  min-height: 100vh;
+  background: #070b14;
+  color: #dbe4f0;
+  overflow: hidden;
+  --scroll: 0;
 }
 
-.announcement-content :deep(a:hover) {
-  opacity: 1;
+.container {
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+@media (min-width: 640px) { .container { padding: 0 2rem; } }
+@media (min-width: 1024px) { .container { padding: 0 3rem; } }
+.container-narrow { max-width: 48rem; }
+
+.section {
+  position: relative;
+  z-index: 2;
+  padding: 5rem 0;
+  border-top: 1px solid rgba(110, 140, 180, 0.1);
+}
+.section-alt { background: rgba(13, 20, 36, 0.5); }
+
+/* ============ 全局固定星海 + 星尘 + 进度条 ============ */
+.starfield {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+.stardust-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+}
+.stardust-dot {
+  position: absolute;
+  border-radius: 50%;
+  background: #cddff2;
+  box-shadow: 0 0 8px #a8c4e0;
+  opacity: 0;
+  animation-name: floatUp;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+@keyframes floatUp {
+  0% { transform: translateY(0); opacity: 0; }
+  8% { opacity: 0.85; }
+  60% { opacity: 0.45; }
+  100% { transform: translateY(-42vh); opacity: 0; }
+}
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  width: 0;
+  background: #4a7ab5;
+  box-shadow: 0 0 10px rgba(74, 122, 181, 0.7), 0 0 20px rgba(74, 122, 181, 0.4);
+  z-index: 100;
+  pointer-events: none;
 }
 
-.announcement-content :deep(b),
-.announcement-content :deep(strong) {
+/* ============ HERO ============ */
+.hero {
+  position: relative;
+  z-index: 2;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  --mx: 0;
+  --my: 0;
+}
+.bg-field {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  transform: translateY(calc(var(--scroll) * -70px));
+}
+.nebula {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.4;
+  animation: drift 22s ease-in-out infinite alternate;
+}
+.nebula-1 { top: -8%; left: -6%; width: 38rem; height: 38rem; background: #3a6396; }
+.nebula-2 { bottom: -12%; right: -8%; width: 44rem; height: 44rem; background: #31537e; animation-delay: -7s; }
+.nebula-3 { top: 30%; right: 20%; width: 26rem; height: 26rem; background: #4a7ab5; animation-delay: -14s; }
+@keyframes drift {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to   { transform: translate3d(40px, -30px, 0) scale(1.1); }
+}
+
+.grid-floor {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 38%;
+  opacity: 0.3;
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='60'%20height='60'%3E%3Cpath%20d='M60%200%20L0%200%20L0%2060'%20fill='none'%20stroke='%235b7ba3'%20stroke-opacity='0.22'%20stroke-width='1'/%3E%3C/svg%3E");
+  transform: perspective(420px) rotateX(62deg);
+  transform-origin: bottom center;
+}
+
+.aurora {
+  position: absolute;
+  z-index: 0;
+  height: 140px;
+  width: 55%;
+  filter: blur(60px);
+  opacity: 0.35;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+.aurora-1 { top: 10%; left: -15%; background: #4a7ab5; animation: auroraSweep 13s ease-in-out infinite alternate; }
+.aurora-2 { bottom: 12%; right: -18%; background: #31537e; animation: auroraSweep 17s ease-in-out infinite alternate-reverse; }
+@keyframes auroraSweep {
+  from { transform: translateX(-12%) scale(1); }
+  to   { transform: translateX(60%) scale(1.25); }
+}
+
+.cursor-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 420px;
+  height: 420px;
+  margin: -210px 0 0 -210px;
+  border-radius: 50%;
+  background: rgba(90, 130, 180, 0.16);
+  filter: blur(20px);
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  mix-blend-mode: screen;
+  will-change: transform;
+}
+.ripple {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #6b95c6;
+  box-shadow: 0 0 10px rgba(107, 149, 198, 0.7);
+  transform: translate(-50%, -50%) scale(0);
+  animation: ripple 0.7s ease-out forwards;
+  pointer-events: none;
+  z-index: 3;
+}
+@keyframes ripple {
+  to { transform: translate(-50%, -50%) scale(14); opacity: 0; }
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  max-width: 64rem;
+  padding: 6rem 1.5rem 4rem;
+  transform: translate(calc(var(--mx) * -18px), calc(var(--my) * -12px));
+  transition: transform 0.25s ease-out;
+}
+
+.badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  color: #a9c2e2;
+  background: rgba(74, 122, 181, 0.12);
+  border: 1px solid rgba(107, 149, 198, 0.32);
+  box-shadow: 0 0 20px rgba(74, 122, 181, 0.16);
+  margin-bottom: 2rem;
+}
+.badge-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: #6b95c6;
+  box-shadow: 0 0 8px rgba(107, 149, 198, 0.8);
+  animation: pulse-dot 1.6s ease-in-out infinite;
+}
+@keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+.hero-title {
+  font-size: clamp(2.4rem, 6vw, 4.2rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin-bottom: 1.5rem;
+  color: #eaf1f9;
+  text-shadow: 0 0 36px rgba(74, 122, 181, 0.2);
+  min-height: 2.2em;
+}
+.accent-text {
+  display: inline-block;
+  color: #9db8de;
+  text-shadow:
+    0 0 8px rgba(107, 149, 198, 0.65),
+    0 0 20px rgba(74, 122, 181, 0.4),
+    0 0 40px rgba(74, 122, 181, 0.25);
+  animation: glitchFlicker 4s infinite steps(1);
+}
+@keyframes glitchFlicker {
+  0%, 88%, 100% { opacity: 1; }
+  90% { opacity: 0.7; }
+  92% { opacity: 1; }
+  94% { opacity: 0.8; text-shadow: 2px 0 #6b95c6, -2px 0 #8b99b0; }
+  96% { opacity: 1; text-shadow: 0 0 8px rgba(107,149,198,0.65), 0 0 20px rgba(74,122,181,0.4); }
+}
+.hero-sub {
+  font-size: 1.1rem;
+  color: #8b99b0;
+  line-height: 1.7;
+  max-width: 42rem;
+  margin: 0 auto 2.5rem;
+}
+.hero-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.btn-neon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.85rem 2rem;
   font-weight: 700;
-  color: #e2e8f0;
+  font-size: 1rem;
+  border-radius: 0.75rem;
+  color: #f2f6fb;
+  background: #4a7ab5;
+  box-shadow: 0 0 20px rgba(74, 122, 181, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  border: none;
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, background 0.2s ease, transform 0.2s ease;
+  text-decoration: none;
+  will-change: transform;
+}
+.btn-neon:hover {
+  background: #3a6396;
+  box-shadow: 0 0 32px rgba(107, 149, 198, 0.55), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+.btn-ghost-neon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.85rem 2rem;
+  font-weight: 600;
+  font-size: 1rem;
+  border-radius: 0.75rem;
+  color: #c2cfe0;
+  background: rgba(10, 16, 28, 0.5);
+  border: 1px solid rgba(107, 149, 198, 0.3);
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+  text-decoration: none;
+  will-change: transform;
+}
+.btn-ghost-neon:hover {
+  color: #fff;
+  border-color: rgba(107, 149, 198, 0.55);
+  box-shadow: 0 0 18px rgba(74, 122, 181, 0.25);
 }
 
+/* 星轨装置 */
+.orbit-wrap {
+  position: relative;
+  width: 320px;
+  height: 320px;
+  margin: 4rem auto 0;
+  transform: translate(calc(var(--mx) * 26px), calc(var(--my) * 18px));
+  transition: transform 0.3s ease-out;
+}
+.orbit-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(107, 149, 198, 0.22);
+  box-shadow: 0 0 26px rgba(74, 122, 181, 0.1) inset;
+}
+.ring-1 { animation: spin 18s linear infinite; border-color: rgba(107, 149, 198, 0.3); }
+.ring-2 { inset: 38px; animation: spin 13s linear infinite reverse; border-color: rgba(74, 122, 181, 0.3); border-style: dashed; }
+.ring-3 { inset: 76px; animation: spin 9s linear infinite; border-color: rgba(147, 179, 214, 0.26); }
+@keyframes spin { to { transform: rotate(360deg); } }
+.sat {
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  border-radius: 50%;
+}
+.sat-a { background: #6b95c6; box-shadow: 0 0 10px rgba(107, 149, 198, 0.8); }
+.sat-b { background: #93b3d6; box-shadow: 0 0 10px rgba(147, 179, 214, 0.8); }
+
+.planet {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 84px;
+  height: 84px;
+  margin: -42px 0 0 -42px;
+  border-radius: 50%;
+  background: #1f3550;
+  box-shadow:
+    inset -10px -10px 24px rgba(0, 0, 0, 0.55),
+    inset 8px 8px 20px rgba(157, 184, 222, 0.3),
+    0 0 36px rgba(74, 122, 181, 0.5);
+  animation: planetFloat 5s ease-in-out infinite;
+}
+@keyframes planetFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.glass-console {
+  position: absolute;
+  bottom: -36px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 260px;
+  background: rgba(10, 14, 28, 0.8);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(107, 149, 198, 0.28);
+  border-radius: 0.9rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 26px rgba(74, 122, 181, 0.18);
+  overflow: hidden;
+  text-align: left;
+}
+.console-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(74, 122, 181, 0.1);
+  border-bottom: 1px solid rgba(107, 149, 198, 0.15);
+}
+.dot { width: 0.55rem; height: 0.55rem; border-radius: 50%; }
+.dot.r { background: #c0564a; }
+.dot.y { background: #b89a4a; }
+.dot.g { background: #3f9d86; }
+.console-path { margin-left: 0.5rem; font-size: 0.7rem; color: #6b95c6; font-family: ui-monospace, monospace; }
+.console-body { padding: 0.9rem; display: flex; flex-direction: column; gap: 0.5rem; }
+.console-line { height: 0.55rem; border-radius: 0.3rem; background: rgba(107, 149, 198, 0.16); }
+.console-line.w-1-3 { width: 33%; }
+.console-line.w-full { width: 100%; }
+.console-line.w-5-6 { width: 83%; }
+.console-line.w-2-3 { width: 66%; }
+.console-chips { display: flex; gap: 0.4rem; margin-top: 0.3rem; }
+.chip { width: 1.6rem; height: 0.6rem; border-radius: 9999px; }
+.chip-1 { background: #6b95c6; box-shadow: 0 0 8px rgba(107, 149, 198, 0.8); }
+.chip-2 { background: #54708f; box-shadow: 0 0 8px rgba(84, 112, 143, 0.8); }
+.chip-3 { background: #8b99b0; box-shadow: 0 0 8px rgba(139, 153, 176, 0.8); }
+
+.scroll-indicator {
+  position: absolute;
+  bottom: 1.8rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  color: #64748b;
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
+}
+.mouse {
+  width: 24px;
+  height: 38px;
+  border: 1.5px solid rgba(107, 149, 198, 0.5);
+  border-radius: 14px;
+  display: flex;
+  justify-content: center;
+  padding-top: 6px;
+}
+.wheel {
+  width: 3px;
+  height: 7px;
+  border-radius: 2px;
+  background: #6b95c6;
+  animation: wheel 1.6s ease-in-out infinite;
+}
+@keyframes wheel {
+  0% { opacity: 0; transform: translateY(-4px); }
+  40% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(8px); }
+}
+
+/* ============ 区块标题 ============ */
+.section-title {
+  font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+  font-weight: 800;
+  color: #eaf1f9;
+  margin-bottom: 0.75rem;
+  text-shadow: 0 0 20px rgba(74, 122, 181, 0.18);
+}
+.title-mark { color: #6b95c6; margin-right: 0.5rem; text-shadow: 0 0 10px rgba(107, 149, 198, 0.6); }
+.section-sub { color: #8b99b0; max-width: 40rem; margin: 0 auto; font-size: 0.95rem; }
+
+/* ============ HUD 公告面板 ============ */
+.hud-panel {
+  position: relative;
+  padding: 1rem 1.25rem;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(107, 149, 198, 0.24);
+  background: rgba(15, 22, 38, 0.7);
+  box-shadow: 0 0 20px rgba(74, 122, 181, 0.1);
+  overflow: hidden;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.hud-panel:hover { transform: translateY(-2px); box-shadow: 0 0 28px rgba(74, 122, 181, 0.22); }
+.hud-corner {
+  position: absolute;
+  top: 0; left: 0;
+  width: 14px; height: 14px;
+  border-top: 2px solid #6b95c6;
+  border-left: 2px solid #6b95c6;
+  opacity: 0.7;
+}
+.cosmic-info { border-color: rgba(74, 122, 181, 0.4); }
+.cosmic-warn { border-color: rgba(201, 162, 39, 0.4); box-shadow: 0 0 20px rgba(201, 162, 39, 0.12); }
+.cosmic-danger { border-color: rgba(192, 57, 43, 0.45); box-shadow: 0 0 20px rgba(192, 57, 43, 0.14); }
+.hud-title { font-size: 0.9rem; font-weight: 700; color: #eaf1f9; margin-bottom: 0.25rem; }
+
+/* ============ 揭示单元 + 霓虹卡片 ============ */
+.reveal-cell { height: 100%; }
+.neon-card {
+  position: relative;
+  height: 100%;
+  padding: 1.75rem;
+  border-radius: 1rem;
+  background: rgba(15, 22, 38, 0.65);
+  border: 1px solid rgba(107, 149, 198, 0.2);
+  overflow: hidden;
+  transition: transform 0.15s ease-out, box-shadow 0.3s ease, border-color 0.3s ease;
+  will-change: transform;
+}
+.neon-card:hover {
+  border-color: rgba(107, 149, 198, 0.5);
+  box-shadow: 0 12px 40px rgba(74, 122, 181, 0.16), 0 0 20px rgba(74, 122, 181, 0.18);
+}
+.neon-card-icon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.85rem;
+  background: rgba(74, 122, 181, 0.12);
+  border: 1px solid rgba(107, 149, 198, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 0 16px rgba(74, 122, 181, 0.14);
+}
+.neon-card-title { font-size: 1.05rem; font-weight: 700; color: #eaf1f9; margin-bottom: 0.5rem; }
+.neon-card-desc { font-size: 0.875rem; color: #8b99b0; line-height: 1.7; }
+.scan-line {
+  position: absolute;
+  left: 0; bottom: 0;
+  height: 2px;
+  width: 100%;
+  background: #6b95c6;
+  opacity: 0.8;
+  transform: translateX(-100%);
+  transition: transform 0.6s ease;
+}
+.neon-card:hover .scan-line { transform: translateX(100%); }
+
+/* ============ 流程卡片 ============ */
+.step-card {
+  position: relative;
+  height: 100%;
+  padding: 1.75rem;
+  border-radius: 1rem;
+  text-align: center;
+  background: rgba(15, 22, 38, 0.6);
+  border: 1px solid rgba(107, 149, 198, 0.18);
+  transition: transform 0.15s ease-out, box-shadow 0.3s ease;
+  will-change: transform;
+}
+.step-card:hover { box-shadow: 0 0 24px rgba(74, 122, 181, 0.16); }
+.step-num {
+  font-size: 2.6rem;
+  font-weight: 800;
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgba(107, 149, 198, 0.7);
+  margin-bottom: 0.75rem;
+  text-shadow: 0 0 16px rgba(107, 149, 198, 0.25);
+}
+.step-title { font-size: 1rem; font-weight: 700; color: #eaf1f9; margin-bottom: 0.5rem; }
+.step-desc { font-size: 0.85rem; color: #8b99b0; line-height: 1.6; }
+.step-arrow {
+  position: absolute;
+  top: 50%;
+  right: -1.2rem;
+  transform: translateY(-50%);
+  color: #6b95c6;
+  font-size: 1.4rem;
+  opacity: 0.6;
+}
+@media (max-width: 1023px) { .step-arrow { display: none; } }
+
+/* ============ 架构星链 ============ */
+.arch-tree { max-width: 56rem; margin: 0 auto; }
+.arch-node {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1rem;
+  border-radius: 1rem;
+  background: rgba(15, 22, 38, 0.65);
+  border: 1px solid rgba(107, 149, 198, 0.22);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.arch-node:hover { transform: translateX(6px); }
+.arch-red:hover { box-shadow: 0 0 26px rgba(192, 86, 74, 0.18); }
+.arch-blue:hover { box-shadow: 0 0 26px rgba(74, 122, 181, 0.2); }
+.arch-green:hover { box-shadow: 0 0 26px rgba(63, 157, 134, 0.18); }
+.arch-cyan:hover { box-shadow: 0 0 26px rgba(107, 149, 198, 0.2); }
+.arch-icon {
+  width: 3rem;
+  height: 3rem;
+  flex-shrink: 0;
+  border-radius: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  background: rgba(74, 122, 181, 0.12);
+  border: 1px solid rgba(107, 149, 198, 0.25);
+}
+.arch-red .arch-icon { background: rgba(192, 86, 74, 0.12); border-color: rgba(192, 86, 74, 0.3); }
+.arch-blue .arch-icon { background: rgba(74, 122, 181, 0.12); border-color: rgba(74, 122, 181, 0.3); }
+.arch-green .arch-icon { background: rgba(63, 157, 134, 0.12); border-color: rgba(63, 157, 134, 0.3); }
+.arch-cyan .arch-icon { background: rgba(107, 149, 198, 0.12); border-color: rgba(107, 149, 198, 0.3); }
+.arch-title { font-size: 1rem; font-weight: 700; color: #eaf1f9; }
+.arch-desc { font-size: 0.85rem; color: #8b99b0; line-height: 1.5; }
+.arch-tag {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 9999px;
+  color: #c2cfe0;
+  background: rgba(74, 122, 181, 0.12);
+  border: 1px solid rgba(107, 149, 198, 0.25);
+}
+.arch-link {
+  position: absolute;
+  left: 2.5rem;
+  bottom: -1rem;
+  width: 2px;
+  height: 1rem;
+  background: rgba(107, 149, 198, 0.4);
+}
+
+/* ============ FAQ ============ */
+.faq-card {
+  border-radius: 0.85rem;
+  overflow: hidden;
+  background: rgba(15, 22, 38, 0.6);
+  border: 1px solid rgba(107, 149, 198, 0.18);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+.faq-card:hover { border-color: rgba(107, 149, 198, 0.4); box-shadow: 0 0 20px rgba(74, 122, 181, 0.12); }
+.faq-q {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.1rem 1.25rem;
+  background: transparent;
+  border: none;
+  color: #dbe4f0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.faq-chevron { color: #6b95c6; font-size: 0.8rem; transition: transform 0.3s ease; }
+.faq-chevron.open { transform: rotate(180deg); }
+.faq-a {
+  padding: 0 1.25rem 1.1rem;
+  font-size: 0.85rem;
+  color: #8b99b0;
+  line-height: 1.7;
+  animation: fadeIn 0.35s ease-out;
+}
+
+/* ============ CTA ============ */
+.cta-section { position: relative; text-align: center; overflow: hidden; }
+.cta-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 600px;
+  height: 600px;
+  transform: translate(-50%, -50%);
+  background: rgba(74, 122, 181, 0.16);
+  filter: blur(40px);
+  pointer-events: none;
+}
+.cta-title {
+  position: relative;
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  font-weight: 800;
+  color: #eaf1f9;
+  margin-bottom: 1rem;
+  text-shadow: 0 0 28px rgba(74, 122, 181, 0.25);
+}
+.cta-sub { position: relative; color: #8b99b0; max-width: 36rem; margin: 0 auto 2rem; }
+
+/* ============ 滚动揭示（多方向变体） ============ */
+[data-reveal] {
+  opacity: 0;
+  transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1), transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+[data-reveal='up'] { transform: translateY(34px); }
+[data-reveal='left'] { transform: translateX(-40px); }
+[data-reveal='right'] { transform: translateX(40px); }
+[data-reveal='scale'] { transform: scale(0.9); }
+[data-reveal].is-visible { opacity: 1; transform: none; }
+
+/* ============ 动画 ============ */
+.animate-fade-in { animation: fadeIn 0.5s ease-out both; }
+.animate-slide-up { animation: slideUp 0.7s ease-out both; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: translateY(0); } }
+.pulse { animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 0.9; } }
+
+/* ============ 公告 HTML 内容 ============ */
+.announcement-content :deep(a) { color: #6b95c6; text-decoration: underline; text-underline-offset: 2px; opacity: 0.9; }
+.announcement-content :deep(a:hover) { opacity: 1; }
+.announcement-content :deep(b),
+.announcement-content :deep(strong) { font-weight: 700; color: #dbe4f0; }
 .announcement-content :deep(i),
-.announcement-content :deep(em) {
-  font-style: italic;
-}
-
-.announcement-content :deep(u) {
-  text-decoration: underline;
-}
-
-.announcement-content :deep(br) {
-  content: '';
-  display: block;
-  margin: 0.25rem 0;
-}
-
-.announcement-content :deep(p) {
-  margin: 0.5rem 0;
-}
-
-.announcement-content :deep(p:first-child) {
-  margin-top: 0;
-}
-
-.announcement-content :deep(p:last-child) {
-  margin-bottom: 0;
-}
-
+.announcement-content :deep(em) { font-style: italic; }
+.announcement-content :deep(u) { text-decoration: underline; }
+.announcement-content :deep(br) { content: ''; display: block; margin: 0.25rem 0; }
+.announcement-content :deep(p) { margin: 0.5rem 0; }
+.announcement-content :deep(p:first-child) { margin-top: 0; }
+.announcement-content :deep(p:last-child) { margin-bottom: 0; }
 .announcement-content :deep(ul),
-.announcement-content :deep(ol) {
-  margin: 0.5rem 0;
-  padding-left: 1.5rem;
-}
-
-.announcement-content :deep(li) {
-  margin: 0.25rem 0;
-}
-
+.announcement-content :deep(ol) { margin: 0.5rem 0; padding-left: 1.5rem; }
+.announcement-content :deep(li) { margin: 0.25rem 0; }
 .announcement-content :deep(code) {
   background: rgba(30, 41, 59, 0.5);
   padding: 0.125rem 0.375rem;
@@ -407,36 +1264,29 @@ function getTypeIcon(type: string) {
   font-size: 0.875em;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
-
-.announcement-content :deep(hr) {
-  border: none;
-  border-top: 1px solid rgba(71, 85, 105, 0.3);
-  margin: 0.75rem 0;
-}
-
+.announcement-content :deep(hr) { border: none; border-top: 1px solid rgba(71, 85, 105, 0.3); margin: 0.75rem 0; }
 .announcement-content :deep(h1),
 .announcement-content :deep(h2),
 .announcement-content :deep(h3),
 .announcement-content :deep(h4),
 .announcement-content :deep(h5),
-.announcement-content :deep(h6) {
-  font-weight: 700;
-  color: #e2e8f0;
-  margin: 0.5rem 0;
-}
-
+.announcement-content :deep(h6) { font-weight: 700; color: #dbe4f0; margin: 0.5rem 0; }
 .announcement-content :deep(h1) { font-size: 1.25rem; }
 .announcement-content :deep(h2) { font-size: 1.125rem; }
 .announcement-content :deep(h3) { font-size: 1rem; }
 .announcement-content :deep(h4) { font-size: 0.95rem; }
 .announcement-content :deep(h5) { font-size: 0.9rem; }
 .announcement-content :deep(h6) { font-size: 0.85rem; }
-
 .announcement-content :deep(blockquote) {
-  border-left: 3px solid rgba(99, 102, 241, 0.4);
+  border-left: 3px solid rgba(107, 149, 198, 0.4);
   padding-left: 0.75rem;
   margin: 0.5rem 0;
-  color: #94a3b8;
+  color: #8b99b0;
   font-style: italic;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+  [data-reveal] { opacity: 1; transform: none; }
 }
 </style>

@@ -16,14 +16,14 @@ const iconMap: Record<string, string> = {
 const bgMap: Record<string, string> = {
   success: 'border-green-500/30 bg-green-500/10',
   error: 'border-red-500/30 bg-red-500/10',
-  info: 'border-indigo-500/30 bg-indigo-500/10',
+  info: 'border-brand-500/30 bg-brand-500/10',
   warning: 'border-yellow-500/30 bg-yellow-500/10',
 }
 
 const textMap: Record<string, string> = {
   success: 'text-green-400',
   error: 'text-red-400',
-  info: 'text-indigo-400',
+  info: 'text-brand-400',
   warning: 'text-yellow-400',
 }
 </script>

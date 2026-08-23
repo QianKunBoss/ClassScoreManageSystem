@@ -143,7 +143,7 @@ const scopeLabel = computed(() => {
               @click="statsScope = 'all'; filterGradeId = ''; filterClassId = ''"
               :class="`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
                 statsScope === 'all'
-                  ? 'bg-indigo-500/20 text-indigo-400'
+                  ? 'bg-brand-500/20 text-brand-400'
                   : 'text-slate-500 hover:text-slate-300'
               }`"
             >
@@ -154,7 +154,7 @@ const scopeLabel = computed(() => {
               @click="statsScope = 'grade'; filterClassId = ''"
               :class="`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
                 statsScope === 'grade'
-                  ? 'bg-indigo-500/20 text-indigo-400'
+                  ? 'bg-brand-500/20 text-brand-400'
                   : 'text-slate-500 hover:text-slate-300'
               }`"
             >
@@ -164,7 +164,7 @@ const scopeLabel = computed(() => {
               @click="statsScope = 'class'"
               :class="`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
                 statsScope === 'class'
-                  ? 'bg-indigo-500/20 text-indigo-400'
+                  ? 'bg-brand-500/20 text-brand-400'
                   : 'text-slate-500 hover:text-slate-300'
               }`"
             >
@@ -217,7 +217,7 @@ const scopeLabel = computed(() => {
           <p class="text-xs text-slate-500 mt-0.5">平均积分</p>
         </div>
         <div class="glass-card p-5 animate-slide-up" style="animation-delay: 0.15s">
-          <div class="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center mb-3 text-lg">📋</div>
+          <div class="w-10 h-10 rounded-lg bg-brand-500/10 flex items-center justify-center mb-3 text-lg">📋</div>
           <p class="text-2xl font-bold text-slate-100">{{ loading ? '—' : stats.totalLogs }}</p>
           <p class="text-xs text-slate-500 mt-0.5">总操作记录</p>
         </div>
@@ -263,7 +263,7 @@ const scopeLabel = computed(() => {
                 {{ idx + 1 }}
               </div>
               <p class="flex-1 text-sm font-medium text-slate-200 truncate">{{ u.username }}</p>
-              <span class="text-sm font-bold text-indigo-400">{{ u.totalScore }}</span>
+              <span class="text-sm font-bold text-brand-400">{{ u.totalScore }}</span>
             </div>
           </div>
         </div>

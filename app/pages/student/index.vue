@@ -74,7 +74,7 @@ function formatTime(t: string) {
         <!-- 当前积分 -->
         <div class="glass-card p-6 animate-slide-up">
           <p class="text-xs text-slate-500 mb-1">当前积分</p>
-          <p class="text-3xl font-black text-indigo-400">{{ student.totalScore ?? 0 }}</p>
+          <p class="text-3xl font-black text-brand-400">{{ student.totalScore ?? 0 }}</p>
         </div>
 
         <!-- 班级排名 -->

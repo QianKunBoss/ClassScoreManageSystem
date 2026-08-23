@@ -311,7 +311,7 @@ async function refreshTemplates() {
               @click="selectionMode = mode.key"
               :class="`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 selectionMode === mode.key
-                  ? 'bg-indigo-500/20 text-indigo-400'
+                  ? 'bg-brand-500/20 text-brand-400'
                   : 'text-slate-500 hover:text-slate-300'
               }`"
             >
@@ -329,7 +329,7 @@ async function refreshTemplates() {
               <span
                 v-for="u in selectedUsers"
                 :key="u.id"
-                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-300"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-500/10 border border-brand-500/20 text-xs text-brand-300"
               >
                 {{ u.username }}
                 <button @click="removeUser(u.id)" class="hover:text-red-400">✕</button>
@@ -353,14 +353,14 @@ async function refreshTemplates() {
                   @click="addBySearch(u)"
                   class="flex items-center gap-3 p-2.5 rounded-lg hover:bg-slate-800/50 cursor-pointer transition-all"
                 >
-                  <div class="w-9 h-9 rounded-lg bg-indigo-500/10 flex items-center justify-center font-bold text-indigo-400 text-sm">
+                  <div class="w-9 h-9 rounded-lg bg-brand-500/10 flex items-center justify-center font-bold text-brand-400 text-sm">
                     {{ u.username.charAt(0).toUpperCase() }}
                   </div>
                   <div class="flex-1">
                     <p class="text-sm font-medium text-slate-200">{{ u.username }}</p>
                     <p class="text-xs text-slate-600">积分：{{ u.totalScore }}</p>
                   </div>
-                  <span class="text-xs text-indigo-400">+ 添加</span>
+                  <span class="text-xs text-brand-400">+ 添加</span>
                 </div>
               </div>
             </div>
@@ -396,13 +396,13 @@ async function refreshTemplates() {
                   type="checkbox"
                   :checked="isListSelected(u.id)"
                   @change="toggleListUser(u)"
-                  class="w-4 h-4 rounded accent-indigo-500"
+                  class="w-4 h-4 rounded accent-brand-500"
                 />
-                <div class="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center font-bold text-indigo-400 text-xs">
+                <div class="w-8 h-8 rounded-lg bg-brand-500/10 flex items-center justify-center font-bold text-brand-400 text-xs">
                   {{ u.username.charAt(0).toUpperCase() }}
                 </div>
                 <span class="text-sm text-slate-200 flex-1">{{ u.username }}</span>
-                <span class="text-xs text-indigo-400 font-bold">{{ u.totalScore }}分</span>
+                <span class="text-xs text-brand-400 font-bold">{{ u.totalScore }}分</span>
               </label>
             </div>
             <!-- 列表模式内的已选用户 -->
@@ -412,7 +412,7 @@ async function refreshTemplates() {
                 <span
                   v-for="u in selectedUsers"
                   :key="u.id"
-                  class="inline-flex items-center gap-1 px-2 py-1 rounded bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-300"
+                  class="inline-flex items-center gap-1 px-2 py-1 rounded bg-brand-500/10 border border-brand-500/20 text-xs text-brand-300"
                 >
                   {{ u.username }}
                   <button @click="removeUser(u.id)" class="hover:text-red-400 ml-0.5">✕</button>
@@ -436,7 +436,7 @@ async function refreshTemplates() {
             </div>
             <div v-else class="text-center py-8 text-slate-600 text-sm">
               暂无座位数据，请先在
-              <NuxtLink to="/admin/seats" class="text-indigo-400">座位管理</NuxtLink>
+              <NuxtLink to="/admin/seats" class="text-brand-400">座位管理</NuxtLink>
               中配置
             </div>
           </div>
@@ -453,8 +453,8 @@ async function refreshTemplates() {
                 @click="useTemplate(t)"
                 :class="`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                   description === (t.description || '')
-                    ? 'bg-indigo-500/15 border-indigo-500/40 text-indigo-300'
-                    : 'bg-slate-800/30 border-slate-700/50 text-slate-400 hover:border-indigo-500/30'
+                    ? 'bg-brand-500/15 border-brand-500/40 text-brand-300'
+                    : 'bg-slate-800/30 border-slate-700/50 text-slate-400 hover:border-brand-500/30'
                 }`"
               >
                 {{ t.name }}

@@ -207,7 +207,7 @@ const classStats = computed(() => {
 
 // 最近日志格式化
 function scoreChangeColor(change: number) {
-  return change > 0 ? 'text-emerald-400' : 'text-rose-400'
+  return change > 0 ? 'text-emerald-400' : 'text-red-400'
 }
 </script>
 
@@ -238,7 +238,7 @@ function scoreChangeColor(change: number) {
                 @click="statsScope = 'all'; filterGradeId = ''; filterClassId = ''"
                 :class="`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
                   statsScope === 'all'
-                    ? 'bg-indigo-500/20 text-indigo-400'
+                    ? 'bg-brand-500/20 text-brand-400'
                     : 'text-slate-500 hover:text-slate-300'
                 }`"
               >
@@ -248,7 +248,7 @@ function scoreChangeColor(change: number) {
                 @click="statsScope = 'grade'; filterClassId = ''"
                 :class="`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
                   statsScope === 'grade'
-                    ? 'bg-indigo-500/20 text-indigo-400'
+                    ? 'bg-brand-500/20 text-brand-400'
                     : 'text-slate-500 hover:text-slate-300'
                 }`"
               >
@@ -258,7 +258,7 @@ function scoreChangeColor(change: number) {
                 @click="statsScope = 'class'"
                 :class="`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
                   statsScope === 'class'
-                    ? 'bg-indigo-500/20 text-indigo-400'
+                    ? 'bg-brand-500/20 text-brand-400'
                     : 'text-slate-500 hover:text-slate-300'
                 }`"
               >
@@ -301,14 +301,14 @@ function scoreChangeColor(change: number) {
               <NuxtLink
                 v-if="admin?.role === 'grade_admin' || admin?.role === 'school_admin'"
                 to="/admin/classes"
-                class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+                class="text-xs text-brand-400 hover:text-brand-300 transition-colors"
               >
                 管理班级 →
               </NuxtLink>
               <NuxtLink
                 v-if="admin?.role === 'school_admin'"
                 to="/admin/grades"
-                class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+                class="text-xs text-brand-400 hover:text-brand-300 transition-colors"
               >
                 管理年级 →
               </NuxtLink>
@@ -327,7 +327,7 @@ function scoreChangeColor(change: number) {
           <NuxtLink to="/admin/schools" class="btn btn-primary text-sm">管理学校</NuxtLink>
         </div>
         <div v-if="!schools.length" class="glass-card p-8 text-center text-slate-500">
-          暂无学校，<NuxtLink to="/admin/schools" class="text-indigo-400">立即添加</NuxtLink>
+          暂无学校，<NuxtLink to="/admin/schools" class="text-brand-400">立即添加</NuxtLink>
         </div>
         <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div v-for="s in schools" :key="s.id" class="glass-card p-5">
@@ -343,7 +343,7 @@ function scoreChangeColor(change: number) {
         class="animate-slide-up"
       >
         <div class="glass-card p-12 flex flex-col items-center justify-center text-center gap-4">
-          <div class="w-16 h-16 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-3xl">📊</div>
+          <div class="w-16 h-16 rounded-2xl bg-brand-500/10 flex items-center justify-center text-3xl">📊</div>
           <div>
             <p class="text-slate-200 font-medium mb-1">请选择统计范围</p>
             <p class="text-sm text-slate-500">
@@ -366,7 +366,7 @@ function scoreChangeColor(change: number) {
                 <p class="text-xs text-slate-500 mt-1">班级人数</p>
               </div>
               <div class="glass-card p-4 text-center">
-                <p class="text-2xl font-bold text-indigo-400">{{ classStats.avg }}</p>
+                <p class="text-2xl font-bold text-brand-400">{{ classStats.avg }}</p>
                 <p class="text-xs text-slate-500 mt-1">平均积分</p>
               </div>
               <div class="glass-card p-4 text-center">
@@ -374,7 +374,7 @@ function scoreChangeColor(change: number) {
                 <p class="text-xs text-slate-500 mt-1">最高积分</p>
               </div>
               <div class="glass-card p-4 text-center">
-                <p class="text-2xl font-bold text-rose-400">{{ classStats.min }}</p>
+                <p class="text-2xl font-bold text-red-400">{{ classStats.min }}</p>
                 <p class="text-xs text-slate-500 mt-1">最低积分</p>
               </div>
             </div>
@@ -405,7 +405,7 @@ function scoreChangeColor(change: number) {
                     <span class="text-sm text-slate-200 truncate block">{{ u.actualName || u.username }}</span>
                     <span v-if="u.actualName" class="text-xs text-slate-600">{{ u.username }}</span>
                   </div>
-                  <span class="text-sm font-bold text-indigo-400 tabular-nums">{{ u.totalScore ?? 0 }} 分</span>
+                  <span class="text-sm font-bold text-brand-400 tabular-nums">{{ u.totalScore ?? 0 }} 分</span>
                 </div>
                 <p class="text-xs text-slate-600 text-center pt-2">
                   共 {{ classUsers.length }} 名同学
@@ -518,8 +518,8 @@ function scoreChangeColor(change: number) {
   flex-shrink: 0;
 }
 
-.rank-1 { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; }
-.rank-2 { background: linear-gradient(135deg, #94a3b8, #64748b); color: white; }
-.rank-3 { background: linear-gradient(135deg, #cd7c2f, #b45309); color: white; }
+.rank-1 { background: #c9a227; color: #1a1a1a; }
+.rank-2 { background: #9aa5b1; color: #1a1a1a; }
+.rank-3 { background: #b0733a; color: #fff; }
 .rank-other { background: rgba(71, 85, 105, 0.3); color: #64748b; }
 </style>

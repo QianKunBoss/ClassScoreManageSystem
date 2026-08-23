@@ -61,8 +61,8 @@ function handleClick(seat: SeatData) {
               :class="[
                 seat.userId
                   ? selectedUserIds.includes(seat.userId)
-                    ? 'bg-indigo-500/30 border-indigo-500 text-indigo-300 scale-105'
-                    : 'bg-slate-800/60 border-slate-700 text-slate-300 hover:bg-slate-700/60 hover:border-indigo-500/30'
+                    ? 'bg-brand-500/30 border-brand-500 text-brand-300 scale-105'
+                    : 'bg-slate-800/60 border-slate-700 text-slate-300 hover:bg-slate-700/60 hover:border-brand-500/30'
                   : 'bg-slate-800/20 border-slate-800 text-slate-600 hover:bg-slate-800/40 hover:border-slate-700'
               ]"
               :title="(seat.actualName || seat.username || '空位')"

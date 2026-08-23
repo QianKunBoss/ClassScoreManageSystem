@@ -108,7 +108,7 @@ async function deleteTemplate(id: number) {
           <p class="text-xs text-slate-600">{{ t.description || '-' }}</p>
         </div>
         <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button @click="edit(t)" class="text-xs text-indigo-400 hover:text-indigo-300">编辑</button>
+          <button @click="edit(t)" class="text-xs text-brand-400 hover:text-brand-300">编辑</button>
           <button @click="deleteTemplate(t.id)" class="text-xs text-red-400 hover:text-red-300">删除</button>
         </div>
       </div>

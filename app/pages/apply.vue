@@ -83,15 +83,15 @@ async function handleSubmit() {
   <div class="w-full max-w-lg px-4">
     <!-- 背景光效 -->
     <div class="fixed inset-0 overflow-hidden pointer-events-none -z-10">
-      <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-500/5 rounded-full blur-3xl"></div>
-      <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl"></div>
+      <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-brand-500/5 rounded-full blur-3xl"></div>
+      <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-brand-500/5 rounded-full blur-3xl"></div>
     </div>
 
     <div class="animate-fade-in">
       <!-- 标题 -->
       <div class="text-center mb-8">
-        <NuxtLink to="/" class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold text-2xl shadow-2xl shadow-indigo-500/25 mb-4">
-          C
+        <NuxtLink to="/" class="inline-flex w-16 h-16 rounded-2xl overflow-hidden bg-brand-500 p-2 shadow-2xl shadow-brand-500/25 mb-4">
+          <img src="/favicon.ico" alt="CSMS" class="w-full h-full object-contain" />
         </NuxtLink>
         <h1 class="text-2xl font-bold text-slate-100 mb-1">申请入驻</h1>
         <p class="text-sm text-slate-500">填写以下信息，提交入驻申请</p>
@@ -238,7 +238,7 @@ async function handleSubmit() {
       </div>
 
       <p class="text-center text-xs text-slate-700 mt-6">
-        <NuxtLink to="/login" class="text-indigo-400 hover:text-indigo-300 transition-colors">已有账号？返回登录</NuxtLink>
+        <NuxtLink to="/login" class="text-brand-400 hover:text-brand-300 transition-colors">已有账号？返回登录</NuxtLink>
       </p>
     </div>
   </div>
@@ -269,14 +269,14 @@ async function handleSubmit() {
           <span class="text-slate-500 text-sm w-5 text-center">📱</span>
           <div class="min-w-0">
             <p class="text-xs text-slate-500">联系电话</p>
-            <a :href="`tel:${contactInfo.contactPhone}`" class="text-sm text-indigo-400 hover:underline">{{ contactInfo.contactPhone }}</a>
+            <a :href="`tel:${contactInfo.contactPhone}`" class="text-sm text-brand-400 hover:underline">{{ contactInfo.contactPhone }}</a>
           </div>
         </div>
         <div v-if="contactInfo?.contactEmail" class="flex items-center gap-3 p-2.5 rounded-lg bg-slate-800/30">
           <span class="text-slate-500 text-sm w-5 text-center">📧</span>
           <div class="min-w-0">
             <p class="text-xs text-slate-500">电子邮箱</p>
-            <a :href="`mailto:${contactInfo.contactEmail}`" class="text-sm text-indigo-400 hover:underline break-all">{{ contactInfo.contactEmail }}</a>
+            <a :href="`mailto:${contactInfo.contactEmail}`" class="text-sm text-brand-400 hover:underline break-all">{{ contactInfo.contactEmail }}</a>
           </div>
         </div>
         <div v-if="!contactInfo?.contactPhone && !contactInfo?.contactEmail" class="text-center text-xs text-slate-500 py-1">
