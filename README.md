@@ -68,11 +68,12 @@ v0.3.0 是 CSMS 的一次**完全重构**，从 PHP + jQuery 的传统架构全�
 - 超级管理员可免密登录任意管理员账号（便于排查问题）
 - 数据导出/导入（JSON 备份恢复，支持全校/年级/班级范围选择）
 
-### 📱 PWA 渐进式 Web 应用
-- 支持安装到桌面/主屏幕，全屏独立窗口运行
+### 📱 PWA 渐进式 Web 应用（已端到端验证生效）
+- 支持安装到桌面/主屏幕，全屏独立窗口运行（Android 自适应图标 + iOS 全屏）
 - 静态资源与构建产物离线缓存（Workbox 预缓存 + 运行时缓存）
-- API 请求永不缓存，保证数据实时性
-- 新版本自动检测，提示用户一键刷新
+- **API 请求（`/api/*`）强制走网络，永不缓存**，保证积分/学生等数据实时准确
+- 新版本自动检测并更新（`registerType: autoUpdate`），无需手动刷新
+- manifest、Service Worker、主题色等已在构建产物中实测注入 `<head>` 并可通过 HTTPS 访问
 
 ---
 
@@ -133,6 +134,7 @@ v0.3.0 是 CSMS 的一次**完全重构**，从 PHP + jQuery 的传统架构全�
 | 认证 | Session + BCrypt |
 | 图表 | Chart.js |
 | 状态管理 | Vue Composition API |
+| PWA | [@vite-pwa/nuxt](https://vite-pwa-org.netlify.app/frameworks/nuxt.html)（Workbox 离线缓存） |
 
 ---
 
@@ -278,6 +280,14 @@ ClassScoreManageSystem/
 ├── nuxt.config.ts                # Nuxt 配置
 ├── package.json                  # 项目依赖
 ├── tailwind.config.ts            # Tailwind 配置
+├── scripts/
+│   └── gen-pwa-icons.py          # PWA 图标生成脚本（Pillow 重绘火箭 logo）
+├── public/                       # 静态资源目录
+│   ├── pwa-192x192.png           # PWA 标准图标
+│   ├── pwa-512x512.png           # PWA 标准图标（大）
+│   ├── pwa-maskable-192x192.png  # Android 自适应图标
+│   ├── pwa-maskable-512x512.png  # Android 自适应图标（大）
+│   └── apple-touch-icon.png      # iOS「添加到主屏幕」图标
 ├── docs/                         # 文档目录
 │   └── api.md                    # API 接口文档
 └── README.md                     # 项目说明
@@ -321,7 +331,7 @@ ClassScoreManageSystem/
 3. **查看排名**：首页或学生页面查看积分排行榜
 4. **座位编排**：进入「座位表」页面，拖拽调整座位
 5. **免密登录**：超级管理员在「系统管理」→「管理员账号」中点击「登录」，可直接切换为该账号（退出后需重新登录超管账号）
-6. **安装为应用**：生产部署环境下，浏览器会弹出「安装 CSMS 到桌面」提示，安装后可像原生应用一样离线使用（开发模式下不启用）
+6. **安装为应用**：在生产环境（**需通过 HTTPS 访问**，如 `localhost` 或已配置 SSL 的域名）下，浏览器会弹出「安装 CSMS 到桌面」提示，安装后可像原生应用一样离线使用。开发模式（`npm run dev`）默认不启用安装提示
 
 ---
 
