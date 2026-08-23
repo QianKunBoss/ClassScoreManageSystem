@@ -1,5 +1,5 @@
 ﻿<script setup lang="ts">
-import { formatDate } from '~/utils/format'
+import { formatDate, formatTime } from '~/utils/format'
 
 definePageMeta({ auth: true })
 
@@ -231,7 +231,7 @@ onMounted(async () => {
                 <td><span class="text-sm font-medium text-slate-200">{{ cls.name }}</span></td>
                 <td class="text-sm text-slate-300">{{ cls.gradeName || '-' }}</td>
                 <td class="text-sm text-slate-300">{{ cls.schoolName || '-' }}</td>
-                <td class="text-xs text-slate-500">{{ formatDate(cls.createdAt) }}</td>
+                <td class="text-xs text-slate-500">{{ formatTime(cls.createdAt) }}</td>
                 <td>
                   <div class="flex items-center gap-2">
                     <button @click="navigateToAdmin(cls)" class="btn btn-ghost text-xs py-1 px-2 text-blue-400 hover:!bg-blue-500/10">进入管理</button>

@@ -282,6 +282,8 @@ function checkHScroll() {
 }
 
 // 计算占位高度 + 绑定平移（幂等：重复调用不会重复绑定事件）
+let hRevealByScreen: HTMLElement[][] = []
+let hActiveScreen = -1
 function setupHScroll() {
   const wrap = hwrapRef.value
   const track = htrackRef.value
@@ -294,6 +296,17 @@ function setupHScroll() {
   hMaxTranslate = (hItemCount - 1) * hVw
   wrap.style.height = `${hMaxTranslate + hVh}px`
   track.style.transform = 'translateX(0px)'
+  // 收集每屏内的 [data-reveal] 元素，按 DOM 顺序（标题块在前、卡片在后）
+  hRevealByScreen = Array.from(track.children).map(sec =>
+    Array.from(sec.querySelectorAll<HTMLElement>('[data-reveal]'))
+  )
+  // 初始全部隐藏，等待进入对应屏时序列渐显；并清掉全局 observer 加的 .is-visible，
+  // 改由本逻辑的 .in 类驱动（避免宽屏横移区同时命中两种揭示规则）
+  hRevealByScreen.forEach(els => els.forEach(el => {
+    el.classList.remove('in')
+    el.classList.remove('is-visible')
+  }))
+  hActiveScreen = -1
   window.addEventListener('scroll', onHScroll, { passive: true })
   onHScroll()
 }
@@ -304,9 +317,18 @@ function teardownHScroll() {
   window.removeEventListener('scroll', onHScroll)
   if (wrap) wrap.style.height = ''
   if (track) track.style.transform = ''
+  // 还原：移除横移驱动类，交还给全局 observer 正常渐显（小屏纵向 / 减少动态效果回退）
+  hRevealByScreen.forEach(els => els.forEach(el => {
+    el.classList.remove('in')
+    // 加回 .is-visible：让全局 [data-reveal].is-visible 规则立即生效显示，
+    // 即便 observer 已 disconnect 也不影响（类本身即显示态）
+    el.classList.add('is-visible')
+  }))
+  hRevealByScreen = []
+  hActiveScreen = -1
 }
 
-// 竖向滚动 → 横向平移
+// 竖向滚动 → 横向平移 + 按屏序列渐显
 function onHScroll() {
   const wrap = hwrapRef.value
   const track = htrackRef.value
@@ -322,11 +344,40 @@ function onHScroll() {
     // 区间内：top 为负，直接映射成横向位移
     track.style.transform = `translateX(${top}px)`
   }
+  // 计算当前横向进度对应的屏索引
+  const p = hMaxTranslate > 0 ? Math.min(1, Math.max(0, -top / hMaxTranslate)) : 0
+  const idx = Math.round(p * (hItemCount - 1))
+  if (idx !== hActiveScreen) {
+    activateScreen(idx)
+    hActiveScreen = idx
+  }
+}
+
+// 仅激活"当前屏"序列渐显；失活屏整体淡出（支持退回）
+function activateScreen(idx: number) {
+  hRevealByScreen.forEach((els, si) => {
+    if (si === idx) {
+      // 标题块（首个元素）立即、稍后卡片依次：用递增 transitionDelay 实现"标题先、卡片逐个"
+      els.forEach((el, ei) => {
+        el.style.transitionDelay = `${ei * 0.1}s`
+        el.classList.add('in')
+      })
+    } else {
+      // 退回：移除 .in 并清掉 delay，整体淡出（不反向逐个，避免回滚抖动）
+      els.forEach(el => {
+        el.style.transitionDelay = '0s'
+        el.classList.remove('in')
+      })
+    }
+  })
 }
 
 let observer: IntersectionObserver | null = null
 function initReveal() {
-  const els = document.querySelectorAll('[data-reveal]')
+  // 注意：横移区（.h-track 内）的 [data-reveal] 仍交给全局 observer 正常渐显，
+  // 仅在宽屏启用横移（setupHScroll）时由横移逻辑临时接管（移除 .is-visible、改由 .in 驱动）。
+  // 小屏 / 减少动态效果下保持原始纵向渐显效果（即横移上线前的表现）。
+  const els = Array.from(document.querySelectorAll<HTMLElement>('[data-reveal]'))
   if (!('IntersectionObserver' in window)) {
     els.forEach(el => el.classList.add('is-visible'))
     return
@@ -1359,9 +1410,16 @@ onBeforeUnmount(() => {
 .h-scroll--active .h-track > section.section-alt {
   background: transparent;
 }
-/* 横向滚动区内：去掉揭示动画的纵向位移，避免横移时内容上下跳动 */
-.h-scroll--active .h-track > section [data-reveal] {
-  transform: none !important;
+/* 横向滚动区内：揭示动画改由 .in 类驱动（按屏序列渐显 + 退回淡出）
+   保留各方向位移（up/left/right/scale），进入激活屏时 .in 归位，离开时退回隐藏态 */
+.h-scroll--active .h-track [data-reveal] {
+  opacity: 0;
+  transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.h-scroll--active .h-track [data-reveal].in {
+  opacity: 1;
+  transform: none;
 }
 
 /* ============ 滚动揭示（多方向变体） ============ */

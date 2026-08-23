@@ -32,6 +32,7 @@ export default defineEventHandler(async (event) => {
         name: c.name,
         gradeId: c.gradeId,
         gradeName: grade?.name || '',
+        createdAt: c.createdAt || '',
       })),
     }
   }
@@ -39,7 +40,7 @@ export default defineEventHandler(async (event) => {
   // 查所有班级（含年级名，raw SQL JOIN）
   // 注意：raw SQL 返回 snake_case，需要手动转为 camelCase 保持接口一致
   const result = await client.execute({
-    sql: `SELECT c.id, c.name, c.grade_id, g.name AS grade_name
+    sql: `SELECT c.id, c.name, c.grade_id, c.created_at, g.name AS grade_name
           FROM classes c
           LEFT JOIN grades g ON c.grade_id = g.id
           ORDER BY c.id`,
@@ -51,6 +52,7 @@ export default defineEventHandler(async (event) => {
     name: row.name,
     gradeId: row.grade_id,
     gradeName: row.grade_name || '',
+    createdAt: row.created_at || '',
   }))
 
   return { success: true, data }

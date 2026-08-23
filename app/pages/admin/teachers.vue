@@ -34,12 +34,13 @@ const detailNewPassword = ref('')
 const detailConfirmPassword = ref('')
 const detailLoading = ref(false)
 
-// 所属学校显示文本
+// 所属显示文本
 function schoolDisplay(a: Admin): string {
   if (!a.schoolName) return '-'
   if (a.role === 'school_admin') return `${a.schoolName}-校级`
   if (a.role === 'grade_admin') return `${a.schoolName}-${a.gradeName || '年级'}`
-  if (a.role === 'class_admin') return `${a.schoolName}-${a.className || '班级'}`
+  // 班级管理员：学校-年级-班级
+  if (a.role === 'class_admin') return `${a.schoolName}-${a.gradeName || '年级'}-${a.className || '班级'}`
   return a.schoolName
 }
 

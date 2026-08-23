@@ -190,3 +190,101 @@ export async function setStudentSession(event: any, student: any) {
     },
   })
 }
+
+// ========== 班级数据导入/导出的层级权限 ==========
+// 鉴权一律基于【当前登录管理员的真实身份】解析出的管理范围，绝不信任前端传入的
+// scope/gradeId/classId 参数，也不信任备份文件里的 meta（防止越权导入/导出）。
+
+import { grades as gradesT, classes as classesT, users as usersT } from '../database/schema.school'
+
+/**
+ * 解析当前管理员在学校库内的可管理范围。
+ * 返回：
+ *  - role
+ *  - schoolWide: 是否全校范围（school_admin / super_admin）
+ *  - gradeIdSet: 可管理的年级 id 集合（schoolWide 时为 null 表示全部）
+ *  - classIdSet: 可管理的班级 id 集合（schoolWide 时为 null 表示全部）
+ *  - isGradeAllowed(gid): 能否管理该年级
+ *  - isClassAllowed(cid): 能否管理该班级
+ */
+export async function resolveSchoolScope(admin: any, db: any) {
+  const role = admin.role
+
+  // super_admin / school_admin：全校（gradeId/classId 为 null 表示全部）
+  if (role === 'super_admin' || role === 'school_admin') {
+    return {
+      role,
+      schoolWide: true,
+      gradeIdSet: null as Set<number> | null,
+      classIdSet: null as Set<number> | null,
+      isGradeAllowed: () => true,
+      isClassAllowed: () => true,
+    }
+  }
+
+  // grade_admin：本年级全部班级
+  if (role === 'grade_admin') {
+    const myGradeId = admin.gradeId
+    const cls = await db.select({ id: classesT.id }).from(classesT).where(eq(classesT.gradeId, myGradeId))
+    const classIdSet = new Set<number>(cls.map((c: any) => c.id))
+    return {
+      role,
+      schoolWide: false,
+      gradeIdSet: new Set<number>(myGradeId != null ? [myGradeId] : []),
+      classIdSet,
+      isGradeAllowed: (gid: number) => gid === myGradeId,
+      isClassAllowed: (cid: number) => classIdSet.has(cid),
+    }
+  }
+
+  // class_admin：仅本班
+  if (role === 'class_admin') {
+    const myClassId = admin.classId
+    return {
+      role,
+      schoolWide: false,
+      gradeIdSet: null,
+      classIdSet: new Set<number>(myClassId != null ? [myClassId] : []),
+      isGradeAllowed: () => false,
+      isClassAllowed: (cid: number) => cid === myClassId,
+    }
+  }
+
+  // 未知角色：无任何权限
+  return {
+    role,
+    schoolWide: false,
+    gradeIdSet: new Set<number>(),
+    classIdSet: new Set<number>(),
+    isGradeAllowed: () => false,
+    isClassAllowed: () => false,
+  }
+}
+
+/**
+ * 校验当前管理员是否可管理指定班级，越权抛 403。
+ */
+export async function assertClassManagement(admin: any, db: any, classId: number | null | undefined) {
+  if (classId == null) return
+  const scope = await resolveSchoolScope(admin, db)
+  if (!scope.isClassAllowed(classId)) {
+    throw createError({
+      statusCode: 403,
+      statusMessage: '无权限操作该班级的数据',
+    })
+  }
+}
+
+/**
+ * 校验当前管理员是否可管理指定年级，越权抛 403。
+ */
+export async function assertGradeManagement(admin: any, db: any, gradeId: number | null | undefined) {
+  if (gradeId == null) return
+  const scope = await resolveSchoolScope(admin, db)
+  if (!scope.isGradeAllowed(gradeId)) {
+    throw createError({
+      statusCode: 403,
+      statusMessage: '无权限操作该年级的数据',
+    })
+  }
+}

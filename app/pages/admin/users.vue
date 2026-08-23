@@ -28,6 +28,66 @@ const schools = ref<any[]>([])  // 学校列表（超级管理员用）
 const filterSchoolId = ref<number | null>(null)  // 学校筛选
 const classes = ref<any[]>([])  // 班级列表（用于批量添加时选择班级）
 
+// ===== 表头筛选 + 搜索 =====
+const searchKeyword = ref('')          // 用户名搜索
+const filterClass = ref<string>('')    // 所属班级筛选（"年级 - 班级" 组合值）
+const sortKey = ref<'' | 'totalScore' | 'addScore' | 'deductScore'>('')  // 排序字段
+const sortDir = ref<'asc' | 'desc'>('desc')  // 排序方向
+
+// 班级去重选项（从当前用户列表派生，值 = "年级 - 班级"）
+const classOptions = computed(() => {
+  const set = new Set<string>()
+  for (const u of users.value) {
+    const label = `${u.gradeName ? u.gradeName + ' - ' : ''}${u.className || '未分配'}`
+    set.add(label)
+  }
+  return Array.from(set).sort((a, b) => a.localeCompare(b, 'zh-CN'))
+})
+
+// 过滤 + 搜索 + 排序后的结果
+const filteredUsers = computed(() => {
+  let list = users.value
+
+  // 1) 用户名搜索
+  const kw = searchKeyword.value.trim().toLowerCase()
+  if (kw) {
+    list = list.filter(u => u.username.toLowerCase().includes(kw))
+  }
+
+  // 2) 班级筛选
+  if (filterClass.value) {
+    list = list.filter(u =>
+      `${u.gradeName ? u.gradeName + ' - ' : ''}${u.className || '未分配'}` === filterClass.value
+    )
+  }
+
+  // 3) 排序
+  if (sortKey.value) {
+    const key = sortKey.value
+    list = [...list].sort((a: any, b: any) => {
+      const av = Number(a[key]) || 0
+      const bv = Number(b[key]) || 0
+      return sortDir.value === 'asc' ? av - bv : bv - av
+    })
+  }
+
+  return list
+})
+
+// 点击可排序列表头：切换排序
+function toggleSort(key: 'totalScore' | 'addScore' | 'deductScore') {
+  if (sortKey.value === key) {
+    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortKey.value = key
+    sortDir.value = 'desc'
+  }
+}
+function sortIndicator(key: 'totalScore' | 'addScore' | 'deductScore') {
+  if (sortKey.value !== key) return '↕'
+  return sortDir.value === 'asc' ? '↑' : '↓'
+}
+
 watchEffect(async () => {
   if (!currentUser.value) return
 
@@ -216,6 +276,16 @@ async function deleteUser() {
             <p class="text-sm text-slate-500">管理本班的学生账号</p>
           </div>
           <div class="flex items-center gap-3">
+            <!-- 搜索框：按用户名 -->
+            <div class="relative">
+              <input
+                v-model="searchKeyword"
+                type="text"
+                placeholder="搜索用户名…"
+                class="form-input text-sm py-1.5 pl-8 w-56"
+              />
+              <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-sm">⌕</span>
+            </div>
             <!-- 学校筛选（仅超级管理员显示） -->
             <select
               v-if="currentUser?.role === 'super_admin'"
@@ -247,20 +317,37 @@ async function deleteUser() {
         </div>
 
         <!-- 数据表格 -->
-        <div v-else-if="users.length > 0" class="overflow-x-auto">
+        <div v-else-if="filteredUsers.length > 0" class="overflow-x-auto">
           <table class="data-table">
             <thead>
               <tr>
-                <th>学生</th>
-                <th>所属班级</th>
-                <th>积分</th>
-                <th>加分</th>
-                <th>扣分</th>
+                <th>
+                  学生
+                  <span v-if="searchKeyword" class="ml-1 text-[10px] text-brand-400">·筛选中</span>
+                </th>
+                <th>
+                  <div class="flex flex-col gap-1">
+                    <span>所属班级</span>
+                    <select v-model="filterClass" class="form-input text-xs py-1 w-full !bg-slate-800/40">
+                      <option value="">全部班级</option>
+                      <option v-for="c in classOptions" :key="c" :value="c">{{ c }}</option>
+                    </select>
+                  </div>
+                </th>
+                <th class="cursor-pointer select-none hover:text-brand-300" @click="toggleSort('totalScore')">
+                  积分 <span class="text-xs">{{ sortIndicator('totalScore') }}</span>
+                </th>
+                <th class="cursor-pointer select-none hover:text-brand-300" @click="toggleSort('addScore')">
+                  加分 <span class="text-xs">{{ sortIndicator('addScore') }}</span>
+                </th>
+                <th class="cursor-pointer select-none hover:text-brand-300" @click="toggleSort('deductScore')">
+                  扣分 <span class="text-xs">{{ sortIndicator('deductScore') }}</span>
+                </th>
                 <th>操作</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="u in users" :key="u.id">
+              <tr v-for="u in filteredUsers" :key="u.id">
                 <td>
                   <div class="flex items-center gap-3">
                     <div class="w-9 h-9 rounded-lg bg-brand-500/10 flex items-center justify-center font-bold text-brand-400 text-sm">
@@ -304,7 +391,13 @@ async function deleteUser() {
 
         <!-- 空状态 -->
         <div v-else class="text-center py-12 text-slate-600 text-sm">
-          暂无学生数据，点击右上角「+ 添加学生」创建第一个账号
+          <template v-if="users.length === 0">
+            暂无学生数据，点击右上角「+ 添加学生」创建第一个账号
+          </template>
+          <template v-else>
+            没有符合筛选 / 搜索条件的学生
+            <button @click="searchKeyword = ''; filterClass = ''; sortKey = ''" class="text-brand-400 hover:underline ml-1">清除筛选</button>
+          </template>
         </div>
       </div>
     </section>

@@ -1,66 +1,59 @@
 import { eq, inArray } from 'drizzle-orm'
 import { grades, classes, users, scoreLogs } from '../../database/schema.school'
 import { useSchoolDb } from '../../database/db'
-import { requireAdmin, getSchoolIdFromRequest } from '../../utils/auth'
+import { requireAdmin, getSchoolIdFromRequest, resolveSchoolScope, assertGradeManagement, assertClassManagement } from '../../utils/auth'
 
 // GET /api/admin/export — 按指定范围导出数据（备份，JSON）
 // query: scope=all|grade|class, gradeId, classId
-// 范围能力：
-//   class_admin  → 仅本班
-//   grade_admin  → 本年级，或本年级下的某个班级
-//   school_admin / super_admin → 全校 / 某年级 / 某班级
+// 鉴权：范围一律基于【当前登录管理员真实身份】解析（resolveSchoolScope），
+// 前端传入的 gradeId/classId 仅用于在自身权限内进一步缩小范围，越权直接 403。
 export default defineEventHandler(async (event) => {
   const admin = await requireAdmin(event)
   const schoolId = await getSchoolIdFromRequest(event)
   const db = await useSchoolDb(event, schoolId)
 
-  const role = admin.role
+  const scope = await resolveSchoolScope(admin, db)
   const query = getQuery(event)
   const scopeParam = (query.scope as string) || ''
   const gradeIdParam = query.gradeId ? Number(query.gradeId) : null
   const classIdParam = query.classId ? Number(query.classId) : null
 
-  // ===== 1. 确定范围（含权限校验） =====
+  // ===== 1. 确定范围（基于用户真实权限，再按前端参数缩小） =====
   let gradeIds: number[] | null = null
   let classIds: number[] | null = null
   let scopeLabel: 'school' | 'grade' | 'class' = 'school'
   let scopeGradeId: number | null = null
   let scopeClassId: number | null = null
 
-  if (role === 'class_admin') {
-    classIds = admin.classId != null ? [admin.classId] : null
+  if (scopeParam === 'class' && classIdParam != null) {
+    // 按班级导出：必须先校验该班级在用户权限范围内
+    await assertClassManagement(admin, db, classIdParam)
+    const cls = await db.select().from(classes).where(eq(classes.id, classIdParam)).get()
+    if (!cls) throw createError({ statusCode: 404, statusMessage: '班级不存在' })
+    classIds = [classIdParam]
     scopeLabel = 'class'
-    scopeClassId = admin.classId ?? null
-  } else if (role === 'grade_admin') {
-    if (scopeParam === 'class' && classIdParam != null) {
-      const cls = await db.select().from(classes).where(eq(classes.id, classIdParam)).get()
-      if (!cls || cls.gradeId !== admin.gradeId) {
-        throw createError({ statusCode: 403, statusMessage: '只能导出本年级下的班级' })
-      }
-      classIds = [classIdParam]
-      scopeLabel = 'class'
-      scopeClassId = classIdParam
-    } else {
-      gradeIds = admin.gradeId != null ? [admin.gradeId] : null
-      scopeLabel = 'grade'
-      scopeGradeId = admin.gradeId ?? null
-    }
+    scopeClassId = classIdParam
+  } else if (scopeParam === 'grade' && gradeIdParam != null) {
+    // 按年级导出：必须先校验该年级在用户权限范围内
+    await assertGradeManagement(admin, db, gradeIdParam)
+    const g = await db.select().from(grades).where(eq(grades.id, gradeIdParam)).get()
+    if (!g) throw createError({ statusCode: 404, statusMessage: '年级不存在' })
+    gradeIds = [gradeIdParam]
+    scopeLabel = 'grade'
+    scopeGradeId = gradeIdParam
   } else {
-    // school_admin / super_admin
-    if (scopeParam === 'class' && classIdParam != null) {
-      const cls = await db.select().from(classes).where(eq(classes.id, classIdParam)).get()
-      if (!cls) throw createError({ statusCode: 404, statusMessage: '班级不存在' })
-      classIds = [classIdParam]
-      scopeLabel = 'class'
-      scopeClassId = classIdParam
-    } else if (scopeParam === 'grade' && gradeIdParam != null) {
-      const g = await db.select().from(grades).where(eq(grades.id, gradeIdParam)).get()
-      if (!g) throw createError({ statusCode: 404, statusMessage: '年级不存在' })
-      gradeIds = [gradeIdParam]
-      scopeLabel = 'grade'
-      scopeGradeId = gradeIdParam
-    } else {
-      scopeLabel = 'school'
+    // 不指定子范围 → 导出用户权限内的全部
+    // （class_admin = 本班，grade_admin = 本年级，school_admin/super_admin = 全校）
+    if (!scope.schoolWide) {
+      if (scope.role === 'class_admin') {
+        classIds = scope.classIdSet && scope.classIdSet.size ? [...scope.classIdSet] : null
+        scopeLabel = 'class'
+        scopeClassId = admin.classId ?? null
+      } else if (scope.role === 'grade_admin') {
+        gradeIds = scope.gradeIdSet && scope.gradeIdSet.size ? [...scope.gradeIdSet] : null
+        scopeLabel = 'grade'
+        scopeGradeId = admin.gradeId ?? null
+      }
     }
   }
 

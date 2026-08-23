@@ -113,6 +113,8 @@ export default defineEventHandler(async (event) => {
       username: newAdmin.username,
       role: newAdmin.role,
       schoolId: newAdmin.schoolId,
+      gradeId: newAdmin.gradeId ?? null,
+      classId: newAdmin.classId ?? null,
     },
   }
 })
