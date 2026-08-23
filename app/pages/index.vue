@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { sanitizeHtml } from '~/utils/sanitizeHtml'
 
 definePageMeta({ auth: false })
@@ -31,6 +31,8 @@ async function loadAnnouncements() {
     announcements.value = []
   } finally {
     announcementsLoading.value = false
+    await nextTick()
+    initReveal()
   }
 }
 
@@ -265,6 +267,8 @@ function initReveal() {
     els.forEach(el => el.classList.add('is-visible'))
     return
   }
+  // 支持重复调用（异步渲染的内容会新增 [data-reveal] 元素，需要重新观察）
+  observer?.disconnect()
   observer = new IntersectionObserver((entries) => {
     entries.forEach(e => {
       if (e.isIntersecting) {
@@ -273,7 +277,10 @@ function initReveal() {
       }
     })
   }, { threshold: 0.12 })
-  els.forEach(el => observer?.observe(el))
+  els.forEach(el => {
+    // 已显示的无需重复观察
+    if (!el.classList.contains('is-visible')) observer?.observe(el)
+  })
 }
 
 let magneticEls: HTMLElement[] = []
