@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { User, ScoreLog, PaginatedResponse, Grade, Class } from '~/types'
 import { formatTime } from '~/utils/format'
+import DatePicker from '~/components/ui/DatePicker.vue'
 
 definePageMeta({ auth: true })
 
@@ -50,6 +51,15 @@ const filteredClasses = computed(() => {
   return allClasses.value.filter(c => (c as any).gradeId === Number(filterGradeId.value))
 })
 
+// 操作记录日期（须声明在 watch 之前：watch immediate 会立即调用 loadLogs 读取 logDate）
+const logDate = ref<string>(new Date().toISOString().slice(0, 10))
+// 操作记录日期上限（今天，本地时区）
+const maxLogDate = (() => {
+  const d = new Date()
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+})()
+
 // 监听筛选变化，重新加载数据
 watch([statsScope, filterGradeId, filterClassId], () => {
   loadData()
@@ -78,8 +88,6 @@ async function loadData() {
     loading.value = false
   }
 }
-
-const logDate = ref<string>(new Date().toISOString().slice(0, 10))
 
 async function loadLogs() {
   logSearching.value = true
@@ -178,7 +186,7 @@ const scopeLabel = computed(() => {
           <select
             v-if="statsScope === 'grade' || statsScope === 'class'"
             v-model="filterGradeId"
-            class="select-filter"
+            class="filter-select"
           >
             <option value="">全部年级</option>
             <option v-for="g in allGrades" :key="g.id" :value="g.id">{{ g.name }}</option>
@@ -186,7 +194,7 @@ const scopeLabel = computed(() => {
           <select
             v-if="statsScope === 'class'"
             v-model="filterClassId"
-            class="select-filter"
+            class="filter-select filter-select-class"
             :disabled="filteredClasses.length === 0"
           >
             <option value="">选择班级</option>
@@ -273,12 +281,7 @@ const scopeLabel = computed(() => {
           <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
             <h2 class="text-sm font-bold text-slate-100">操作记录</h2>
             <div class="flex items-center gap-2">
-              <input
-                type="date"
-                v-model="logDate"
-                class="form-input py-1.5 text-xs w-auto"
-                :max="new Date().toISOString().slice(0, 10)"
-              />
+              <DatePicker v-model="logDate" :max="maxLogDate" />
               <button
                 @click="loadLogs"
                 :disabled="logSearching"
@@ -321,3 +324,53 @@ const scopeLabel = computed(() => {
     </section>
   </div>
 </template>
+
+<style scoped>
+/* 统计页筛选下拉框：固定适中宽度、并排靠左、钢蓝聚焦 */
+.filter-select {
+  width: 150px;
+  padding: 0.4rem 2rem 0.4rem 0.75rem;
+  background: rgba(10, 16, 28, 0.6);
+  border: 1px solid rgba(110, 140, 180, 0.18);
+  border-radius: 0.5rem;
+  color: #dbe4f0;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%238b99b0' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.6rem center;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.filter-select:hover {
+  border-color: rgba(110, 140, 180, 0.4);
+}
+.filter-select:focus {
+  border-color: #4a7ab5;
+  box-shadow: 0 0 0 3px rgba(74, 122, 181, 0.18);
+}
+.filter-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.filter-select-class {
+  width: 190px;
+}
+.filter-select :deep(option) {
+  background: #101828;
+  color: #dbe4f0;
+}
+
+/* 浅色主题适配 */
+.light .filter-select {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(110, 140, 180, 0.3);
+  color: #1e293b;
+}
+.light .filter-select :deep(option) {
+  background: #ffffff;
+  color: #1e293b;
+}
+</style>
