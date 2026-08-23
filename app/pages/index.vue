@@ -260,6 +260,70 @@ function onScroll() {
   if (pageRef.value) pageRef.value.style.setProperty('--scroll', p.toFixed(4))
 }
 
+// ===== 横向滚动区（特性 / 流程 / 架构）：sticky + transform 平移 =====
+// 原理（参考一加官网 / 掘金文章）：竖向滚轮 → 外层占位高度撑开 → 内层 sticky 钉住
+// → 把容器相对视口的 top 负值映射成横向 translateX，实现"滚动条向下、页面横向移动"
+// 小屏 / 减少动态效果：回退为常规纵向堆叠，不做横移
+const hwrapRef = ref<HTMLElement | null>(null)
+const htrackRef = ref<HTMLElement | null>(null)
+const hscrollActive = ref(false)
+
+let hVw = 0
+let hVh = 0
+let hItemCount = 0
+let hMaxTranslate = 0
+
+// 仅宽屏且未开启"减少动态效果"时启用横向滑动；小屏回退纵向
+function checkHScroll() {
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  hscrollActive.value = window.innerWidth >= 1024 && !reduce
+  if (hscrollActive.value) setupHScroll()
+  else teardownHScroll()
+}
+
+// 计算占位高度 + 绑定平移（幂等：重复调用不会重复绑定事件）
+function setupHScroll() {
+  const wrap = hwrapRef.value
+  const track = htrackRef.value
+  if (!wrap || !track) return
+  window.removeEventListener('scroll', onHScroll)
+  hVw = window.innerWidth
+  hVh = window.innerHeight
+  hItemCount = track.children.length
+  // 占位高度 = (块数 - 1) * 视口宽 + 视口高；最后一块平移距离等于高度而非宽度
+  hMaxTranslate = (hItemCount - 1) * hVw
+  wrap.style.height = `${hMaxTranslate + hVh}px`
+  track.style.transform = 'translateX(0px)'
+  window.addEventListener('scroll', onHScroll, { passive: true })
+  onHScroll()
+}
+
+function teardownHScroll() {
+  const wrap = hwrapRef.value
+  const track = htrackRef.value
+  window.removeEventListener('scroll', onHScroll)
+  if (wrap) wrap.style.height = ''
+  if (track) track.style.transform = ''
+}
+
+// 竖向滚动 → 横向平移
+function onHScroll() {
+  const wrap = hwrapRef.value
+  const track = htrackRef.value
+  if (!wrap || !track) return
+  const top = wrap.getBoundingClientRect().top
+  if (top > 0) {
+    // 容器还没到顶部：保持初始位置
+    track.style.transform = 'translateX(0px)'
+  } else if (top < -hMaxTranslate) {
+    // 已横移到底：锁定在最大位移
+    track.style.transform = `translateX(-${hMaxTranslate}px)`
+  } else {
+    // 区间内：top 为负，直接映射成横向位移
+    track.style.transform = `translateX(${top}px)`
+  }
+}
+
 let observer: IntersectionObserver | null = null
 function initReveal() {
   const els = document.querySelectorAll('[data-reveal]')
@@ -331,8 +395,10 @@ onMounted(() => {
   initMagnetic()
   initTilt()
   onScroll()
+  checkHScroll()
   window.addEventListener('mousemove', onGlobalMouse, { passive: true })
   window.addEventListener('scroll', onScroll, { passive: true })
+  window.addEventListener('resize', checkHScroll)
 })
 
 onBeforeUnmount(() => {
@@ -340,6 +406,8 @@ onBeforeUnmount(() => {
   window.removeEventListener('resize', resizeCanvas)
   window.removeEventListener('mousemove', onGlobalMouse)
   window.removeEventListener('scroll', onScroll)
+  window.removeEventListener('resize', checkHScroll)
+  teardownHScroll()
   observer?.disconnect()
   magneticEls.forEach(el => {
     el.removeEventListener('mousemove', onMagneticMove)
@@ -480,6 +548,11 @@ onBeforeUnmount(() => {
       </div>
     </section>
 
+    <!-- ============ 横向滚动区：特性 / 流程 / 架构 ============ -->
+    <div ref="hwrapRef" class="h-scroll" :class="{ 'h-scroll--active': hscrollActive }">
+      <div class="h-sticky">
+        <div ref="htrackRef" class="h-track">
+
     <!-- ============ 特性 ============ -->
     <section class="section">
       <div class="container">
@@ -568,6 +641,10 @@ onBeforeUnmount(() => {
       </div>
     </section>
 
+        </div>
+      </div>
+    </div>
+
     <!-- ============ FAQ ============ -->
     <section class="section">
       <div class="container container-narrow">
@@ -615,7 +692,6 @@ onBeforeUnmount(() => {
   min-height: 100vh;
   background: #070b14;
   color: #dbe4f0;
-  overflow: hidden;
   --scroll: 0;
 }
 
@@ -1250,6 +1326,43 @@ onBeforeUnmount(() => {
   text-shadow: 0 0 28px rgba(74, 122, 181, 0.25);
 }
 .cta-sub { position: relative; color: #8b99b0; max-width: 36rem; margin: 0 auto 2rem; }
+
+/* ============ 横向滚动区（宽屏启用；小屏自动回退为纵向布局） ============ */
+/* sticky + transform 平移方案：外层 .h-scroll 由 JS 撑开占位高度，内层 .h-sticky
+   钉在视口，竖向滚动时把容器 top 映射成 .h-track 的 translateX，实现"下滚横移" */
+.h-track { display: block; }
+.h-scroll--active .h-sticky {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+.h-scroll--active .h-track {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  height: 100vh;
+  width: max-content;
+  will-change: transform;
+}
+.h-scroll--active .h-track > section {
+  flex: 0 0 100vw;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 3rem 0;
+  overflow-y: auto;
+  border-top: none;
+}
+.h-scroll--active .h-track > section.section-alt {
+  background: transparent;
+}
+/* 横向滚动区内：去掉揭示动画的纵向位移，避免横移时内容上下跳动 */
+.h-scroll--active .h-track > section [data-reveal] {
+  transform: none !important;
+}
 
 /* ============ 滚动揭示（多方向变体） ============ */
 [data-reveal] {
