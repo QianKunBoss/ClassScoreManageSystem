@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![CSMS Logo](./docs/favicon.ico)
+<img src="./docs/favicon.ico" alt="CSMS Logo" width="128" height="128" style="border-radius: 22px" />
 
 </div>
 
@@ -329,7 +329,7 @@ A: 拉取最新代码后，运行 `npm install` 更新依赖，然后运行 `npm
 
 ## 📄 许可证
 
-MIT License
+本项目采用 [GNU General Public License v3.0](LICENSE)（GPL-3.0）开源协议。
 
 ---
 
