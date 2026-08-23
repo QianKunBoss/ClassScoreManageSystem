@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { School, Grade, Class, User, ScoreLog } from '~/types'
 import { formatDate } from '~/utils/format'
+import { useToast } from '~/composables/useToast'
 
 definePageMeta({ auth: true })
 
@@ -209,6 +210,146 @@ const classStats = computed(() => {
 function scoreChangeColor(change: number) {
   return change > 0 ? 'text-emerald-400' : 'text-red-400'
 }
+
+// ===== 数据导出 / 导入（备份 / 恢复） =====
+const toast = useToast()
+const exporting = ref(false)
+const importing = ref(false)
+const fileInput = ref<HTMLInputElement | null>(null)
+const importConfirm = ref({ show: false, existingUsers: 0, existingLogs: 0 })
+let pendingImport: any = null
+const exportModal = ref({
+  show: false,
+  scope: 'school' as 'school' | 'grade' | 'class',
+  gradeId: '' as number | '',
+  classId: '' as number | '',
+})
+
+function openExport() {
+  if (admin.value?.role === 'class_admin') {
+    exportNow({})
+    return
+  }
+  exportModal.value = {
+    show: true,
+    scope: admin.value?.role === 'grade_admin' ? 'grade' : 'school',
+    gradeId: admin.value?.role === 'grade_admin' ? (admin.value.gradeId ?? '') : '',
+    classId: '',
+  }
+}
+
+async function exportNow(params: Record<string, any>) {
+  exporting.value = true
+  try {
+    const res = await $fetch<any>('/api/admin/export', { params })
+    const blob = new Blob([JSON.stringify(res, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `csms-backup-${new Date().toISOString().slice(0, 10)}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+    toast.success('导出成功')
+  } catch (err) {
+    console.error('导出失败', err)
+    toast.error('导出失败')
+  } finally {
+    exporting.value = false
+  }
+}
+
+async function doExport() {
+  const scope = exportModal.value.scope
+  const params: Record<string, any> = {}
+  if (scope === 'grade') {
+    if (!exportModal.value.gradeId) {
+      toast.warning('请选择年级')
+      return
+    }
+    params.scope = 'grade'
+    params.gradeId = exportModal.value.gradeId
+  } else if (scope === 'class') {
+    if (!exportModal.value.classId) {
+      toast.warning('请选择班级')
+      return
+    }
+    params.scope = 'class'
+    params.classId = exportModal.value.classId
+  }
+  exportModal.value.show = false
+  await exportNow(params)
+}
+
+function cancelExport() {
+  exportModal.value.show = false
+}
+
+function triggerImport() {
+  fileInput.value?.click()
+}
+
+async function onImportFileChange(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file) return
+  importing.value = true
+  try {
+    const text = await file.text()
+    let data: any
+    try {
+      data = JSON.parse(text)
+    } catch {
+      toast.error('文件不是有效的 JSON')
+      return
+    }
+    pendingImport = data
+    const res = await $fetch<any>('/api/admin/import', { method: 'POST', body: { data } })
+    if (res?.needConfirm) {
+      importConfirm.value = {
+        show: true,
+        existingUsers: res.existing?.users ?? 0,
+        existingLogs: res.existing?.logs ?? 0,
+      }
+    } else if (res?.success) {
+      toast.success(`导入成功（用户 ${res.imported?.users ?? 0}，记录 ${res.imported?.logs ?? 0}）`)
+      window.location.reload()
+    } else {
+      toast.error('导入失败')
+    }
+  } catch (err) {
+    console.error('导入失败', err)
+    toast.error('导入失败')
+  } finally {
+    importing.value = false
+  }
+}
+
+async function confirmImport(mode: 'overwrite' | 'merge') {
+  if (!pendingImport) return
+  importConfirm.value.show = false
+  importing.value = true
+  try {
+    const res = await $fetch<any>('/api/admin/import', { method: 'POST', body: { data: pendingImport, mode } })
+    if (res?.success) {
+      toast.success('导入成功')
+      window.location.reload()
+    } else {
+      toast.error('导入失败')
+    }
+  } catch (err) {
+    console.error('导入失败', err)
+    toast.error('导入失败')
+  } finally {
+    importing.value = false
+    pendingImport = null
+  }
+}
+
+function cancelImport() {
+  importConfirm.value.show = false
+  pendingImport = null
+}
 </script>
 
 <template>
@@ -227,6 +368,31 @@ function scoreChangeColor(change: number) {
             <p class="text-sm text-slate-500 mt-0.5">
               {{ headerSubtitle }}
             </p>
+          </div>
+
+          <!-- 数据备份：导出 / 导入 -->
+          <div v-if="admin && admin.role !== 'super_admin'" class="flex items-center gap-2">
+            <button
+              @click="openExport"
+              :disabled="exporting"
+              class="btn btn-ghost text-xs py-1.5 px-3"
+            >
+              {{ exporting ? '导出中...' : '导出' }}
+            </button>
+            <button
+              @click="triggerImport"
+              :disabled="importing"
+              class="btn btn-ghost text-xs py-1.5 px-3"
+            >
+              {{ importing ? '导入中...' : '导入' }}
+            </button>
+            <input
+              ref="fileInput"
+              type="file"
+              accept=".json,application/json"
+              class="hidden"
+              @change="onImportFileChange"
+            />
           </div>
 
           <!-- 上级管理员的筛选器 -->
@@ -475,6 +641,95 @@ function scoreChangeColor(change: number) {
       </div>
 
     </section>
+
+    <!-- 导出范围选择模态框 -->
+    <Teleport to="body">
+      <div v-if="exportModal.show" class="modal-backdrop animate-scale-in" @click.self="cancelExport">
+        <div class="modal-content max-w-md">
+          <div class="modal-header">
+            <h3 class="text-base font-bold text-slate-100">选择导出范围</h3>
+            <button @click="cancelExport" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500 transition-colors">✕</button>
+          </div>
+          <div class="modal-body">
+            <div class="flex items-center gap-1 p-0.5 rounded-lg bg-slate-800/30 mb-4">
+              <button
+                v-if="admin?.role !== 'grade_admin'"
+                @click="exportModal.scope = 'school'"
+                :class="`flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${exportModal.scope === 'school' ? 'bg-brand-500/20 text-brand-400' : 'text-slate-500 hover:text-slate-300'}`"
+              >
+                全校
+              </button>
+              <button
+                @click="exportModal.scope = 'grade'"
+                :class="`flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${exportModal.scope === 'grade' ? 'bg-brand-500/20 text-brand-400' : 'text-slate-500 hover:text-slate-300'}`"
+              >
+                {{ admin?.role === 'grade_admin' ? '全年级' : '年级' }}
+              </button>
+              <button
+                @click="exportModal.scope = 'class'"
+                :class="`flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${exportModal.scope === 'class' ? 'bg-brand-500/20 text-brand-400' : 'text-slate-500 hover:text-slate-300'}`"
+              >
+                班级
+              </button>
+            </div>
+
+            <div v-if="exportModal.scope === 'grade' && admin?.role !== 'grade_admin'" class="mb-3">
+              <label class="block text-xs text-slate-500 mb-1.5">选择年级</label>
+              <select v-model="exportModal.gradeId" class="form-input text-sm py-2">
+                <option value="" disabled>请选择年级</option>
+                <option v-for="g in allGrades" :key="g.id" :value="g.id">{{ g.name }}</option>
+              </select>
+            </div>
+
+            <div v-if="exportModal.scope === 'class'" class="mb-3">
+              <label class="block text-xs text-slate-500 mb-1.5">选择班级</label>
+              <select v-model="exportModal.classId" class="form-input text-sm py-2">
+                <option value="" disabled>请选择班级</option>
+                <option v-for="c in allClasses" :key="c.id" :value="c.id">{{ (c as any).gradeName ? (c as any).gradeName + ' - ' : '' }}{{ c.name }}</option>
+              </select>
+            </div>
+
+            <p class="text-xs text-slate-500">
+              <template v-if="exportModal.scope === 'school'">将导出本学校的全部数据（所有年级、班级、用户及操作记录）。</template>
+              <template v-else-if="exportModal.scope === 'grade'">将导出{{ admin?.role === 'grade_admin' ? '本年级' : '所选年级' }}的全部数据（包含其下所有班级）。</template>
+              <template v-else>将导出所选班级的全部数据（用户及操作记录）。</template>
+            </p>
+          </div>
+          <div class="modal-footer">
+            <button @click="cancelExport" class="btn btn-ghost">取消</button>
+            <button @click="doExport" :disabled="exporting" class="btn btn-primary">{{ exporting ? '导出中...' : '导出' }}</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- 导入确认模态框 -->
+    <Teleport to="body">
+      <div v-if="importConfirm.show" class="modal-backdrop animate-scale-in" @click.self="cancelImport">
+        <div class="modal-content max-w-md">
+          <div class="modal-header">
+            <h3 class="text-base font-bold text-slate-100">确认导入</h3>
+            <button @click="cancelImport" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500 transition-colors">✕</button>
+          </div>
+          <div class="modal-body">
+            <p class="text-sm text-slate-300">
+              当前已有
+              <span class="text-brand-400 font-semibold">{{ importConfirm.existingUsers }}</span> 名用户、
+              <span class="text-brand-400 font-semibold">{{ importConfirm.existingLogs }}</span> 条操作记录。请选择导入方式：
+            </p>
+            <div class="mt-3 space-y-2 text-xs text-slate-400">
+              <p><span class="text-slate-200">覆盖恢复</span>：清空现有数据，用备份文件完整重建</p>
+              <p><span class="text-slate-200">合并追加</span>：保留现有数据，仅补充备份中缺失的部分</p>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button @click="cancelImport" class="btn btn-ghost">取消</button>
+            <button @click="confirmImport('merge')" class="btn btn-ghost">合并追加</button>
+            <button @click="confirmImport('overwrite')" class="btn btn-danger">覆盖恢复</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
