@@ -1,17 +1,9 @@
 <script setup lang="ts">
 import { useSiteSettings } from '~/composables/useSiteSettings'
+import { useAuth } from '~/composables/useAuth'
 import { Menu, X, ChevronDown, ChevronUp, Settings, LogOut } from '~/utils/icons'
-// 认证状态（固定 key，便于登录/切换账号后用 refreshNuxtData('auth-me') 刷新）
-const { data: authData, status } = useFetch('/api/auth/me', {
-  key: 'auth-me',
-  credentials: 'include',
-  server: false,
-  immediate: true,
-  default: () => ({ success: false, admin: null }),
-})
-
-const isLoggedIn = computed(() => authData.value?.success === true)
-const currentUser = computed(() => authData.value?.admin || null)
+// 认证状态（统一走 useAuth composable，key: 'auth-me' 单一数据源）
+const { user: currentUser, status, loggedIn: isLoggedIn } = useAuth()
 
 // 站点公开展示设置（导航栏标题等）
 const { data: siteSettings } = useSiteSettings()
@@ -35,40 +27,7 @@ const navLinks = computed(() => {
   ]
   const role = currentUser.value?.role
   if (currentUser.value) {
-    links.push({ to: '/admin', label: '管理后台' })
-    // 班级管理员
-    if (role === 'class_admin') {
-      links.push(
-        { to: '/admin/scores', label: '积分' },
-        { to: '/admin/templates', label: '模板' },
-        { to: '/admin/users', label: '用户' },
-        { to: '/admin/seats', label: '座位' },
-        { to: '/admin/stats', label: '统计' },
-      )
-    }
-    // 学校管理员：管理本校所有内容
-    if (role === 'school_admin') {
-      links.push(
-        { to: '/admin/grades', label: '年级' },
-        { to: '/admin/classes', label: '班级' },
-        { to: '/admin/users', label: '用户' },
-        { to: '/admin/teachers', label: '老师管理' },
-        { to: '/admin/scores', label: '积分' },
-        { to: '/admin/templates', label: '模板' },
-        { to: '/admin/seats', label: '座位' },
-        { to: '/admin/stats', label: '统计' },
-      )
-    }
-    // 年级管理员：管理本年级
-    if (role === 'grade_admin') {
-      links.push(
-        { to: '/admin/classes', label: '班级' },
-        { to: '/admin/teachers', label: '老师管理' },
-        { to: '/admin/users', label: '用户' },
-        { to: '/admin/scores', label: '积分' },
-        { to: '/admin/templates', label: '模板' },
-      )
-    }
+    links.push({ to: '/admin', label: '工作台' })
     if (role === 'super_admin') {
       links.push(
         { to: '/superadmin', label: '系统管理' },

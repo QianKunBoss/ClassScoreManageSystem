@@ -1,8 +1,10 @@
 // useAuth composable - 封装认证逻辑
 export function useAuth() {
-  // 从 API 获取登录状态
-  const { data: authData, refresh: refreshAuth } = useFetch('/api/auth/me', {
+  // 从 API 获取登录状态（单一数据源，全站共用 key: 'auth-me'）
+  const { data: authData, refresh: refreshAuth, status } = useFetch('/api/auth/me', {
     key: 'auth-me',
+    credentials: 'include',
+    server: false,
     default: () => ({ success: false, admin: null as null | { id: number; username: string; role: string } }),
   })
 
@@ -28,5 +30,6 @@ export function useAuth() {
     user,
     clear,
     refresh: refreshAuth,
+    status,
   }
 }

@@ -56,6 +56,8 @@ export interface User {
   username: string
   actualName?: string | null
   totalScore: number
+  addScore?: number
+  deductScore?: number
   scoreCount: number
   email?: string | null
   disabled?: number

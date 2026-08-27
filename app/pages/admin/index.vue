@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import type { School, Grade, Class, User, ScoreLog } from '~/types'
-import { formatDate } from '~/utils/format'
+import { formatDate, formatTime } from '~/utils/format'
 import { useToast } from '~/composables/useToast'
+import DatePicker from '~/components/ui/DatePicker.vue'
 
 definePageMeta({ auth: true })
 
@@ -125,6 +126,7 @@ watch(admin, async (a) => {
     // 班级管理员直接加载本班
     filterClassId.value = a.classId
     await loadData({ classId: a.classId })
+    await loadLogs()
   }
 
   // 读取 URL 中的 classId（从其他页面跳过来）
@@ -148,6 +150,7 @@ watch([filterClassId, filterGradeId, statsScope], ([cid, gid, scope]) => {
     classLogs.value = []
     classInfo.value = null
   }
+  loadLogs()
 })
 
 // 年级筛选变更时，清空班级选择（如果当前班级不属于该年级）
@@ -188,6 +191,38 @@ async function loadData(params: { classId?: number; gradeId?: number } = {}) {
   }
 }
 
+// 操作记录（带日期筛选，独立于排行榜数据加载）
+const logDate = ref<string>(new Date().toISOString().slice(0, 10))
+const maxLogDate = (() => {
+  const d = new Date()
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+})()
+const logSearching = ref(false)
+
+async function loadLogs() {
+  logSearching.value = true
+  try {
+    const params: Record<string, any> = { limit: 100 }
+    if (logDate.value) params.date = logDate.value
+    if (statsScope.value === 'class' && filterClassId.value) {
+      params.classId = Number(filterClassId.value)
+    } else if (statsScope.value === 'grade' && filterGradeId.value) {
+      params.gradeId = Number(filterGradeId.value)
+    } else if (statsScope.value === 'all') {
+      if (admin.value?.role === 'grade_admin' && admin.value.gradeId) {
+        params.gradeId = admin.value.gradeId
+      }
+    }
+    const res = await $fetch<{ data: ScoreLog[] }>('/api/scores/logs', { params })
+    classLogs.value = res.data || []
+  } catch (err) {
+    console.error('加载日志失败', err)
+  } finally {
+    logSearching.value = false
+  }
+}
+
 // 排行榜（按 totalScore 降序，显示全部）
 const rankList = computed(() =>
   [...classUsers.value].sort((a, b) => (b.totalScore ?? 0) - (a.totalScore ?? 0))
@@ -205,11 +240,6 @@ const classStats = computed(() => {
     min: Math.min(...scores),
   }
 })
-
-// 最近日志格式化
-function scoreChangeColor(change: number) {
-  return change > 0 ? 'text-emerald-400' : 'text-red-400'
-}
 
 // ===== 数据导出 / 导入（备份 / 恢复） =====
 const toast = useToast()
@@ -529,9 +559,9 @@ function cancelImport() {
 
       <!-- 数据视图（选了年级或班级后显示排名/统计） -->
       <div v-else class="animate-slide-up">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <!-- 左侧：排行榜 + 最近记录 -->
-          <div class="lg:col-span-2 space-y-6">
+        <div class="grid grid-cols-1 gap-6">
+          <!-- 左侧：排行榜 + 操作记录 -->
+          <div class="space-y-6">
 
             <!-- 统计卡片 -->
             <div v-if="classStats" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -555,11 +585,19 @@ function cancelImport() {
 
             <!-- 班级排行榜 -->
             <div class="glass-card p-6">
-              <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center justify-between mb-2">
                   <h2 class="text-base font-bold text-slate-100">
                     {{ rankListTitle }}
                   </h2>
                 <span class="text-xs text-slate-600">全部</span>
+              </div>
+              <!-- 列头：用户 / 总积分 / 加分 / 减分 -->
+              <div class="flex items-center gap-4 px-3 pb-1 text-xs text-slate-500">
+                <div class="w-7 shrink-0 text-center">#</div>
+                <div class="flex-1 min-w-0">用户</div>
+                <div class="w-20 text-right">总积分</div>
+                <div class="w-16 text-right text-emerald-400">加分</div>
+                <div class="w-16 text-right text-red-400">减分</div>
               </div>
               <div v-if="contentLoading" class="space-y-2">
                 <div v-for="i in 5" :key="i" class="h-12 rounded-lg bg-slate-800/40 animate-pulse"></div>
@@ -572,14 +610,16 @@ function cancelImport() {
                 <div
                   v-for="(u, idx) in rankList"
                   :key="u.id"
-                  class="flex items-center gap-4 p-3 rounded-lg hover:bg-slate-800/40 transition-colors"
+                  class="flex items-center gap-4 px-3 py-2.5 rounded-lg hover:bg-slate-800/40 transition-colors"
                 >
-                  <div :class="`rank-badge ${idx < 3 ? `rank-${idx+1}` : 'rank-other'}`">{{ idx + 1 }}</div>
+                  <div :class="`w-7 shrink-0 text-center text-sm tabular-nums ${idx < 3 ? 'font-bold text-brand-400' : 'text-slate-500'}`">{{ idx + 1 }}</div>
                   <div class="flex-1 min-w-0">
                     <span class="text-sm text-slate-200 truncate block">{{ u.actualName || u.username }}</span>
                     <span v-if="u.actualName" class="text-xs text-slate-600">{{ u.username }}</span>
                   </div>
-                  <span class="text-sm font-bold text-brand-400 tabular-nums">{{ u.totalScore ?? 0 }} 分</span>
+                  <span class="w-20 text-right text-sm font-bold text-brand-400 tabular-nums">{{ u.totalScore ?? 0 }}</span>
+                  <span class="w-16 text-right text-sm font-bold text-emerald-400 tabular-nums">+{{ u.addScore ?? 0 }}</span>
+                  <span class="w-16 text-right text-sm font-bold text-red-400 tabular-nums">{{ u.deductScore ?? 0 }}</span>
                 </div>
                 <p class="text-xs text-slate-600 text-center pt-2">
                   共 {{ classUsers.length }} 名同学
@@ -587,64 +627,52 @@ function cancelImport() {
               </div>
             </div>
 
-            <!-- 最近积分记录 -->
+            <!-- 操作记录 -->
             <div class="glass-card p-6">
-              <h2 class="text-base font-bold text-slate-100 mb-4">最近积分记录</h2>
-              <div v-if="contentLoading" class="space-y-2">
-                <div v-for="i in 3" :key="i" class="h-10 rounded-lg bg-slate-800/40 animate-pulse"></div>
+              <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+                <h2 class="text-base font-bold text-slate-100">操作记录</h2>
+                <div class="flex items-center gap-2">
+                  <DatePicker v-model="logDate" :max="maxLogDate" />
+                  <button
+                    @click="loadLogs"
+                    :disabled="logSearching"
+                    class="btn btn-primary text-xs py-1.5 px-3"
+                  >
+                    {{ logSearching ? '查询中...' : '查询' }}
+                  </button>
+                </div>
               </div>
-              <div v-else-if="classLogs.length === 0" class="text-center py-6 text-slate-500 text-sm">暂无记录</div>
-              <div v-else class="space-y-1">
+              <div v-if="logSearching" class="space-y-2">
+                <div v-for="i in 6" :key="i" class="h-12 rounded-lg bg-slate-800/40 animate-pulse"></div>
+              </div>
+              <div v-else-if="classLogs.length === 0" class="text-center py-8 text-slate-600 text-sm">
+                {{ logDate ? `${logDate} 暂无操作记录` : '暂无操作记录' }}
+              </div>
+              <div v-else class="space-y-1.5 max-h-[460px] overflow-y-auto">
                 <div
                   v-for="log in classLogs"
                   :key="log.id"
-                  class="flex items-center gap-3 p-2.5 rounded-lg hover:bg-slate-800/30 transition-colors"
+                  class="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-800/30 transition-all"
                 >
-                  <span :class="`text-sm font-bold tabular-nums w-12 text-right shrink-0 ${scoreChangeColor(log.scoreChange)}`">
+                  <div
+                    :class="`w-7 h-7 rounded-md flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                      log.scoreChange > 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'
+                    }`"
+                  >
+                    {{ log.scoreChange > 0 ? '+' : '−' }}
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-xs text-slate-300 truncate">{{ log.description || '积分调整' }}</p>
+                    <p class="text-xs text-slate-600">{{ log.username }} · {{ formatTime(log.createdAt) }}</p>
+                  </div>
+                  <span :class="`text-sm font-bold ${log.scoreChange > 0 ? 'text-emerald-400' : 'text-red-400'}`">
                     {{ log.scoreChange > 0 ? '+' : '' }}{{ log.scoreChange }}
                   </span>
-                  <span class="text-sm text-slate-200 flex-1 truncate">{{ log.username }}</span>
-                  <span class="text-xs text-slate-500 shrink-0 hidden sm:block">{{ log.description }}</span>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- 右侧：快捷操作 -->
-          <div>
-            <div class="glass-card p-5 sticky top-20">
-              <h3 class="text-sm font-bold text-slate-100 mb-4">快捷操作</h3>
-              <div class="space-y-2">
-                <NuxtLink to="/admin/scores" class="block btn btn-ghost text-sm w-full text-left"><MorphIcon name="file-pen" size="1em" class="inline-block align-middle" /> 积分管理</NuxtLink>
-                <NuxtLink to="/admin/users" class="block btn btn-ghost text-sm w-full text-left"><MorphIcon name="users" size="1em" class="inline-block align-middle" /> 用户管理</NuxtLink>
-                <NuxtLink to="/admin/templates" class="block btn btn-ghost text-sm w-full text-left"><MorphIcon name="clipboard-list" size="1em" class="inline-block align-middle" /> 模板管理</NuxtLink>
-                <NuxtLink to="/admin/seats" class="block btn btn-ghost text-sm w-full text-left"><MorphIcon name="armchair" size="1em" class="inline-block align-middle" /> 座位管理</NuxtLink>
-                <NuxtLink to="/admin/stats" class="block btn btn-ghost text-sm w-full text-left"><MorphIcon name="bar-chart-3" size="1em" class="inline-block align-middle" /> 数据统计</NuxtLink>
-              </div>
-
-              <!-- 班级/年级基本信息 -->
-              <template v-if="selectedClass || selectedGrade || isClassAdmin">
-                <hr class="border-slate-800 my-4">
-                <h3 class="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider">
-                  {{ selectedClass ? '班级信息' : '年级信息' }}
-                </h3>
-                <div class="space-y-2 text-sm">
-                  <div v-if="selectedClass" class="flex justify-between">
-                    <span class="text-slate-500">班级名称</span>
-                    <span class="text-slate-200">{{ selectedClass.name }}</span>
-                  </div>
-                  <div v-if="selectedGrade" class="flex justify-between">
-                    <span class="text-slate-500">年级</span>
-                    <span class="text-slate-200">{{ selectedGrade.name }}</span>
-                  </div>
-                  <div class="flex justify-between">
-                    <span class="text-slate-500">{{ selectedClass ? '班级人数' : '参与排名人数' }}</span>
-                    <span class="text-slate-200">{{ classUsers.length }} 人</span>
-                  </div>
-                </div>
-              </template>
-            </div>
-          </div>
         </div>
       </div>
 

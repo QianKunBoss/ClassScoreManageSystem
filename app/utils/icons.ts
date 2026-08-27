@@ -12,7 +12,7 @@ import {
   Inbox, Star, BookOpen, Calendar, MapPin, Megaphone, Armchair, TrendingUp,
   Zap, Crown, UserCog, Hand, Smartphone, Ban, CircleCheck, ArrowUp,
   ArrowDown, ArrowUpDown, ArrowRight, Circle, CircleAlert, Undo, Send,
-  MailOpen, CircleDot, FilePen, UserPlus, FilePlus, Info, MailCheck, KeyRound,
+  MailOpen, CircleDot, FilePen, UserPlus, FilePlus, Info, MailCheck, KeyRound, LayoutTemplate,
 } from 'lucide'
 
 // 字符串名 → Lucide 图标数据，供 <MorphIcon name="..."> 解析
@@ -37,6 +37,7 @@ export const iconRegistry: Record<string, unknown> = {
   undo: Undo, send: Send, 'mail-open': MailOpen, 'circle-dot': CircleDot,
   'file-pen': FilePen, 'user-plus': UserPlus, 'file-plus': FilePlus, info: Info,
   'mail-check': MailCheck, 'key-round': KeyRound,
+  'layout-template': LayoutTemplate,
   'database': Database, 'download': Download, 'upload': Upload,
 }
 
@@ -49,5 +50,5 @@ export {
   Inbox, Star, BookOpen, Calendar, MapPin, Megaphone, Armchair, TrendingUp,
   Zap, Crown, UserCog, Hand, Smartphone, Ban, CircleCheck, ArrowUp,
   ArrowDown, ArrowUpDown, ArrowRight, Circle, CircleAlert, Undo, Send,
-  MailOpen, CircleDot, FilePen, UserPlus, FilePlus, MailCheck, KeyRound,
+  MailOpen, CircleDot, FilePen, UserPlus, FilePlus, MailCheck, KeyRound, LayoutTemplate,
 }
