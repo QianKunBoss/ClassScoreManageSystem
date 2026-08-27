@@ -20,12 +20,12 @@ export default defineEventHandler(async (event) => {
     if (!classId) {
       classId = admin.classId
     } else if (Number(classId) !== admin.classId) {
-      throw createError({ statusCode: 403, statusMessage: '只能管理自己班级的座位布局' })
+      throw createError({ statusCode: 403, message: '只能管理自己班级的座位布局' })
     }
   }
 
   if (!classId) {
-    throw createError({ statusCode: 400, statusMessage: '缺少 classId 参数' })
+    throw createError({ statusCode: 400, message: '缺少 classId 参数' })
   }
 
   const classIdNum = Number(classId)

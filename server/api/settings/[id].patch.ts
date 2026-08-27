@@ -12,7 +12,15 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody(event)
-  const { settingKey, settingValue, description } = body
+  const { settingKey, settingValue, description, value } = body
+
+  // 兼容旧调用方误用 `value` 字段，统一归一到 settingValue
+  const incomingValue = settingValue !== undefined ? settingValue : value
+
+  // 三个可更新字段全缺省时明确报错，避免静默保持原值
+  if (settingKey === undefined && incomingValue === undefined && description === undefined) {
+    throw createError({ statusCode: 400, message: '未提供任何可更新的字段' })
+  }
 
   const db = useMainDb()
 
@@ -28,7 +36,7 @@ export default defineEventHandler(async (event) => {
   const result = await db.update(systemSettings)
     .set({
       settingKey: settingKey || existing.settingKey,
-      settingValue: settingValue !== undefined ? settingValue : existing.settingValue,
+      settingValue: incomingValue !== undefined ? incomingValue : existing.settingValue,
       description: description !== undefined ? description : existing.description,
       updatedAt: new Date().toISOString(),
     })

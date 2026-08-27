@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
 
   const id = Number(getRouterParam(event, 'id'))
   if (!id) {
-    throw createError({ statusCode: 400, statusMessage: '缺少用户 ID' })
+    throw createError({ statusCode: 400, message: '缺少用户 ID' })
   }
 
   // 用户信息（带积分汇总，raw SQL）
@@ -35,7 +35,7 @@ export default defineEventHandler(async (event) => {
   const row = result.rows[0] as any
 
   if (!row) {
-    throw createError({ statusCode: 404, statusMessage: '用户不存在' })
+    throw createError({ statusCode: 404, message: '用户不存在' })
   }
 
   // 积分记录（Drizzle ORM）

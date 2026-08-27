@@ -27,6 +27,11 @@ export const users = sqliteTable('users', {
   username: text('username').notNull(),
   passwordHash: text('password_hash').notNull(),
   actualName: text('actual_name'),
+  // 绑定邮箱：用于找回密码 / 安全验证。可空（未绑定）；非空时全校唯一（SQLite 唯一索引允许多个 NULL）
+  email: text('email'),
+  emailBoundAt: text('email_bound_at'),
+  // 账号状态：0=正常，1=禁用（禁用后无法登录）
+  disabled: integer('disabled').notNull().default(0),
   totalScore: integer('total_score').notNull().default(0),
   addScore: integer('add_score').notNull().default(0),
   deductScore: integer('deduct_score').notNull().default(0),
@@ -34,6 +39,8 @@ export const users = sqliteTable('users', {
   createdAt: text('created_at').notNull().$defaultFn(() => new Date().toISOString()),
 }, (table) => ({
   unq: unique('users_class_username_unq').on(table.classId, table.username),
+  // 邮箱唯一（仅对非空值生效，允许多个 NULL）
+  emailUnq: unique('users_email_unq').on(table.email),
 }))
 
 // ===== score_logs =====

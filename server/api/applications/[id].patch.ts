@@ -4,6 +4,7 @@ import { grades, classes } from '../../database/schema'
 import { useMainDb, useSchoolDb } from '../../database/db'
 import { getAdminFromSession, hashPasswordBcrypt } from '../../utils/auth'
 import { createSchoolDb } from '../../utils/create-school-db'
+import { EMAIL_RE } from '../../utils/mail'
 
 export default defineEventHandler(async (event) => {
   const admin = await getAdminFromSession(event)
@@ -205,6 +206,23 @@ export default defineEventHandler(async (event) => {
     console.log(`[CSMS] 步骤5: 创建管理员账号, role=${role}, gradeId=${gradeId}, classId=${classId}`)
     // 5. 创建管理员账号（主库）— 幂等：防止重复审核导致 UNIQUE 冲突
     let newAdminId: number
+    let emailWarning: string | null = null
+
+    // 申请邮箱自动绑定：若 contactEmail 合法且未被其他管理员占用，则创建时一并绑定
+    let bindEmail: string | null = null
+    const contactEmail = (application.contactEmail || '').trim()
+    if (contactEmail && EMAIL_RE.test(contactEmail)) {
+      const emailTaken = await mainDb
+        .select({ id: admins.id })
+        .from(admins)
+        .where(eq(admins.email, contactEmail))
+        .get()
+      if (!emailTaken) {
+        bindEmail = contactEmail
+      } else {
+        emailWarning = `申请邮箱 ${contactEmail} 已被其他管理员绑定，本次未自动绑定，请稍后在用户管理中手动设置`
+      }
+    }
 
     // 先检查是否已有同名管理员（可能是之前部分失败的审核创建的）
     const existingAdmin = await mainDb
@@ -226,11 +244,13 @@ export default defineEventHandler(async (event) => {
           gradeId,
           classId,
           mustChangePassword: 1,
+          email: bindEmail,
+          emailBoundAt: bindEmail ? new Date().toISOString() : null,
         })
         .returning()
         .all()
       newAdminId = newAdmin.id
-      console.log(`[CSMS] 已创建新管理员 ID=${newAdminId}`)
+      console.log(`[CSMS] 已创建新管理员 ID=${newAdminId}${bindEmail ? ` 已绑定邮箱 ${bindEmail}` : ''}`)
     }
 
     console.log(`[CSMS] 步骤6: 更新申请记录`)
@@ -259,7 +279,10 @@ export default defineEventHandler(async (event) => {
         grade: application.gradeName || null,
         class: application.className || null,
       },
-      message: '审核通过，管理员账号已自动创建',
+      emailWarning: emailWarning || undefined,
+      message: emailWarning
+        ? '审核通过，管理员账号已自动创建（邮箱未自动绑定，详见提示）'
+        : '审核通过，管理员账号已自动创建',
     }
 
   } catch (error: any) {

@@ -15,12 +15,12 @@ export default defineEventHandler(async (event) => {
   }
 
   if (!body.password) {
-    throw createError({ statusCode: 400, statusMessage: '请输入管理员密码进行确认' })
+    throw createError({ statusCode: 400, message: '请输入管理员密码进行确认' })
   }
 
   const valid = await verifyAdminPassword(admin.id, body.password)
   if (!valid) {
-    throw createError({ statusCode: 403, statusMessage: '密码错误' })
+    throw createError({ statusCode: 403, message: '密码错误' })
   }
 
   await client.execute('BEGIN TRANSACTION')
@@ -40,6 +40,6 @@ export default defineEventHandler(async (event) => {
     return { success: true, message: '新学期切换成功' }
   } catch (e) {
     await client.execute('ROLLBACK')
-    throw createError({ statusCode: 500, statusMessage: '操作失败' })
+    throw createError({ statusCode: 500, message: '操作失败' })
   }
 })

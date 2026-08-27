@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
 
   const id = Number(getRouterParam(event, 'id'))
   if (!id) {
-    throw createError({ statusCode: 400, statusMessage: '缺少座位 ID' })
+    throw createError({ statusCode: 400, message: '缺少座位 ID' })
   }
 
   // 班级管理员权限校验：只能操作自己班级的座位
@@ -23,10 +23,10 @@ export default defineEventHandler(async (event) => {
     })
     const seatRows = seatRes.rows as any[]
     if (seatRows.length === 0) {
-      throw createError({ statusCode: 404, statusMessage: '座位不存在' })
+      throw createError({ statusCode: 404, message: '座位不存在' })
     }
     if (seatRows[0].class_id !== admin.classId) {
-      throw createError({ statusCode: 403, statusMessage: '只能管理自己班级的座位' })
+      throw createError({ statusCode: 403, message: '只能管理自己班级的座位' })
     }
   }
 
@@ -39,7 +39,7 @@ export default defineEventHandler(async (event) => {
       args: [body.userId, id],
     })
     if ((existing.rows as any[]).length > 0) {
-      throw createError({ statusCode: 400, statusMessage: '该学生已分配座位' })
+      throw createError({ statusCode: 400, message: '该学生已分配座位' })
     }
   }
 

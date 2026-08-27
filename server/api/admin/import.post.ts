@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
   const mode = (body?.mode as string) || ''
 
   if (!data || !Array.isArray(data.users) || !Array.isArray(data.scoreLogs)) {
-    throw createError({ statusCode: 400, statusMessage: '无效的备份文件：缺少 users 或 scoreLogs 数据' })
+    throw createError({ statusCode: 400, message: '无效的备份文件：缺少 users 或 scoreLogs 数据' })
   }
 
   const scope = await resolveSchoolScope(admin, db)
@@ -36,7 +36,7 @@ export default defineEventHandler(async (event) => {
   if (bc.length === 0 && bu.length === 0) {
     throw createError({
       statusCode: 403,
-      statusMessage: '备份文件中的班级/学生均不在您的管理范围内，已拒绝导入',
+      message: '备份文件中的班级/学生均不在您的管理范围内，已拒绝导入',
     })
   }
 

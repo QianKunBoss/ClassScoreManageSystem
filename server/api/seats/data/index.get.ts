@@ -19,12 +19,12 @@ export default defineEventHandler(async (event) => {
     if (!classId) {
       classId = admin.classId
     } else if (classId !== admin.classId) {
-      throw createError({ statusCode: 403, statusMessage: '只能查看自己班级的座位表' })
+      throw createError({ statusCode: 403, message: '只能查看自己班级的座位表' })
     }
   }
 
   if (!classId) {
-    throw createError({ statusCode: 400, statusMessage: '缺少 classId 参数' })
+    throw createError({ statusCode: 400, message: '缺少 classId 参数' })
   }
 
   let sql = `SELECT sd.id, sd.class_id, sd.group_index, sd.row_index, sd.col_index,

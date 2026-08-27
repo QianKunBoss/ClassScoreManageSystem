@@ -332,7 +332,7 @@ async function refreshTemplates() {
                 class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-500/10 border border-brand-500/20 text-xs text-brand-300"
               >
                 {{ u.username }}
-                <button @click="removeUser(u.id)" class="hover:text-red-400">✕</button>
+                <button @click="removeUser(u.id)" class="hover:text-red-400"><MorphIcon name="x" :size="14" class="pointer-events-none" /></button>
               </span>
             </div>
           </div>
@@ -415,7 +415,7 @@ async function refreshTemplates() {
                   class="inline-flex items-center gap-1 px-2 py-1 rounded bg-brand-500/10 border border-brand-500/20 text-xs text-brand-300"
                 >
                   {{ u.username }}
-                  <button @click="removeUser(u.id)" class="hover:text-red-400 ml-0.5">✕</button>
+                  <button @click="removeUser(u.id)" class="hover:text-red-400 ml-0.5"><MorphIcon name="x" :size="14" class="pointer-events-none" /></button>
                 </span>
               </div>
             </div>
@@ -499,7 +499,7 @@ async function refreshTemplates() {
                   operationResult.success ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-red-500/10 border-red-500/20 text-red-400'
                 }`"
               >
-                {{ operationResult.success ? '✓' : '⚠' }} {{ operationResult.message }}
+                <MorphIcon :name="operationResult.success ? 'check' : 'alert-triangle'" size="1em" class="inline-block align-middle" /> {{ operationResult.message }}
               </div>
             </div>
           </div>
@@ -536,7 +536,7 @@ async function refreshTemplates() {
           <div class="modal-content max-w-2xl">
             <div class="modal-header">
               <h3 class="text-base font-bold text-slate-100">快捷模板管理</h3>
-              <button @click="showTemplateModal = false" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500">✕</button>
+              <button @click="showTemplateModal = false" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500"><MorphIcon name="x" :size="16" class="pointer-events-none" /></button>
             </div>
             <div class="modal-body">
               <TemplatesManager :schoolId="filterSchoolId" @updated="refreshTemplates" />

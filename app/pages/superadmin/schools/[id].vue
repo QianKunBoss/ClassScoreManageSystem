@@ -2,7 +2,7 @@
 import type { School, Grade, Class, User } from '~/types'
 import { formatDate } from '~/utils/format'
 
-definePageMeta({ middleware: 'super-admin' })
+definePageMeta({ middleware: 'super-admin', layout: 'superadmin' })
 
 const route = useRoute()
 const toast = useToast()
@@ -256,7 +256,7 @@ onMounted(async () => {
     <section class="border-b border-slate-800/50">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex items-center gap-4">
         <NuxtLink to="/superadmin" class="btn btn-ghost text-sm">
-          ← 返回
+          <MorphIcon name="arrow-left" size="1em" class="inline-block align-middle" /> 返回
         </NuxtLink>
         <div>
           <h1 class="text-xl font-bold text-slate-100 mb-1">{{ school?.name || '加载中...' }}</h1>
@@ -395,7 +395,7 @@ onMounted(async () => {
           <div class="modal-content max-w-sm">
             <div class="modal-header">
               <h3 class="text-base font-bold text-slate-100">添加年级</h3>
-              <button @click="showAddGrade = false" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500">✕</button>
+              <button @click="showAddGrade = false" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500"><MorphIcon name="x" :size="16" class="pointer-events-none" /></button>
             </div>
             <div class="modal-body">
               <input v-model="newGradeName" type="text" placeholder="年级名称，如：高一" class="form-input" @keyup.enter="addGrade" />
@@ -416,7 +416,7 @@ onMounted(async () => {
           <div class="modal-content max-w-sm">
             <div class="modal-header">
               <h3 class="text-base font-bold text-slate-100">添加班级</h3>
-              <button @click="showAddClass = false" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500">✕</button>
+              <button @click="showAddClass = false" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500"><MorphIcon name="x" :size="16" class="pointer-events-none" /></button>
             </div>
             <div class="modal-body space-y-4">
               <div>
@@ -447,7 +447,7 @@ onMounted(async () => {
           <div class="modal-content max-w-sm">
             <div class="modal-header">
               <h3 class="text-base font-bold text-slate-100">添加用户</h3>
-              <button @click="showAddUser = false" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500">✕</button>
+              <button @click="showAddUser = false" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500"><MorphIcon name="x" :size="16" class="pointer-events-none" /></button>
             </div>
             <div class="modal-body space-y-4">
               <div>
@@ -479,7 +479,7 @@ onMounted(async () => {
           <div class="modal-content max-w-sm">
             <div class="modal-header">
               <h3 class="text-base font-bold text-slate-100">批量添加用户</h3>
-              <button @click="showBatchAddUser = false" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500">✕</button>
+              <button @click="showBatchAddUser = false" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500"><MorphIcon name="x" :size="16" class="pointer-events-none" /></button>
             </div>
             <div class="modal-body space-y-4">
               <div>

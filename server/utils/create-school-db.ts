@@ -47,6 +47,8 @@ export async function createSchoolDb(schoolId: number) {
         username TEXT NOT NULL,
         password_hash TEXT NOT NULL,
         actual_name TEXT,
+        email TEXT,
+        email_bound_at TEXT,
         total_score INTEGER NOT NULL DEFAULT 0,
         add_score INTEGER NOT NULL DEFAULT 0,
         deduct_score INTEGER NOT NULL DEFAULT 0,
@@ -54,6 +56,7 @@ export async function createSchoolDb(schoolId: number) {
         created_at TEXT NOT NULL DEFAULT (datetime('now')),
         UNIQUE(class_id, username)
       )`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS users_email_unq ON users(email)`,
       `CREATE TABLE IF NOT EXISTS score_logs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

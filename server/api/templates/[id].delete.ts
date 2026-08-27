@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
 
   const id = Number(getRouterParam(event, 'id'))
   if (isNaN(id)) {
-    throw createError({ statusCode: 400, statusMessage: '无效的模板ID' })
+    throw createError({ statusCode: 400, message: '无效的模板ID' })
   }
 
   await db.delete(scoreTemplates).where(eq(scoreTemplates.id, id))

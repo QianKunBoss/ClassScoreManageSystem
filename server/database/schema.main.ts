@@ -31,12 +31,17 @@ export const admins = sqliteTable('admins', {
   apiToken: text('api_token'),
   mustChangePassword: integer('must_change_password').notNull().default(0),
   disabled: integer('disabled').notNull().default(0),  // 0=正常，1=禁用
+  // 绑定邮箱：用于邮箱登录 / 邮箱验证码登录 / 找回密码。可空（未绑定）；非空时全局唯一
+  email: text('email'),
+  emailBoundAt: text('email_bound_at'),
   createdAt: text('created_at').notNull().$defaultFn(() => new Date().toISOString()),
   lastLogin: text('last_login'),
 }, (table) => ({
   // 同一学校内用户名唯一（schoolId 相同 + username 相同 => 冲突）
   // super_admin(schoolId IS NULL) 通过应用层保证用户名唯一
   usernameSchoolUnq: unique('admins_username_school_unq').on(table.username, table.schoolId),
+  // 邮箱唯一（仅对非空值生效，允许多个 NULL）
+  emailUnq: unique('admins_email_unq').on(table.email),
 }))
 
 // ===== applications（主库）=====
@@ -85,5 +90,40 @@ export const systemSettings = sqliteTable('system_settings', {
   settingValue: text('setting_value'),
   description: text('description'),
   updatedAt: text('updated_at').$defaultFn(() => new Date().toISOString()),
+})
+
+// ===== mail_services（主库，多邮件服务，支持优先级故障转移）=====
+// priority: 0 为最高优先级，数值越大优先级越低；发送时按 priority 升序依次尝试
+// enabled: 1=启用，0=禁用
+// password 明文存储（仅 super_admin 可读写，public 接口不暴露）
+export const mailServices = sqliteTable('mail_services', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  provider: text('provider').notNull().default('custom'), // qq/163/gmail/outlook/aliyun/custom
+  host: text('host').notNull(),
+  port: integer('port').notNull().default(587),
+  secure: text('secure').notNull().default('tls'), // none / ssl / tls
+  username: text('username').notNull().default(''),
+  password: text('password').notNull().default(''),
+  fromName: text('from_name').notNull().default(''),
+  fromAddress: text('from_address').notNull().default(''),
+  priority: integer('priority').notNull().default(0),
+  enabled: integer('enabled').notNull().default(1),
+  createdAt: text('created_at').notNull().$defaultFn(() => new Date().toISOString()),
+  updatedAt: text('updated_at'),
+})
+
+// ===== mail_templates（主库，邮件发件模板）=====
+// slug: 业务标识（如 verification_code），用于代码侧按 slug 渲染
+// variables: JSON 数组，模板支持的变量键（如 ["code","email"]）
+export const mailTemplates = sqliteTable('mail_templates', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  slug: text('slug').notNull().unique(),
+  name: text('name').notNull(),
+  subject: text('subject').notNull().default(''),
+  bodyHtml: text('body_html').notNull().default(''),
+  variables: text('variables').notNull().default('[]'), // JSON 数组
+  createdAt: text('created_at').notNull().$defaultFn(() => new Date().toISOString()),
+  updatedAt: text('updated_at'),
 })
 

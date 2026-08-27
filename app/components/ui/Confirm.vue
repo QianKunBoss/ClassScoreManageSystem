@@ -22,7 +22,7 @@ const emit = defineEmits<{
           <h3 class="text-base font-bold" :class="danger ? 'text-red-400' : 'text-slate-100'">
             {{ title || '确认操作' }}
           </h3>
-          <button @click="emit('cancel')" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500 transition-colors">✕</button>
+          <button @click="emit('cancel')" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500 transition-colors"><MorphIcon name="x" :size="16" class="pointer-events-none" /></button>
         </div>
         <div class="modal-body">
           <p class="text-sm text-slate-300">{{ message || '确定要执行此操作吗？' }}</p>

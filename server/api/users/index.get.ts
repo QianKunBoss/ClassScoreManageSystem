@@ -27,9 +27,9 @@ export default defineEventHandler(async (event) => {
   const whereParts: string[] = []
   const args: any[] = []
   if (search) {
-    whereParts.push(`(u.username LIKE ? OR u.actual_name LIKE ?)`)
+    whereParts.push(`(u.username LIKE ? OR u.actual_name LIKE ? OR u.email LIKE ?)`)
     const pattern = `%${search.replace(/'/g, "''")}%`
-    args.push(pattern, pattern)
+    args.push(pattern, pattern, pattern)
   }
   if (query.classId) {
     whereParts.push(`u.class_id = ?`)
@@ -38,6 +38,11 @@ export default defineEventHandler(async (event) => {
   if (query.gradeId) {
     whereParts.push(`c.grade_id = ?`)
     args.push(Number(query.gradeId))
+  }
+  if (query.status === 'disabled') {
+    whereParts.push(`u.disabled = 1`)
+  } else if (query.status === 'active') {
+    whereParts.push(`(u.disabled IS NULL OR u.disabled = 0)`)
   }
   const whereSql = whereParts.length > 0 ? `WHERE ${whereParts.join(' AND ')}` : ''
 
@@ -48,6 +53,8 @@ export default defineEventHandler(async (event) => {
       u.username,
       u.actual_name,
       u.class_id,
+      u.email,
+      u.disabled,
       c.name AS class_name,
       g.name AS grade_name,
       u.created_at,
@@ -82,6 +89,8 @@ export default defineEventHandler(async (event) => {
       username: r.username,
       actualName: r.actual_name || '',
       classId: r.class_id || null,
+      email: r.email || '',
+      disabled: r.disabled ?? 0,
       className: r.class_name || '',
       gradeName: r.grade_name || '',
       totalScore: r.total_score,

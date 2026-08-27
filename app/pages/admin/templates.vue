@@ -189,7 +189,7 @@ async function deleteTemplate() {
           <div class="modal-content">
             <div class="modal-header">
               <h3 class="text-base font-bold text-slate-100">{{ editing ? '编辑模板' : '添加模板' }}</h3>
-              <button @click="showAddModal = false" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500">✕</button>
+              <button @click="showAddModal = false" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500"><MorphIcon name="x" :size="16" class="pointer-events-none" /></button>
             </div>
             <div class="modal-body space-y-4">
               <div>

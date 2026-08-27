@@ -63,7 +63,7 @@ function formatTime(t: string) {
       <!-- 欢迎语 -->
       <div class="mb-8">
         <h1 class="text-2xl font-bold text-slate-100 mb-1">
-          你好，{{ student.actualName || student.username }} 👋
+          你好，{{ student.actualName || student.username }} <MorphIcon name="hand" size="1em" class="inline-block align-middle" />
         </h1>
         <p class="text-sm text-slate-500">
           所属班级：{{ [student.gradeName, student.className].filter(Boolean).join(' - ') || '未分配' }}

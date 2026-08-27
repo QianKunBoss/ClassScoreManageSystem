@@ -2,6 +2,7 @@ import { eq, and, isNull } from 'drizzle-orm'
 import { admins } from '../../database/schema'
 import { useMainDb } from '../../database/db'
 import { verifyPasswordBcrypt } from '../../utils/auth'
+import { EMAIL_RE } from '../../utils/mail'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
@@ -10,24 +11,35 @@ export default defineEventHandler(async (event) => {
   if (!username || !password) {
     throw createError({
       statusCode: 400,
-      statusMessage: '请输入账号和密码',
+      message: '请输入账号和密码',
     })
   }
 
   const db = useMainDb()
 
-  // 根据是否提供 schoolId 决定查询方式
-  // - 提供 schoolId：查该学校下的管理员 (username + schoolId)
-  // - 未提供 schoolId：查超级管理员 (username + schoolId IS NULL)
+  // 兼容邮箱登录：标识符含 @ 视为邮箱（全局唯一，直接按 email 查询）
+  const identifier = String(username).trim()
+  const isEmail = EMAIL_RE.test(identifier)
+
+  // 根据标识符类型决定查询方式
+  // - 邮箱：按 email 全局唯一查询（忽略 schoolId）
+  // - 用户名 + 提供 schoolId：查该学校下的管理员
+  // - 用户名 + 未提供 schoolId：查超级管理员 (schoolId IS NULL)
   let admin
 
-  if (schoolId != null && schoolId !== '' && schoolId !== 'null') {
+  if (isEmail) {
+    admin = await db
+      .select()
+      .from(admins)
+      .where(eq(admins.email, identifier))
+      .get()
+  } else if (schoolId != null && schoolId !== '' && schoolId !== 'null') {
     const sid = Number(schoolId)
     admin = await db
       .select()
       .from(admins)
       .where(and(
-        eq(admins.username, username),
+        eq(admins.username, identifier),
         eq(admins.schoolId, sid),
       ))
       .get()
@@ -37,7 +49,7 @@ export default defineEventHandler(async (event) => {
       .select()
       .from(admins)
       .where(and(
-        eq(admins.username, username),
+        eq(admins.username, identifier),
         isNull(admins.schoolId),
       ))
       .get()
@@ -46,7 +58,7 @@ export default defineEventHandler(async (event) => {
   if (!admin || !verifyPasswordBcrypt(password, admin.passwordHash)) {
     throw createError({
       statusCode: 401,
-      statusMessage: '账号或密码错误',
+      message: '账号或密码错误',
     })
   }
 
@@ -54,7 +66,7 @@ export default defineEventHandler(async (event) => {
   if (admin.disabled === 1) {
     throw createError({
       statusCode: 403,
-      statusMessage: '账号已被封禁，请联系超级管理员',
+      message: '账号已被封禁，请联系超级管理员',
     })
   }
 

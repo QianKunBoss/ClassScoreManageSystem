@@ -29,7 +29,7 @@ export default defineEventHandler(async (event) => {
     // 按班级导出：必须先校验该班级在用户权限范围内
     await assertClassManagement(admin, db, classIdParam)
     const cls = await db.select().from(classes).where(eq(classes.id, classIdParam)).get()
-    if (!cls) throw createError({ statusCode: 404, statusMessage: '班级不存在' })
+    if (!cls) throw createError({ statusCode: 404, message: '班级不存在' })
     classIds = [classIdParam]
     scopeLabel = 'class'
     scopeClassId = classIdParam
@@ -37,7 +37,7 @@ export default defineEventHandler(async (event) => {
     // 按年级导出：必须先校验该年级在用户权限范围内
     await assertGradeManagement(admin, db, gradeIdParam)
     const g = await db.select().from(grades).where(eq(grades.id, gradeIdParam)).get()
-    if (!g) throw createError({ statusCode: 404, statusMessage: '年级不存在' })
+    if (!g) throw createError({ statusCode: 404, message: '年级不存在' })
     gradeIds = [gradeIdParam]
     scopeLabel = 'grade'
     scopeGradeId = gradeIdParam

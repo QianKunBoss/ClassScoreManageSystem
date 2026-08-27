@@ -9,14 +9,14 @@ export default defineEventHandler(async (event) => {
   const id = Number(getRouterParam(event, 'id'))
 
   if (!id) {
-    throw createError({ statusCode: 400, statusMessage: '无效的学校ID' })
+    throw createError({ statusCode: 400, message: '无效的学校ID' })
   }
 
   const db = useMainDb()
 
   const school = await db.select().from(schools).where(eq(schools.id, id)).get()
   if (!school) {
-    throw createError({ statusCode: 404, statusMessage: '学校不存在' })
+    throw createError({ statusCode: 404, message: '学校不存在' })
   }
 
   // 删除学校库文件

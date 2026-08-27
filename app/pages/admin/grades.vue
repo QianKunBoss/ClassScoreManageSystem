@@ -55,7 +55,7 @@ async function loadGrades() {
     const res = await $fetch<{ success: boolean, data: any[] }>('/api/grades', { query })
     grades.value = res.data || []
   } catch (err) {
-    toast.error(err.data?.statusMessage || '加载年级列表失败')
+    toast.error(err.data?.message || err.data?.statusMessage || '加载年级列表失败')
   } finally {
     loading.value = false
   }
@@ -81,7 +81,7 @@ async function createGrade() {
     newGrade.value = { schoolId: currentUser.value?.role === 'school_admin' ? currentUser.value?.schoolId : null, name: '' }
     await loadGrades()
   } catch (err) {
-    toast.error(err.data?.statusMessage || '创建失败')
+    toast.error(err.data?.message || err.data?.statusMessage || '创建失败')
   }
 }
 
@@ -108,7 +108,7 @@ async function deleteGrade(grade: any) {
     confirmDelete.value = null
     await loadGrades()
   } catch (err) {
-    toast.error(err.data?.statusMessage || '删除失败')
+    toast.error(err.data?.message || err.data?.statusMessage || '删除失败')
   }
 }
 
@@ -192,7 +192,7 @@ onMounted(() => {
           <div class="modal-content">
             <div class="modal-header">
               <h3 class="text-base font-bold text-slate-100">添加年级</h3>
-              <button @click="showAddModal = false" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500">✕</button>
+              <button @click="showAddModal = false" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500"><MorphIcon name="x" :size="16" class="pointer-events-none" /></button>
             </div>
             <div class="modal-body space-y-4">
               <div>
@@ -223,7 +223,7 @@ onMounted(() => {
           <div class="modal-content max-w-sm">
             <div class="modal-header">
               <h3 class="text-base font-bold text-red-400">删除年级</h3>
-              <button @click="confirmDelete = null" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500">✕</button>
+              <button @click="confirmDelete = null" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500"><MorphIcon name="x" :size="16" class="pointer-events-none" /></button>
             </div>
             <div class="modal-body space-y-4">
               <p class="text-sm text-slate-300">确定删除年级「{{ confirmDelete.name }}」吗？此操作将级联删除该年级下的所有班级和学生数据，不可撤销！</p>

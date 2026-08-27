@@ -11,12 +11,61 @@ const form = reactive({
   applicantName: '',
   contactPhone: '',
   contactEmail: '',
+  contactEmailCode: '',
   reason: '',
 })
 
 const loading = ref(false)
 const submitted = ref(false)
 const error = ref('')
+
+// 邮箱验证码相关
+const codeSending = ref(false)
+const codeCountdown = ref(0)
+const codeHint = ref('')
+let codeTimer: ReturnType<typeof setInterval> | null = null
+
+function startCountdown(sec: number) {
+  codeCountdown.value = sec
+  if (codeTimer) clearInterval(codeTimer)
+  codeTimer = setInterval(() => {
+    codeCountdown.value -= 1
+    if (codeCountdown.value <= 0 && codeTimer) {
+      clearInterval(codeTimer)
+      codeTimer = null
+    }
+  }, 1000)
+}
+
+onUnmounted(() => { if (codeTimer) clearInterval(codeTimer) })
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+async function sendCode() {
+  const email = form.contactEmail.trim()
+  if (!email || !EMAIL_RE.test(email)) {
+    error.value = '请先填写有效的电子邮箱'
+    return
+  }
+  codeSending.value = true
+  codeHint.value = ''
+  try {
+    const res = await $fetch('/api/applications/send-code', {
+      method: 'POST',
+      body: { email },
+    })
+    if (res.success) {
+      codeHint.value = res.message || '验证码已发送，请查收邮件'
+      if (!res.dev) startCountdown(60)
+    } else {
+      codeHint.value = res.message || '验证码发送失败'
+    }
+  } catch (err: any) {
+    codeHint.value = err?.data?.message || '验证码发送失败，请重试'
+  } finally {
+    codeSending.value = false
+  }
+}
 
 // 冲突联系信息弹窗
 const showContactModal = ref(false)
@@ -31,6 +80,18 @@ const contactInfo = ref<{
 async function handleSubmit() {
   if (!form.schoolName.trim() || !form.applicantName.trim()) {
     error.value = '校名和申请人姓名为必填项'
+    return
+  }
+  if (!form.contactEmail.trim() || !EMAIL_RE.test(form.contactEmail.trim())) {
+    error.value = '请填写有效的电子邮箱'
+    return
+  }
+  if (!form.contactEmailCode.trim()) {
+    error.value = '请填写邮箱验证码'
+    return
+  }
+  if (!form.reason.trim()) {
+    error.value = '请填写申请理由'
     return
   }
   if (form.applyScope === 'grade' && !form.gradeName.trim()) {
@@ -53,7 +114,8 @@ async function handleSubmit() {
         className: form.applyScope === 'class' ? form.className.trim() : null,
         applicantName: form.applicantName.trim(),
         contactPhone: form.contactPhone.trim() || null,
-        contactEmail: form.contactEmail.trim() || null,
+        contactEmail: form.contactEmail.trim(),
+        contactEmailCode: form.contactEmailCode.trim(),
         reason: form.reason.trim() || null,
       },
     })
@@ -99,7 +161,7 @@ async function handleSubmit() {
 
       <!-- 成功提示 -->
       <div v-if="submitted" class="glass-card p-8 text-center animate-slide-up">
-        <div class="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center text-3xl mx-auto mb-4">✅</div>
+        <div class="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center text-3xl mx-auto mb-4"><MorphIcon name="circle-check" size="1em" class="inline-block align-middle" /></div>
         <h2 class="text-xl font-bold text-slate-100 mb-2">申请已提交</h2>
         <p class="text-sm text-slate-500 mb-6">我们会尽快审核您的申请，审核结果将通过联系方式通知您。</p>
         <NuxtLink to="/login" class="btn btn-primary">返回登录</NuxtLink>
@@ -192,22 +254,49 @@ async function handleSubmit() {
 
           <!-- 电子邮箱 -->
           <div>
-            <label class="block text-xs font-medium text-slate-400 mb-2 uppercase tracking-wide">电子邮箱</label>
+            <label class="block text-xs font-medium text-slate-400 mb-2 uppercase tracking-wide">电子邮箱 <span class="text-red-400">*</span></label>
+            <div class="flex gap-2">
+              <input
+                v-model="form.contactEmail"
+                type="email"
+                placeholder="请输入电子邮箱"
+                class="form-input flex-1 min-w-0"
+                :disabled="loading"
+              />
+              <button
+                type="button"
+                @click="sendCode"
+                :disabled="codeSending || codeCountdown > 0 || loading"
+                class="btn btn-ghost text-sm whitespace-nowrap px-4 shrink-0"
+              >
+                <span v-if="codeSending">发送中…</span>
+                <span v-else-if="codeCountdown > 0">{{ codeCountdown }}s 后重发</span>
+                <span v-else>获取验证码</span>
+              </button>
+            </div>
+            <p v-if="codeHint" class="text-xs text-brand-400 mt-1.5">{{ codeHint }}</p>
+          </div>
+
+          <!-- 邮箱验证码 -->
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-2 uppercase tracking-wide">邮箱验证码 <span class="text-red-400">*</span></label>
             <input
-              v-model="form.contactEmail"
-              type="email"
-              placeholder="请输入电子邮箱"
-              class="form-input"
+              v-model="form.contactEmailCode"
+              type="text"
+              inputmode="numeric"
+              maxlength="6"
+              placeholder="请输入 6 位验证码"
+              class="form-input tracking-widest"
               :disabled="loading"
             />
           </div>
 
           <!-- 申请理由 -->
           <div>
-            <label class="block text-xs font-medium text-slate-400 mb-2 uppercase tracking-wide">申请理由</label>
+            <label class="block text-xs font-medium text-slate-400 mb-2 uppercase tracking-wide">申请理由 <span class="text-red-400">*</span></label>
             <textarea
               v-model="form.reason"
-              placeholder="请简要说明申请理由（选填）"
+              placeholder="请简要说明申请理由"
               rows="3"
               class="form-input resize-none"
               :disabled="loading"
@@ -219,7 +308,7 @@ async function handleSubmit() {
             v-if="error"
             class="px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center gap-2"
           >
-            <span>⚠</span> {{ error }}
+            <span><MorphIcon name="alert-triangle" size="1em" class="inline-block align-middle" /></span> {{ error }}
           </div>
 
           <!-- 提交按钮 -->
@@ -250,7 +339,7 @@ async function handleSubmit() {
     <!-- 弹窗内容 -->
     <div class="relative glass-card p-6 max-w-sm w-full animate-slide-up">
       <div class="text-center mb-5">
-        <div class="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center text-2xl mx-auto mb-3">📋</div>
+        <div class="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center text-2xl mx-auto mb-3"><MorphIcon name="clipboard-list" size="1em" class="inline-block align-middle" /></div>
         <h3 class="text-base font-bold text-slate-100">该校已有申请记录</h3>
         <p class="text-xs text-slate-500 mt-1">
           现有管理范围：{{ contactInfo?.existingScope || '未知' }}
@@ -259,21 +348,21 @@ async function handleSubmit() {
 
       <div class="space-y-2.5 mb-5">
         <div v-if="contactInfo?.applicantName" class="flex items-center gap-3 p-2.5 rounded-lg bg-slate-800/30">
-          <span class="text-slate-500 text-sm w-5 text-center">👤</span>
+          <span class="text-slate-500 text-sm w-5 text-center"><MorphIcon name="user" size="1em" class="inline-block align-middle" /></span>
           <div class="min-w-0">
             <p class="text-xs text-slate-500">申请人</p>
             <p class="text-sm text-slate-200 truncate">{{ contactInfo.applicantName }}</p>
           </div>
         </div>
         <div v-if="contactInfo?.contactPhone" class="flex items-center gap-3 p-2.5 rounded-lg bg-slate-800/30">
-          <span class="text-slate-500 text-sm w-5 text-center">📱</span>
+          <span class="text-slate-500 text-sm w-5 text-center"><MorphIcon name="smartphone" size="1em" class="inline-block align-middle" /></span>
           <div class="min-w-0">
             <p class="text-xs text-slate-500">联系电话</p>
             <a :href="`tel:${contactInfo.contactPhone}`" class="text-sm text-brand-400 hover:underline">{{ contactInfo.contactPhone }}</a>
           </div>
         </div>
         <div v-if="contactInfo?.contactEmail" class="flex items-center gap-3 p-2.5 rounded-lg bg-slate-800/30">
-          <span class="text-slate-500 text-sm w-5 text-center">📧</span>
+          <span class="text-slate-500 text-sm w-5 text-center"><MorphIcon name="mail" size="1em" class="inline-block align-middle" /></span>
           <div class="min-w-0">
             <p class="text-xs text-slate-500">电子邮箱</p>
             <a :href="`mailto:${contactInfo.contactEmail}`" class="text-sm text-brand-400 hover:underline break-all">{{ contactInfo.contactEmail }}</a>

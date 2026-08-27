@@ -266,7 +266,7 @@ function getTypeLabel(type: string) {
 
         <!-- 空状态 -->
         <div v-else class="text-center py-12 text-slate-600 text-sm">
-          <div class="text-4xl mb-4">📢</div>
+          <div class="text-4xl mb-4"><MorphIcon name="megaphone" size="1em" class="inline-block align-middle" /></div>
           暂无公告，点击右上角「+ 发布公告」创建第一条公告
         </div>
       </div>
@@ -279,7 +279,7 @@ function getTypeLabel(type: string) {
           <div class="modal-content max-w-lg">
             <div class="modal-header">
               <h3 class="text-base font-bold text-slate-100">发布公告</h3>
-              <button @click="showAddModal = false" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500">✕</button>
+              <button @click="showAddModal = false" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500"><MorphIcon name="x" :size="16" class="pointer-events-none" /></button>
             </div>
             <div class="modal-body space-y-4">
               <div>
@@ -331,7 +331,7 @@ function getTypeLabel(type: string) {
           <div class="modal-content max-w-lg">
             <div class="modal-header">
               <h3 class="text-base font-bold text-slate-100">编辑公告</h3>
-              <button @click="showEditModal = false" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500">✕</button>
+              <button @click="showEditModal = false" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500"><MorphIcon name="x" :size="16" class="pointer-events-none" /></button>
             </div>
             <div class="modal-body space-y-4">
               <div>

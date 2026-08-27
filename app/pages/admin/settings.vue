@@ -29,7 +29,8 @@ watchEffect(async () => {
 async function updateSetting(s: SystemSetting) {
   saving.value = s.id
   try {
-    await $fetch(`/api/settings/${s.id}`, { method: 'PATCH', body: { value: s.settingValue } })
+    await $fetch(`/api/settings/${s.id}`, { method: 'PATCH', body: { settingValue: s.settingValue } })
+    await refreshNuxtData('public-settings')
     toast.success('已保存')
   } catch (err) { toast.error(err.data?.message || '保存失败') }
   finally { saving.value = null }

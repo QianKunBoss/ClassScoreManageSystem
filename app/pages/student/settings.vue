@@ -57,7 +57,7 @@ async function saveUsername() {
     editingUsername.value = false
     refreshMe()
   } catch (err: any) {
-    toast.error(err.data?.statusMessage || err.data?.message || '修改失败')
+    toast.error(err.data?.message || err.data?.statusMessage || '修改失败')
   } finally {
     usernameLoading.value = false
     confirmPwdInput.value = ''
@@ -93,7 +93,7 @@ async function saveName() {
     editingName.value = false
     refreshMe()
   } catch (err: any) {
-    toast.error(err.data?.statusMessage || '修改失败')
+    toast.error(err.data?.message || err.data?.statusMessage || '修改失败')
   } finally {
     nameLoading.value = false
   }
@@ -133,7 +133,7 @@ async function updatePassword() {
     newPwd.value = ''
     confirmPwd.value = ''
   } catch (err: any) {
-    toast.error(err.data?.statusMessage || '修改失败')
+    toast.error(err.data?.message || err.data?.statusMessage || '修改失败')
   } finally {
     pwdLoading.value = false
   }
@@ -202,6 +202,26 @@ async function updatePassword() {
             </div>
           </div>
         </div>
+
+      <!-- 邮箱安全 -->
+      <div class="glass-card p-6">
+        <h2 class="text-sm font-bold text-slate-100 mb-4">邮箱安全</h2>
+        <div class="space-y-3">
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-slate-500">绑定邮箱</span>
+            <span class="text-sm text-slate-200 font-medium flex items-center gap-2">
+              <MorphIcon v-if="student.email" name="mail-check" size="1em" class="text-green-400" />
+              {{ student.email || '未绑定' }}
+            </span>
+          </div>
+          <button
+            class="btn btn-ghost text-sm"
+            @click="navigateTo('/student/bind-email')"
+          >
+            {{ student.email ? '更换邮箱' : '绑定邮箱' }}
+          </button>
+        </div>
+      </div>
 
         <!-- 修改密码 -->
         <div class="glass-card p-6">

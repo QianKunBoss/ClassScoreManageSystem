@@ -11,12 +11,12 @@ export default defineEventHandler(async (event) => {
 
   const id = Number(getRouterParam(event, 'id'))
   if (!id) {
-    throw createError({ statusCode: 400, statusMessage: '缺少用户 ID' })
+    throw createError({ statusCode: 400, message: '缺少用户 ID' })
   }
 
   const existing = await db.select({ id: users.id }).from(users).where(eq(users.id, id)).get()
   if (!existing) {
-    throw createError({ statusCode: 404, statusMessage: '用户不存在' })
+    throw createError({ statusCode: 404, message: '用户不存在' })
   }
 
   await db.delete(users).where(eq(users.id, id))

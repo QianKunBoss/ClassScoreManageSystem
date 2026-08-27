@@ -4,6 +4,7 @@ import { useMainDb } from '../../database/db'
 import { useSchoolDb } from '../../database/db'
 import { grades, classes } from '../../database/schema.school'
 import { eq, and } from 'drizzle-orm'
+import { EMAIL_RE, verifyEmailCode } from '../../utils/mail'
 
 /**
  * 计算申请层级：全校=3 > 年级=2 > 班级=1
@@ -33,12 +34,29 @@ export default defineEventHandler(async (event) => {
     applicantName,
     contactPhone,
     contactEmail,
+    contactEmailCode,
     reason,
   } = body
 
-  if (!schoolName || !applicantName) {
+  if (!schoolName || !applicantName || !reason) {
     setResponseStatus(event, 400)
-    return { success: false, message: '校名和申请人姓名为必填项' }
+    return { success: false, message: '校名、申请人姓名和申请理由均为必填项' }
+  }
+
+  // 邮箱必填 + 格式校验 + 验证码校验
+  const email = (contactEmail || '').toString().trim().toLowerCase()
+  if (!email || !EMAIL_RE.test(email)) {
+    setResponseStatus(event, 400)
+    return { success: false, message: '电子邮箱为必填项，且需为有效格式' }
+  }
+  const code = (contactEmailCode || '').toString().trim()
+  if (!code) {
+    setResponseStatus(event, 400)
+    return { success: false, message: '请填写邮箱验证码' }
+  }
+  if (!verifyEmailCode(email, code)) {
+    setResponseStatus(event, 400)
+    return { success: false, message: '邮箱验证码无效或已过期，请重新获取' }
   }
 
   const db = useMainDb()
@@ -196,7 +214,7 @@ export default defineEventHandler(async (event) => {
       className: className || null,
       applicantName,
       contactPhone: contactPhone || null,
-      contactEmail: contactEmail || null,
+      contactEmail: email,
       reason: reason || null,
       status: 'pending',
     }).returning().all()

@@ -39,12 +39,12 @@ async function loadAnnouncements() {
 onMounted(loadAnnouncements)
 
 const features = [
-  { icon: '🏫', title: '多级管理架构', desc: '支持总系统 → 学校 → 年级 → 班级四级管理，权限清晰，责任明确。上级管理下级，层层把控。' },
-  { icon: '📊', title: '实时积分追踪', desc: '学生积分实时更新，排行榜自动排序。支持加减分操作，完整记录可追溯。' },
-  { icon: '🪑', title: '可视化座位表', desc: '拖拽式座位编排，支持分组、行列自定义。直观展示班级座位分布。' },
-  { icon: '⚡', title: '快捷模板', desc: '预设常用积分模板，一键应用。支持自定义模板，提升日常操作效率。' },
-  { icon: '📈', title: '数据统计', desc: '多维度数据统计，趋势图表直观展示。帮助老师掌握班级整体情况。' },
-  { icon: '🔒', title: '安全可靠', desc: '基于 Session 的安全认证，密码 BCrypt 加密存储。操作需二次确认，防止误触。' },
+  { icon: 'school', title: '多级管理架构', desc: '支持总系统 → 学校 → 年级 → 班级四级管理，权限清晰，责任明确。上级管理下级，层层把控。' },
+  { icon: 'bar-chart-3', title: '实时积分追踪', desc: '学生积分实时更新，排行榜自动排序。支持加减分操作，完整记录可追溯。' },
+  { icon: 'armchair', title: '可视化座位表', desc: '拖拽式座位编排，支持分组、行列自定义。直观展示班级座位分布。' },
+  { icon: 'zap', title: '快捷模板', desc: '预设常用积分模板，一键应用。支持自定义模板，提升日常操作效率。' },
+  { icon: 'trending-up', title: '数据统计', desc: '多维度数据统计，趋势图表直观展示。帮助老师掌握班级整体情况。' },
+  { icon: 'lock', title: '安全可靠', desc: '基于 Session 的安全认证，密码 BCrypt 加密存储。操作需二次确认，防止误触。' },
 ]
 
 const steps = [
@@ -74,9 +74,9 @@ function getTypeStyle(type: string) {
 
 function getTypeIcon(type: string) {
   switch (type) {
-    case 'warning': return '⚠️'
-    case 'important': return '🔴'
-    default: return '📢'
+    case 'warning': return 'alert-triangle'
+    case 'important': return 'circle'
+    default: return 'megaphone'
   }
 }
 
@@ -588,7 +588,7 @@ onBeforeUnmount(() => {
           >
             <div class="hud-corner"></div>
             <div class="flex items-start gap-3">
-              <span class="text-xl shrink-0">{{ getTypeIcon(a.type) }}</span>
+              <span class="text-xl shrink-0"><MorphIcon :name="getTypeIcon(a.type)" size="1em" class="inline-block align-middle" /></span>
               <div class="flex-1 min-w-0">
                 <h3 class="hud-title">{{ a.title }}</h3>
                 <p class="announcement-content" v-html="a.safeContent"></p>
@@ -621,7 +621,7 @@ onBeforeUnmount(() => {
             :style="`transition-delay: ${i * 0.08}s`"
           >
             <div class="neon-card" data-tilt>
-              <div class="neon-card-icon">{{ f.icon }}</div>
+              <div class="neon-card-icon"><MorphIcon :name="f.icon" :size="30" /></div>
               <h3 class="neon-card-title">{{ f.title }}</h3>
               <p class="neon-card-desc">{{ f.desc }}</p>
               <span class="scan-line"></span>
@@ -651,7 +651,7 @@ onBeforeUnmount(() => {
               <div class="step-num">{{ s.n }}</div>
               <h3 class="step-title">{{ s.title }}</h3>
               <p class="step-desc">{{ s.desc }}</p>
-              <div v-if="i < steps.length - 1" class="step-arrow">→</div>
+              <div v-if="i < steps.length - 1" class="step-arrow"><MorphIcon name="arrow-right" :size="22" /></div>
             </div>
           </div>
         </div>
@@ -669,10 +669,10 @@ onBeforeUnmount(() => {
         <div class="arch-tree">
           <div
             v-for="(node, i) in [
-              { icon: '👑', title: '超级管理员', desc: '管理所有学校，审核入驻申请，系统全局配置', tag: '总系统', cls: 'arch-red' },
-              { icon: '🏫', title: '学校管理员', desc: '管理本校年级，配置学校信息，管理年级管理员账号', tag: '学校', cls: 'arch-blue' },
-              { icon: '📚', title: '年级管理员', desc: '管理本年级班级，创建班级，管理班级管理员账号', tag: '年级', cls: 'arch-green' },
-              { icon: '👨‍🏫', title: '班级管理员（班主任）', desc: '管理本班学生，日常积分操作、座位编排、数据统计', tag: '班级', cls: 'arch-cyan' },
+              { icon: 'crown', title: '超级管理员', desc: '管理所有学校，审核入驻申请，系统全局配置', tag: '总系统', cls: 'arch-red' },
+              { icon: 'school', title: '学校管理员', desc: '管理本校年级，配置学校信息，管理年级管理员账号', tag: '学校', cls: 'arch-blue' },
+              { icon: 'book-open', title: '年级管理员', desc: '管理本年级班级，创建班级，管理班级管理员账号', tag: '年级', cls: 'arch-green' },
+              { icon: 'user-cog', title: '班级管理员（班主任）', desc: '管理本班学生，日常积分操作、座位编排、数据统计', tag: '班级', cls: 'arch-cyan' },
             ]"
             :key="i"
             class="arch-node"
@@ -680,7 +680,7 @@ onBeforeUnmount(() => {
             data-reveal="left"
             :style="`transition-delay: ${i * 0.1}s`"
           >
-            <div class="arch-icon">{{ node.icon }}</div>
+            <div class="arch-icon"><MorphIcon :name="node.icon" :size="30" /></div>
             <div class="flex-1">
               <h3 class="arch-title">{{ node.title }}</h3>
               <p class="arch-desc">{{ node.desc }}</p>

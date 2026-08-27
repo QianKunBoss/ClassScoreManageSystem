@@ -78,21 +78,21 @@ function getTypeStyle(type: string) {
         bg: 'bg-yellow-500/10',
         border: 'border-yellow-500/30',
         text: 'text-yellow-200',
-        icon: '⚠️',
+        icon: 'alert-triangle',
       }
     case 'important':
       return {
         bg: 'bg-red-500/10',
         border: 'border-red-500/30',
         text: 'text-red-200',
-        icon: '🔴',
+        icon: 'circle',
       }
     default:
       return {
         bg: 'bg-brand-500/10',
         border: 'border-brand-500/30',
         text: 'text-brand-200',
-        icon: '📢',
+        icon: 'megaphone',
       }
   }
 }
@@ -114,8 +114,8 @@ onMounted(loadAnnouncements)
       >
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="flex items-start gap-3 py-2.5">
-            <span class="text-base shrink-0 mt-0.5">
-              {{ getTypeStyle(latestAnnouncement.type).icon }}
+            <span class="shrink-0 mt-0.5 text-base">
+              <MorphIcon :name="getTypeStyle(latestAnnouncement.type).icon" size="1em" class="inline-block align-middle" />
             </span>
             <div
               class="flex-1 text-center text-sm overflow-y-auto announcement-content"
@@ -128,7 +128,7 @@ onMounted(loadAnnouncements)
               class="shrink-0 w-6 h-6 rounded-md flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors mt-0.5"
               aria-label="关闭公告"
             >
-              ✕
+              <MorphIcon name="x" :size="14" class="pointer-events-none" />
             </button>
           </div>
         </div>

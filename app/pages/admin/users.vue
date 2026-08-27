@@ -84,8 +84,8 @@ function toggleSort(key: 'totalScore' | 'addScore' | 'deductScore') {
   }
 }
 function sortIndicator(key: 'totalScore' | 'addScore' | 'deductScore') {
-  if (sortKey.value !== key) return '↕'
-  return sortDir.value === 'asc' ? '↑' : '↓'
+  if (sortKey.value !== key) return 'arrow-up-down'
+  return sortDir.value === 'asc' ? 'arrow-up' : 'arrow-down'
 }
 
 watchEffect(async () => {
@@ -284,7 +284,7 @@ async function deleteUser() {
                 placeholder="搜索用户名…"
                 class="form-input text-sm py-1.5 pl-8 w-56"
               />
-              <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-sm">⌕</span>
+              <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-sm"><MorphIcon name="search" :size="14" class="pointer-events-none" /></span>
             </div>
             <!-- 学校筛选（仅超级管理员显示） -->
             <select
@@ -335,13 +335,13 @@ async function deleteUser() {
                   </div>
                 </th>
                 <th class="cursor-pointer select-none hover:text-brand-300" @click="toggleSort('totalScore')">
-                  积分 <span class="text-xs">{{ sortIndicator('totalScore') }}</span>
+                  积分 <span class="text-xs inline-flex items-center"><MorphIcon :name="sortIndicator('totalScore')" size="1em" class="inline-block align-middle" /></span>
                 </th>
                 <th class="cursor-pointer select-none hover:text-brand-300" @click="toggleSort('addScore')">
-                  加分 <span class="text-xs">{{ sortIndicator('addScore') }}</span>
+                  加分 <span class="text-xs inline-flex items-center"><MorphIcon :name="sortIndicator('addScore')" size="1em" class="inline-block align-middle" /></span>
                 </th>
                 <th class="cursor-pointer select-none hover:text-brand-300" @click="toggleSort('deductScore')">
-                  扣分 <span class="text-xs">{{ sortIndicator('deductScore') }}</span>
+                  扣分 <span class="text-xs inline-flex items-center"><MorphIcon :name="sortIndicator('deductScore')" size="1em" class="inline-block align-middle" /></span>
                 </th>
                 <th>操作</th>
               </tr>
@@ -409,7 +409,7 @@ async function deleteUser() {
           <div class="modal-content">
             <div class="modal-header">
               <h3 class="text-base font-bold text-slate-100">添加新学生</h3>
-              <button @click="showAddModal = false" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500">✕</button>
+              <button @click="showAddModal = false" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500"><MorphIcon name="x" :size="16" class="pointer-events-none" /></button>
             </div>
             <div class="modal-body space-y-4">
               <div>
@@ -452,7 +452,7 @@ async function deleteUser() {
           <div class="modal-content max-w-lg">
             <div class="modal-header">
               <h3 class="text-base font-bold text-slate-100">批量添加学生</h3>
-              <button @click="showBatchModal = false; batchResult = null; batchInput = ''" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500">✕</button>
+              <button @click="showBatchModal = false; batchResult = null; batchInput = ''" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500"><MorphIcon name="x" :size="16" class="pointer-events-none" /></button>
             </div>
             <div class="modal-body space-y-4">
               <div>

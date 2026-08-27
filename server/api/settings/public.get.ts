@@ -1,8 +1,8 @@
 import { systemSettings } from '../../database/schema.main'
 import { useMainDb } from '../../database/db'
-import { eq } from 'drizzle-orm'
+import { inArray } from 'drizzle-orm'
 
-// GET /api/settings/public — 获取公开设置（学生端可用）
+// GET /api/settings/public — 获取公开展示设置（导航栏标题、系统标题、开关等）
 export default defineEventHandler(async (event) => {
   const db = useMainDb()
 
@@ -12,15 +12,12 @@ export default defineEventHandler(async (event) => {
       value: systemSettings.settingValue,
     })
     .from(systemSettings)
-    .where(
-      eq(systemSettings.settingKey, 'show_ranking'),
-      // 只返回对学生有意义的设置
-    )
+    .where(inArray(systemSettings.settingKey, ['nav_title', 'system_title', 'show_ranking']))
     .all()
 
   const settings: Record<string, string> = {}
   for (const row of rows) {
-    settings[row.key] = row.value
+    if (row.value != null) settings[row.key] = row.value
   }
 
   return { success: true, data: settings }

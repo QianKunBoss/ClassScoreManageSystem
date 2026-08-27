@@ -9,17 +9,17 @@ export default defineEventHandler(async (event) => {
 
   const id = Number(getRouterParam(event, 'id'))
   if (!id) {
-    throw createError({ statusCode: 400, statusMessage: '无效的管理员 ID' })
+    throw createError({ statusCode: 400, message: '无效的管理员 ID' })
   }
 
   const db = useMainDb()
   const admin = await db.select().from(admins).where(eq(admins.id, id)).get()
 
   if (!admin) {
-    throw createError({ statusCode: 404, statusMessage: '管理员不存在' })
+    throw createError({ statusCode: 404, message: '管理员不存在' })
   }
   if (admin.disabled === 1) {
-    throw createError({ statusCode: 403, statusMessage: '该账号已被封禁' })
+    throw createError({ statusCode: 403, message: '该账号已被封禁' })
   }
 
   await db.update(admins)

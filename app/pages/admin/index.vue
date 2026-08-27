@@ -459,7 +459,7 @@ function cancelImport() {
               class="text-xs text-slate-500 hover:text-slate-300 transition-colors px-2 py-1 rounded-md border border-slate-700 hover:border-slate-500"
               @click="filterClassId = ''; filterGradeId = ''; statsScope = 'all'"
             >
-              ✕ 清空
+              <MorphIcon name="x" :size="16" class="pointer-events-none" /> 清空
             </button>
 
             <!-- 快速跳转到班级/年级管理 -->
@@ -469,14 +469,14 @@ function cancelImport() {
                 to="/admin/classes"
                 class="text-xs text-brand-400 hover:text-brand-300 transition-colors"
               >
-                管理班级 →
+                管理班级 <MorphIcon name="arrow-right" size="1em" class="inline-block align-middle" />
               </NuxtLink>
               <NuxtLink
                 v-if="admin?.role === 'school_admin'"
                 to="/admin/grades"
                 class="text-xs text-brand-400 hover:text-brand-300 transition-colors"
               >
-                管理年级 →
+                管理年级 <MorphIcon name="arrow-right" size="1em" class="inline-block align-middle" />
               </NuxtLink>
             </div>
           </div>
@@ -504,7 +504,7 @@ function cancelImport() {
           >
             <div class="flex items-center justify-between mb-1">
               <h3 class="text-base font-bold text-slate-100">{{ s.name }}</h3>
-              <span class="text-xs text-brand-400 shrink-0">管理 →</span>
+              <span class="text-xs text-brand-400 shrink-0">管理 <MorphIcon name="arrow-right" size="1em" class="inline-block align-middle" /></span>
             </div>
             <p class="text-xs text-slate-500">创建于 {{ formatDate(s.createdAt) }}</p>
           </NuxtLink>
@@ -517,7 +517,7 @@ function cancelImport() {
         class="animate-slide-up"
       >
         <div class="glass-card p-12 flex flex-col items-center justify-center text-center gap-4">
-          <div class="w-16 h-16 rounded-2xl bg-brand-500/10 flex items-center justify-center text-3xl">📊</div>
+          <div class="w-16 h-16 rounded-2xl bg-brand-500/10 flex items-center justify-center text-3xl"><MorphIcon name="bar-chart-3" size="1em" class="inline-block align-middle" /></div>
           <div>
             <p class="text-slate-200 font-medium mb-1">请选择统计范围</p>
             <p class="text-sm text-slate-500">
@@ -565,7 +565,7 @@ function cancelImport() {
                 <div v-for="i in 5" :key="i" class="h-12 rounded-lg bg-slate-800/40 animate-pulse"></div>
               </div>
               <div v-else-if="classUsers.length === 0" class="text-center py-10 text-slate-500 text-sm">
-                <span class="text-2xl mb-2 block">📭</span>
+                <span class="text-2xl mb-2 block"><MorphIcon name="inbox" size="1em" class="inline-block align-middle" /></span>
                 暂无学生数据
               </div>
               <div v-else class="space-y-1">
@@ -615,11 +615,11 @@ function cancelImport() {
             <div class="glass-card p-5 sticky top-20">
               <h3 class="text-sm font-bold text-slate-100 mb-4">快捷操作</h3>
               <div class="space-y-2">
-                <NuxtLink to="/admin/scores" class="block btn btn-ghost text-sm w-full text-left">📝 积分管理</NuxtLink>
-                <NuxtLink to="/admin/users" class="block btn btn-ghost text-sm w-full text-left">👥 用户管理</NuxtLink>
-                <NuxtLink to="/admin/templates" class="block btn btn-ghost text-sm w-full text-left">📋 模板管理</NuxtLink>
-                <NuxtLink to="/admin/seats" class="block btn btn-ghost text-sm w-full text-left">🪑 座位管理</NuxtLink>
-                <NuxtLink to="/admin/stats" class="block btn btn-ghost text-sm w-full text-left">📊 数据统计</NuxtLink>
+                <NuxtLink to="/admin/scores" class="block btn btn-ghost text-sm w-full text-left"><MorphIcon name="file-pen" size="1em" class="inline-block align-middle" /> 积分管理</NuxtLink>
+                <NuxtLink to="/admin/users" class="block btn btn-ghost text-sm w-full text-left"><MorphIcon name="users" size="1em" class="inline-block align-middle" /> 用户管理</NuxtLink>
+                <NuxtLink to="/admin/templates" class="block btn btn-ghost text-sm w-full text-left"><MorphIcon name="clipboard-list" size="1em" class="inline-block align-middle" /> 模板管理</NuxtLink>
+                <NuxtLink to="/admin/seats" class="block btn btn-ghost text-sm w-full text-left"><MorphIcon name="armchair" size="1em" class="inline-block align-middle" /> 座位管理</NuxtLink>
+                <NuxtLink to="/admin/stats" class="block btn btn-ghost text-sm w-full text-left"><MorphIcon name="bar-chart-3" size="1em" class="inline-block align-middle" /> 数据统计</NuxtLink>
               </div>
 
               <!-- 班级/年级基本信息 -->
@@ -656,7 +656,7 @@ function cancelImport() {
         <div class="modal-content max-w-md">
           <div class="modal-header">
             <h3 class="text-base font-bold text-slate-100">选择导出范围</h3>
-            <button @click="cancelExport" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500 transition-colors">✕</button>
+            <button @click="cancelExport" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500 transition-colors"><MorphIcon name="x" :size="16" class="pointer-events-none" /></button>
           </div>
           <div class="modal-body">
             <div class="flex items-center gap-1 p-0.5 rounded-lg bg-slate-800/30 mb-4">
@@ -717,7 +717,7 @@ function cancelImport() {
         <div class="modal-content max-w-md">
           <div class="modal-header">
             <h3 class="text-base font-bold text-slate-100">确认导入</h3>
-            <button @click="cancelImport" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500 transition-colors">✕</button>
+            <button @click="cancelImport" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500 transition-colors"><MorphIcon name="x" :size="16" class="pointer-events-none" /></button>
           </div>
           <div class="modal-body">
             <p class="text-sm text-slate-300">

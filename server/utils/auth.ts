@@ -33,7 +33,7 @@ export async function requireAdmin(event: any) {
   if (!admin) {
     throw createError({
       statusCode: 401,
-      statusMessage: '未登录，请先登录',
+      message: '未登录，请先登录',
     })
   }
 
@@ -50,7 +50,7 @@ export async function requireSuperAdmin(event: any) {
   if (admin.role !== 'super_admin') {
     throw createError({
       statusCode: 403,
-      statusMessage: '权限不足，仅超级管理员可操作',
+      message: '权限不足，仅超级管理员可操作',
     })
   }
 
@@ -69,6 +69,18 @@ export function hashPasswordBcrypt(password: string): string {
  */
 export function verifyPasswordBcrypt(plain: string, hash: string): boolean {
   return bcrypt.compareSync(plain, hash)
+}
+
+/**
+ * 密码强度校验（统一规则，供重置/修改密码复用）
+ * 当前规则：至少 6 位（与现有设置/修改密码规则一致）
+ * 返回 { ok, message }
+ */
+export function validatePasswordStrength(pw: string): { ok: boolean; message: string } {
+  if (!pw || pw.length < 6) {
+    return { ok: false, message: '密码长度至少 6 位' }
+  }
+  return { ok: true, message: '' }
 }
 
 /**
@@ -110,7 +122,7 @@ export async function getSchoolIdFromRequest(event: any): Promise<number> {
 
   throw createError({
     statusCode: 400,
-    statusMessage: '缺少 schoolId（普通管理员请从登录页正常登录，超级管理员请传递 ?schoolId= 参数）',
+    message: '缺少 schoolId（普通管理员请从登录页正常登录，超级管理员请传递 ?schoolId= 参数）',
   })
 }
 
@@ -147,7 +159,7 @@ export async function requireStudent(event: any) {
   if (!student) {
     throw createError({
       statusCode: 401,
-      statusMessage: '请先登录',
+      message: '请先登录',
     })
   }
 
@@ -270,7 +282,7 @@ export async function assertClassManagement(admin: any, db: any, classId: number
   if (!scope.isClassAllowed(classId)) {
     throw createError({
       statusCode: 403,
-      statusMessage: '无权限操作该班级的数据',
+      message: '无权限操作该班级的数据',
     })
   }
 }
@@ -284,7 +296,7 @@ export async function assertGradeManagement(admin: any, db: any, gradeId: number
   if (!scope.isGradeAllowed(gradeId)) {
     throw createError({
       statusCode: 403,
-      statusMessage: '无权限操作该年级的数据',
+      message: '无权限操作该年级的数据',
     })
   }
 }

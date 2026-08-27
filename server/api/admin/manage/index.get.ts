@@ -1,4 +1,4 @@
-import { eq, and, isNull, inArray } from 'drizzle-orm'
+import { eq, and, isNull } from 'drizzle-orm'
 import { admins, schools } from '../../../database/schema.main'
 import { grades, classes } from '../../../database/schema'
 import { useMainDb } from '../../../database/db'
@@ -10,9 +10,30 @@ import { requireAdmin } from '../../../utils/auth'
 // - 学校管理员：返回本校的年级管理员和班级管理员
 // - 年级管理员：返回本年级的班级管理员
 // - 班级管理员：返回空列表
+// 支持：分页(page/limit)、关键词搜索(search: 用户名/邮箱)、角色筛选(role)、状态筛选(status: active|disabled)、学校筛选(schoolId)
 export default defineEventHandler(async (event) => {
   const currentAdmin = await requireAdmin(event)
   const mainDb = useMainDb()
+  const query = getQuery(event) as {
+    page?: string
+    limit?: string
+    search?: string
+    role?: string
+    status?: string
+    schoolId?: string
+    gradeId?: string
+    classId?: string
+  }
+
+  const page = Math.max(1, Number(query.page) || 1)
+  const limit = Math.min(100, Math.max(1, Number(query.limit) || 20))
+  const offset = (page - 1) * limit
+  const search = (query.search || '').trim().toLowerCase()
+  const roleFilter = (query.role || '').trim()
+  const statusFilter = (query.status || '').trim()
+  const schoolFilter = query.schoolId ? Number(query.schoolId) : ''
+  const gradeFilter = query.gradeId ? Number(query.gradeId) : ''
+  const classFilter = query.classId ? Number(query.classId) : ''
 
   // 1. 查出所有管理员，同时 LEFT JOIN 学校名称
   const rawList = await mainDb
@@ -24,6 +45,8 @@ export default defineEventHandler(async (event) => {
       gradeId: admins.gradeId,
       classId: admins.classId,
       disabled: admins.disabled,
+      email: admins.email,
+      emailBoundAt: admins.emailBoundAt,
       createdAt: admins.createdAt,
       lastLogin: admins.lastLogin,
       schoolName: schools.name,
@@ -34,26 +57,47 @@ export default defineEventHandler(async (event) => {
   // 2. 根据当前管理员角色过滤列表
   let filteredList = rawList
   if (currentAdmin.role === 'school_admin') {
-    // 学校管理员：只能看到本校的管理员（学校管理员、年级管理员、班级管理员）
     filteredList = rawList.filter(a => a.schoolId === currentAdmin.schoolId)
   } else if (currentAdmin.role === 'grade_admin') {
-    // 年级管理员：只能看到本年级的班级管理员
     filteredList = rawList.filter(a =>
       a.schoolId === currentAdmin.schoolId && a.gradeId === currentAdmin.gradeId
     )
   } else if (currentAdmin.role === 'class_admin') {
-    // 班级管理员：无权查看其他管理员
     filteredList = []
   }
-  // super_admin: 不过滤，看到所有
+  // super_admin: 不过滤
 
-  // 3. 收集需要查学校库的管理员，按 schoolId 分组
+  // 3. 关键词 / 角色 / 状态 / 学校 筛选
+  if (search) {
+    filteredList = filteredList.filter(a =>
+      (a.username || '').toLowerCase().includes(search) ||
+      (a.email || '').toLowerCase().includes(search)
+    )
+  }
+  if (roleFilter) {
+    filteredList = filteredList.filter(a => a.role === roleFilter)
+  }
+  if (statusFilter === 'disabled') {
+    filteredList = filteredList.filter(a => a.disabled === 1)
+  } else if (statusFilter === 'active') {
+    filteredList = filteredList.filter(a => a.disabled !== 1)
+  }
+  if (schoolFilter) {
+    filteredList = filteredList.filter(a => a.schoolId === schoolFilter)
+  }
+  if (gradeFilter) {
+    filteredList = filteredList.filter(a => a.gradeId === gradeFilter)
+  }
+  if (classFilter) {
+    filteredList = filteredList.filter(a => a.classId === classFilter)
+  }
+
+  // 4. 收集需要查学校库的管理员，按 schoolId 分组，批量查年级/班级名称
   const needLookup = filteredList.filter(
     (a: any) => a.schoolId != null && (a.gradeId != null || a.classId != null)
   )
   const schoolIdSet = new Set(needLookup.map((a: any) => a.schoolId!))
 
-  // 4. 批量查各学校库的 grades / classes
   const gradeNameMap = new Map<number, string>()
   const classNameMap = new Map<number, string>()
 
@@ -71,7 +115,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // 5. 组装返回数据
-  const data = filteredList.map((a: any) => ({
+  const enriched = filteredList.map((a: any) => ({
     id: a.id,
     username: a.username,
     role: a.role,
@@ -82,9 +126,16 @@ export default defineEventHandler(async (event) => {
     classId: a.classId,
     className: a.classId ? classNameMap.get(a.classId) || '' : '',
     disabled: a.disabled ?? 0,
+    email: a.email || null,
+    emailBoundAt: a.emailBoundAt || null,
     createdAt: a.createdAt,
     lastLogin: a.lastLogin,
   }))
 
-  return { data }
+  // 6. 排序 + 分页
+  enriched.sort((a: any, b: any) => a.id - b.id)
+  const total = enriched.length
+  const data = enriched.slice(offset, offset + limit)
+
+  return { data, total, page, limit }
 })

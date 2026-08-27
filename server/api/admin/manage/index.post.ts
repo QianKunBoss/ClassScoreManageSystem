@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
   }
 
   if (!body.username || !body.password) {
-    throw createError({ statusCode: 400, statusMessage: '请填写用户名和密码' })
+    throw createError({ statusCode: 400, message: '请填写用户名和密码' })
   }
 
   // 根据当前管理员角色，确定目标管理员的 schoolId/gradeId/classId
@@ -41,36 +41,36 @@ export default defineEventHandler(async (event) => {
     targetSchoolId = currentAdmin.schoolId
     if (targetRole === 'school_admin') {
       // 不能创建同级（学校管理员）账号，除非是超级管理员
-      throw createError({ statusCode: 403, statusMessage: '无权创建学校管理员账号' })
+      throw createError({ statusCode: 403, message: '无权创建学校管理员账号' })
     }
     if (targetRole === 'grade_admin') {
       // 创建年级管理员：需要指定 gradeId
       targetGradeId = body.gradeId || null
       if (!targetGradeId) {
-        throw createError({ statusCode: 400, statusMessage: '创建年级管理员必须指定年级' })
+        throw createError({ statusCode: 400, message: '创建年级管理员必须指定年级' })
       }
     } else if (targetRole === 'class_admin') {
       // 创建班级管理员：需要指定 gradeId + classId
       targetGradeId = body.gradeId || null
       targetClassId = body.classId || null
       if (!targetGradeId || !targetClassId) {
-        throw createError({ statusCode: 400, statusMessage: '创建班级管理员必须指定年级和班级' })
+        throw createError({ statusCode: 400, message: '创建班级管理员必须指定年级和班级' })
       }
     }
   } else if (currentAdmin.role === 'grade_admin') {
     // 年级管理员：只能创建本年级的班级管理员
     if (targetRole !== 'class_admin') {
-      throw createError({ statusCode: 403, statusMessage: '只能创建班级管理员账号' })
+      throw createError({ statusCode: 403, message: '只能创建班级管理员账号' })
     }
     targetSchoolId = currentAdmin.schoolId
     targetGradeId = currentAdmin.gradeId
     targetClassId = body.classId || null
     if (!targetClassId) {
-      throw createError({ statusCode: 400, statusMessage: '创建班级管理员必须指定班级' })
+      throw createError({ statusCode: 400, message: '创建班级管理员必须指定班级' })
     }
   } else {
     // 班级管理员：无权创建
-    throw createError({ statusCode: 403, statusMessage: '无权创建管理员账号' })
+    throw createError({ statusCode: 403, message: '无权创建管理员账号' })
   }
 
   // 检查同一学校内用户名是否冲突
@@ -90,7 +90,7 @@ export default defineEventHandler(async (event) => {
 
   if (conflict) {
     const scope = targetSchoolId ? '该学校内' : '超级管理员中'
-    throw createError({ statusCode: 400, statusMessage: `${scope}用户名 "${body.username}" 已存在` })
+    throw createError({ statusCode: 400, message: `${scope}用户名 "${body.username}" 已存在` })
   }
 
   const { hashPasswordBcrypt } = await import('../../../utils/auth')

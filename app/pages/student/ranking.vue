@@ -46,7 +46,7 @@ function formatTime(t: string) {
 
     <template v-else>
       <div class="mb-8">
-        <h1 class="text-2xl font-bold text-slate-100 mb-1">📊 班级排名</h1>
+        <h1 class="text-2xl font-bold text-slate-100 mb-1"><MorphIcon name="bar-chart-3" size="1em" class="inline-block align-middle" /> 班级排名</h1>
         <p class="text-sm text-slate-500">
           {{ [student?.gradeName, student?.className].filter(Boolean).join(' - ') || '按积分从高到低排序' }}
         </p>

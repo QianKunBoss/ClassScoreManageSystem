@@ -132,7 +132,7 @@ async function createAdmin() {
     showAddModal.value = false
     await loadAdmins()
   } catch (err) {
-    toast.error(err.data?.statusMessage || err.data?.message || '创建失败')
+    toast.error(err.data?.message || err.data?.statusMessage || '创建失败')
   } finally {
     addLoading.value = false
   }
@@ -162,7 +162,7 @@ async function updatePassword() {
     detailNewPassword.value = ''
     detailConfirmPassword.value = ''
   } catch (err) {
-    toast.error(err.data?.statusMessage || err.data?.message || '更新失败')
+    toast.error(err.data?.message || err.data?.statusMessage || '更新失败')
   } finally {
     detailLoading.value = false
   }
@@ -181,7 +181,7 @@ async function deleteAdmin() {
     confirmPassword.value = ''
     await loadAdmins()
   } catch (err) {
-    toast.error(err.data?.statusMessage || err.data?.message || '删除失败')
+    toast.error(err.data?.message || err.data?.statusMessage || '删除失败')
   }
 }
 
@@ -276,7 +276,7 @@ watchEffect(async () => {
           <div class="modal-content">
             <div class="modal-header">
               <h3 class="text-base font-bold text-slate-100">添加管理员</h3>
-              <button @click="showAddModal = false" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500">✕</button>
+              <button @click="showAddModal = false" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500"><MorphIcon name="x" :size="16" class="pointer-events-none" /></button>
             </div>
             <div class="modal-body space-y-4">
               <div>
@@ -328,7 +328,7 @@ watchEffect(async () => {
           <div class="modal-content max-w-md">
             <div class="modal-header">
               <h3 class="text-base font-bold text-slate-100">管理员详情</h3>
-              <button @click="showDetail = false" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500">✕</button>
+              <button @click="showDetail = false" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500"><MorphIcon name="x" :size="16" class="pointer-events-none" /></button>
             </div>
             <div class="modal-body space-y-4">
               <div class="space-y-3">

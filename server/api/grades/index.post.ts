@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
   const { name } = body
 
   if (!name) {
-    throw createError({ statusCode: 400, statusMessage: '年级名称不能为空' })
+    throw createError({ statusCode: 400, message: '年级名称不能为空' })
   }
 
   const [newGrade] = await db

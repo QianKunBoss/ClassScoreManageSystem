@@ -13,6 +13,10 @@ export default defineEventHandler(async (event) => {
     return { success: false, message: '请填写学校、用户名和密码' }
   }
 
+  // 支持使用已绑定邮箱登录：含 @ 视为邮箱，否则视为用户名
+  const identifier = String(username).trim()
+  const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier)
+
   const db = await useSchoolDb(event, Number(schoolId))
 
   const user = await db
@@ -22,10 +26,12 @@ export default defineEventHandler(async (event) => {
       actualName: users.actualName,
       classId: users.classId,
       totalScore: users.totalScore,
+      email: users.email,
+      disabled: users.disabled,
       passwordHash: users.passwordHash,
     })
     .from(users)
-    .where(eq(users.username, username))
+    .where(isEmail ? eq(users.email, identifier) : eq(users.username, identifier))
     .get()
 
   if (!user) {
@@ -36,6 +42,12 @@ export default defineEventHandler(async (event) => {
   if (!verifyPasswordBcrypt(password, user.passwordHash)) {
     setResponseStatus(event, 401)
     return { success: false, message: '用户名或密码错误' }
+  }
+
+  // 账号被禁用无法登录
+  if (user.disabled === 1) {
+    setResponseStatus(event, 403)
+    return { success: false, message: '账号已被禁用，请联系管理员' }
   }
 
   // 写入 session（与管理员登录保持一致的格式）
@@ -60,6 +72,7 @@ export default defineEventHandler(async (event) => {
       actualName: user.actualName,
       classId: user.classId,
       totalScore: user.totalScore,
+      email: user.email,
     },
   }
 })

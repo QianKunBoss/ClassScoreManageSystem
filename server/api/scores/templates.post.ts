@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
   }
 
   if (!body.name || !body.score_change) {
-    throw createError({ statusCode: 400, statusMessage: '请填写模板名称和分值' })
+    throw createError({ statusCode: 400, message: '请填写模板名称和分值' })
   }
 
   const [newTemplate] = await db.insert(scoreTemplates).values({

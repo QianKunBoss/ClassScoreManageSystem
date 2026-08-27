@@ -4,6 +4,6 @@
 export default defineEventHandler(async (event) => {
   throw createError({
     statusCode: 501,
-    statusMessage: '此接口暂不可用（users 表无 role 字段）',
+    message: '此接口暂不可用（users 表无 role 字段）',
   })
 })

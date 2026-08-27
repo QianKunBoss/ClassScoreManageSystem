@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useSiteSettings } from '~/composables/useSiteSettings'
+import { Menu, X, ChevronDown, ChevronUp, Settings, LogOut } from '~/utils/icons'
 // 认证状态（固定 key，便于登录/切换账号后用 refreshNuxtData('auth-me') 刷新）
 const { data: authData, status } = useFetch('/api/auth/me', {
   key: 'auth-me',
@@ -10,6 +12,10 @@ const { data: authData, status } = useFetch('/api/auth/me', {
 
 const isLoggedIn = computed(() => authData.value?.success === true)
 const currentUser = computed(() => authData.value?.admin || null)
+
+// 站点公开展示设置（导航栏标题等）
+const { data: siteSettings } = useSiteSettings()
+const navTitle = computed(() => siteSettings.value?.data?.nav_title || 'CSMS')
 
 // 用户下拉菜单
 const userMenuOpen = ref(false)
@@ -84,7 +90,7 @@ const navLinks = computed(() => {
             <div class="w-9 h-9 rounded-xl overflow-hidden bg-brand-500 p-1.5 shadow-lg shadow-brand-500/30 group-hover:scale-105 transition-transform">
               <img src="/favicon.ico" alt="CSMS" class="w-full h-full object-contain" />
             </div>
-            <span class="text-lg font-bold highlight-text hidden sm:block">CSMS</span>
+            <span class="text-lg font-bold highlight-text hidden sm:block">{{ navTitle }}</span>
           </NuxtLink>
 
           <!-- 桌面端导航 -->
@@ -115,7 +121,7 @@ const navLinks = computed(() => {
                     <p class="text-sm font-semibold text-slate-200">{{ currentUser.username }}</p>
                     <p class="text-xs text-slate-500">管理员</p>
                   </div>
-                  <span class="text-xs text-slate-500 transition-transform duration-200" :class="{ 'rotate-180': userMenuOpen }">▼</span>
+                  <MorphIcon :icon="userMenuOpen ? ChevronUp : ChevronDown" :size="14" class="text-slate-500" />
                 </button>
 
                 <!-- 下拉菜单 -->
@@ -129,13 +135,13 @@ const navLinks = computed(() => {
                       @click="userMenuOpen = false"
                       class="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-slate-800/50 transition-all"
                     >
-                      ⚙️ 个人设置
+                      <MorphIcon :icon="Settings" :size="16" class="shrink-0" /> 个人设置
                     </NuxtLink>
                     <button
                       @click="logout(); userMenuOpen = false"
                       class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition-all text-left"
                     >
-                      🚪 退出登录
+                      <MorphIcon :icon="LogOut" :size="16" class="shrink-0" /> 退出登录
                     </button>
                   </div>
                 </Transition>
@@ -147,13 +153,13 @@ const navLinks = computed(() => {
                   to="/settings"
                   class="text-xs text-slate-400 hover:text-brand-400 transition-colors"
                 >
-                  ⚙️
+                  <MorphIcon :icon="Settings" :size="16" />
                 </NuxtLink>
                 <button
                   @click="logout"
-                  class="text-xs text-slate-400 hover:text-red-400 transition-colors"
+                  class="text-xs text-slate-400 hover:text-red-400 transition-colors flex items-center"
                 >
-                  🚪
+                  <MorphIcon :icon="LogOut" :size="16" />
                 </button>
               </div>
             </template>
@@ -171,7 +177,7 @@ const navLinks = computed(() => {
               @click="mobileMenuOpen = !mobileMenuOpen"
               class="md:hidden w-9 h-9 rounded-lg bg-slate-800/50 flex items-center justify-center text-base"
             >
-              {{ mobileMenuOpen ? '✕' : '☰' }}
+              <MorphIcon :icon="mobileMenuOpen ? X : Menu" :size="20" />
             </button>
           </div>
         </div>
@@ -196,7 +202,7 @@ const navLinks = computed(() => {
                   @click="mobileMenuOpen = false"
                   class="block px-4 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/50 transition-all"
                 >
-                  ⚙️ 个人设置
+                  <MorphIcon :icon="Settings" :size="16" class="shrink-0" /> 个人设置
                 </NuxtLink>
                 <button
                   @click="logout"

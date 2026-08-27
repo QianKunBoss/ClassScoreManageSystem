@@ -210,22 +210,22 @@ const scopeLabel = computed(() => {
       <!-- 统计卡片 -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div class="glass-card p-5 animate-slide-up">
-          <div class="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center mb-3 text-lg">👥</div>
+          <div class="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center mb-3 text-lg"><MorphIcon name="users" size="1em" class="inline-block align-middle" /></div>
           <p class="text-2xl font-bold text-slate-100">{{ loading ? '—' : stats.totalUsers }}</p>
           <p class="text-xs text-slate-500 mt-0.5">总用户数</p>
         </div>
         <div class="glass-card p-5 animate-slide-up" style="animation-delay: 0.05s">
-          <div class="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center mb-3 text-lg">⭐</div>
+          <div class="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center mb-3 text-lg"><MorphIcon name="star" size="1em" class="inline-block align-middle" /></div>
           <p class="text-2xl font-bold text-slate-100">{{ loading ? '—' : stats.totalScore }}</p>
           <p class="text-xs text-slate-500 mt-0.5">总积分</p>
         </div>
         <div class="glass-card p-5 animate-slide-up" style="animation-delay: 0.1s">
-          <div class="w-10 h-10 rounded-lg bg-yellow-500/10 flex items-center justify-center mb-3 text-lg">📊</div>
+          <div class="w-10 h-10 rounded-lg bg-yellow-500/10 flex items-center justify-center mb-3 text-lg"><MorphIcon name="bar-chart-3" size="1em" class="inline-block align-middle" /></div>
           <p class="text-2xl font-bold text-slate-100">{{ loading ? '—' : stats.avgScore }}</p>
           <p class="text-xs text-slate-500 mt-0.5">平均积分</p>
         </div>
         <div class="glass-card p-5 animate-slide-up" style="animation-delay: 0.15s">
-          <div class="w-10 h-10 rounded-lg bg-brand-500/10 flex items-center justify-center mb-3 text-lg">📋</div>
+          <div class="w-10 h-10 rounded-lg bg-brand-500/10 flex items-center justify-center mb-3 text-lg"><MorphIcon name="clipboard-list" size="1em" class="inline-block align-middle" /></div>
           <p class="text-2xl font-bold text-slate-100">{{ loading ? '—' : stats.totalLogs }}</p>
           <p class="text-xs text-slate-500 mt-0.5">总操作记录</p>
         </div>
@@ -238,14 +238,14 @@ const scopeLabel = computed(() => {
             <p class="text-xs text-slate-500 mb-1">加分操作</p>
             <p class="text-xl font-bold text-green-400">{{ stats.positiveLogs }}</p>
           </div>
-          <div class="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center text-xl">↑</div>
+          <div class="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center text-xl"><MorphIcon name="arrow-up" size="1em" class="inline-block align-middle" /></div>
         </div>
         <div class="glass-card p-5 flex items-center justify-between">
           <div>
             <p class="text-xs text-slate-500 mb-1">扣分操作</p>
             <p class="text-xl font-bold text-red-400">{{ stats.negativeLogs }}</p>
           </div>
-          <div class="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center text-xl">↓</div>
+          <div class="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center text-xl"><MorphIcon name="arrow-down" size="1em" class="inline-block align-middle" /></div>
         </div>
       </div>
 

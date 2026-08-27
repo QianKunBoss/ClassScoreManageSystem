@@ -7,10 +7,10 @@ const toasts = nuxtApp.$toast.toasts as Ref<ToastItem[]>
 const dismiss = nuxtApp.$toast.dismiss
 
 const iconMap: Record<string, string> = {
-  success: '✓',
-  error: '✕',
-  info: 'ℹ',
-  warning: '⚠',
+  success: 'check',
+  error: 'x',
+  info: 'info',
+  warning: 'alert-triangle',
 }
 
 const bgMap: Record<string, string> = {
@@ -39,14 +39,14 @@ const textMap: Record<string, string> = {
           :class="bgMap[t.type || 'info'] || bgMap.info"
         >
           <span class="text-lg font-bold" :class="textMap[t.type || 'info']">
-            {{ iconMap[t.type || 'info'] }}
+            <MorphIcon :name="iconMap[t.type || 'info']" size="1em" class="inline-block align-middle" />
           </span>
           <p class="text-sm text-slate-200 flex-1">{{ t.message }}</p>
           <button
             @click="dismiss(t.id)"
             class="text-slate-500 hover:text-slate-300 transition-colors flex-shrink-0"
           >
-            ✕
+            <MorphIcon name="x" :size="16" class="pointer-events-none" />
           </button>
         </div>
       </TransitionGroup>

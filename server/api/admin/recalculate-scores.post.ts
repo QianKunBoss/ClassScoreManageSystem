@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
     if (!schoolId) {
       throw createError({
         statusCode: 400,
-        statusMessage: '缺少 schoolId，超级管理员请传递 ?schoolId= 参数',
+        message: '缺少 schoolId，超级管理员请传递 ?schoolId= 参数',
       })
     }
     targetSchoolIds = [schoolId]

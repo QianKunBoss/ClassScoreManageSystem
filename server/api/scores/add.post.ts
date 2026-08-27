@@ -43,7 +43,7 @@ export default defineEventHandler(async (event) => {
   }
 
   if (userEntries.length === 0) {
-    throw createError({ statusCode: 400, statusMessage: '请指定用户' })
+    throw createError({ statusCode: 400, message: '请指定用户' })
   }
 
   const results: any[] = []

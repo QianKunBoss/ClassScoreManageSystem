@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
 
   const id = Number(getRouterParam(event, 'id'))
   if (isNaN(id)) {
-    throw createError({ statusCode: 400, statusMessage: '无效的模板ID' })
+    throw createError({ statusCode: 400, message: '无效的模板ID' })
   }
 
   const body = await readBody(event) as {
@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
   }
 
   if (!body.name || body.score_change === undefined) {
-    throw createError({ statusCode: 400, statusMessage: '请填写完整的模板信息' })
+    throw createError({ statusCode: 400, message: '请填写完整的模板信息' })
   }
 
   await db.update(scoreTemplates)

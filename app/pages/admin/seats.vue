@@ -238,7 +238,7 @@ const groups = computed(() => {
                       @click="clearSeat(seat.id)"
                       class="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                     >
-                      ✕
+                      <MorphIcon name="x" :size="16" class="pointer-events-none" />
                     </button>
                   </template>
                   <template v-else>

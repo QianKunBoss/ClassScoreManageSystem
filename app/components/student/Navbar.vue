@@ -41,7 +41,7 @@ async function handleLogout() {
             class="text-xs px-3 py-1.5 rounded-lg transition-all duration-200"
             :class="$route.path === '/student' ? 'bg-brand-500/10 text-brand-400' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'"
           >
-            🏠 我的积分
+            <MorphIcon name="home" size="1em" class="inline-block align-middle" /> 我的积分
           </NuxtLink>
           <NuxtLink
             v-if="showRanking"
@@ -49,14 +49,14 @@ async function handleLogout() {
             class="text-xs px-3 py-1.5 rounded-lg transition-all duration-200"
             :class="$route.path.includes('/student/ranking') ? 'bg-brand-500/10 text-brand-400' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'"
           >
-            📊 班级排名
+            <MorphIcon name="bar-chart-3" size="1em" class="inline-block align-middle" /> 班级排名
           </NuxtLink>
           <NuxtLink
             to="/student/settings"
             class="text-xs px-3 py-1.5 rounded-lg transition-all duration-200"
             :class="$route.path.includes('/student/settings') ? 'bg-brand-500/10 text-brand-400' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'"
           >
-            ⚙️ 个人设置
+            <MorphIcon name="settings" size="1em" class="inline-block align-middle" /> 个人设置
           </NuxtLink>
         </div>
       </div>

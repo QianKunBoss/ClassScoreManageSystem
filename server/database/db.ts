@@ -180,6 +180,29 @@ async function migrateSchoolDb(client: any, schoolId: number) {
         console.error(`[CSMS] school ${schoolId} seat_data 迁移失败:`, e.message)
       }
     }
+
+    // ===== 迁移 users：添加 email / email_bound_at 列 + 邮箱唯一索引 =====
+    try {
+      const userResult = await client.execute('PRAGMA table_info(users)')
+      const userCols = (userResult.rows as any[]).map((r: any) => r.name)
+      if (!userCols.includes('email')) {
+        await client.execute('ALTER TABLE users ADD COLUMN email TEXT')
+        console.log(`[CSMS] school ${schoolId} users 表迁移完成：添加 email 列`)
+      }
+      if (!userCols.includes('email_bound_at')) {
+        await client.execute('ALTER TABLE users ADD COLUMN email_bound_at TEXT')
+        console.log(`[CSMS] school ${schoolId} users 表迁移完成：添加 email_bound_at 列`)
+      }
+      // 唯一索引（允许多个 NULL，仅约束非空值）
+      await client.execute('CREATE UNIQUE INDEX IF NOT EXISTS users_email_unq ON users(email)')
+      // 账号状态列（0=正常，1=禁用）
+      if (!userCols.includes('disabled')) {
+        await client.execute('ALTER TABLE users ADD COLUMN disabled INTEGER NOT NULL DEFAULT 0')
+        console.log(`[CSMS] school ${schoolId} users 表迁移完成：添加 disabled 列`)
+      }
+    } catch (e: any) {
+      console.error(`[CSMS] school ${schoolId} users email 迁移失败:`, e.message)
+    }
   } catch (e: any) {
     console.error(`[CSMS] school ${schoolId} 迁移失败:`, e.message)
   }

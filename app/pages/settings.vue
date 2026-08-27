@@ -84,7 +84,7 @@ async function updateUsername() {
     // 刷新用户信息
     await refreshNuxtData()
   } catch (err) {
-    toast.error(err.data?.statusMessage || '修改失败')
+    toast.error(err.data?.message || err.data?.statusMessage || '修改失败')
   } finally {
     usernameLoading.value = false
   }
@@ -129,7 +129,7 @@ async function updatePassword() {
           toast.success('密码修改成功，现在可以正常使用系统了')
         }
   } catch (err) {
-    toast.error(err.data?.statusMessage || '修改失败')
+    toast.error(err.data?.message || err.data?.statusMessage || '修改失败')
   } finally {
     pwdLoading.value = false
   }
@@ -144,7 +144,7 @@ async function updatePassword() {
       class="glass-card p-6 mb-8 border-amber-500/30 bg-amber-500/5"
     >
       <div class="flex items-center gap-3 mb-2">
-        <span class="text-2xl">⚠️</span>
+        <span class="text-2xl"><MorphIcon name="alert-triangle" size="1em" class="inline-block align-middle" /></span>
         <h2 class="text-lg font-bold text-amber-400">请先修改密码</h2>
       </div>
       <p class="text-sm text-slate-400 leading-relaxed">

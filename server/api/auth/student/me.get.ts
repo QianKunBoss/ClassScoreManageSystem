@@ -20,6 +20,7 @@ export default defineEventHandler(async (event) => {
       actualName: users.actualName,
       classId: users.classId,
       totalScore: users.totalScore,
+      email: users.email,
       className: classes.name,
       gradeName: grades.name,
     })

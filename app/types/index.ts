@@ -14,6 +14,9 @@ export interface Admin {
   mustChangePassword?: boolean
   createdAt: string
   lastLogin: string | null
+  email?: string | null
+  emailBoundAt?: string | null
+  disabled?: number
   // 关联名称（API 联表查询返回）
   schoolName?: string
   gradeName?: string
@@ -51,8 +54,11 @@ export interface User {
   id: number
   classId: number | null
   username: string
+  actualName?: string | null
   totalScore: number
   scoreCount: number
+  email?: string | null
+  disabled?: number
   createdAt: string
   // 关联
   className?: string
@@ -152,4 +158,34 @@ export interface CreatedAccount {
   school: string
   grade: string | null
   class: string | null
+}
+
+/** 邮件服务（多服务优先级故障转移） */
+export interface MailService {
+  id: number
+  name: string
+  provider: string
+  host: string
+  port: number
+  secure: 'none' | 'ssl' | 'tls'
+  username: string
+  password: string
+  fromName: string
+  fromAddress: string
+  priority: number
+  enabled: number // 1=启用 0=禁用
+  createdAt: string
+  updatedAt: string | null
+}
+
+/** 邮件模板 */
+export interface MailTemplate {
+  id: number
+  slug: string
+  name: string
+  subject: string
+  bodyHtml: string
+  variables: string // JSON 数组字符串，如 '["code","email"]'
+  createdAt: string
+  updatedAt: string | null
 }

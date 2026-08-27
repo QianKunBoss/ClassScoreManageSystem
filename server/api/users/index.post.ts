@@ -2,6 +2,7 @@ import { users } from '../../database/schema'
 import { useSchoolDb } from '../../database/db'
 import { requireAdmin, hashPasswordBcrypt, getSchoolIdFromRequest } from '../../utils/auth'
 import { eq } from 'drizzle-orm'
+import { EMAIL_RE } from '../../utils/mail'
 
 // POST /api/users — 创建学生账号（写入学校库）
 // 支持单个创建：{ username, password, actualName, classId }
@@ -72,19 +73,19 @@ export default defineEventHandler(async (event) => {
   }
 
   // 单个创建
-  const { username, password, actualName, classId: bodyClassId } = body
+  const { username, password, actualName, classId: bodyClassId, email } = body
 
   if (!username) {
-    throw createError({ statusCode: 400, statusMessage: '请输入用户名' })
+    throw createError({ statusCode: 400, message: '请输入用户名' })
   }
   if (!password) {
-    throw createError({ statusCode: 400, statusMessage: '请输入密码' })
+    throw createError({ statusCode: 400, message: '请输入密码' })
   }
 
   // classId：超级管理员可从 body 传递，普通管理员从 session 中取
   const classId = bodyClassId || admin.classId
   if (!classId) {
-    throw createError({ statusCode: 400, statusMessage: '缺少班级信息，无法创建用户' })
+    throw createError({ statusCode: 400, message: '缺少班级信息，无法创建用户' })
   }
   const existing = await db
     .select({ id: users.id })
@@ -93,7 +94,21 @@ export default defineEventHandler(async (event) => {
     .get()
 
   if (existing) {
-    throw createError({ statusCode: 409, statusMessage: '用户名已存在' })
+    throw createError({ statusCode: 409, message: '用户名已存在' })
+  }
+
+  // 可选绑定邮箱（修改登录凭证）
+  let bindEmail: string | null = null
+  if (email) {
+    const em = String(email).trim()
+    if (!EMAIL_RE.test(em)) {
+      throw createError({ statusCode: 400, message: '邮箱格式不正确' })
+    }
+    const dup = await db.select({ id: users.id }).from(users).where(eq(users.email, em)).get()
+    if (dup) {
+      throw createError({ statusCode: 409, message: '该邮箱已被其他账号绑定' })
+    }
+    bindEmail = em
   }
 
   const passwordHash = hashPasswordBcrypt(password)
@@ -103,6 +118,8 @@ export default defineEventHandler(async (event) => {
     passwordHash,
     actualName: actualName || null,
     classId,
+    email: bindEmail,
+    emailBoundAt: bindEmail ? new Date().toISOString() : null,
   }).returning().all()
 
   return {

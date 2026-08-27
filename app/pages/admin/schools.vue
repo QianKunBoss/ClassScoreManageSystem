@@ -33,7 +33,7 @@ async function loadSchools() {
     const res = await $fetch<{ success: boolean, data: any[] }>('/api/schools')
     schools.value = res.data || []
   } catch (err) {
-    toast.error(err.data?.statusMessage || '加载学校列表失败')
+    toast.error(err.data?.message || err.data?.statusMessage || '加载学校列表失败')
   } finally {
     loading.value = false
   }
@@ -55,7 +55,7 @@ async function createSchool() {
     newSchool.value = { name: '' }
     await loadSchools()
   } catch (err) {
-    toast.error(err.data?.statusMessage || '创建失败')
+    toast.error(err.data?.message || err.data?.statusMessage || '创建失败')
   }
 }
 
@@ -76,7 +76,7 @@ async function deleteSchool(school: any) {
     confirmDelete.value = null
     await loadSchools()
   } catch (err) {
-    toast.error(err.data?.statusMessage || '删除失败')
+    toast.error(err.data?.message || err.data?.statusMessage || '删除失败')
   }
 }
 
@@ -101,7 +101,7 @@ async function updateSchool() {
     editingSchool.value = null
     await loadSchools()
   } catch (err) {
-    toast.error(err.data?.statusMessage || '更新失败')
+    toast.error(err.data?.message || err.data?.statusMessage || '更新失败')
   }
 }
 
@@ -163,7 +163,7 @@ onMounted(() => {
           <div class="modal-content">
             <div class="modal-header">
               <h3 class="text-base font-bold text-slate-100">添加学校</h3>
-              <button @click="showAddModal = false" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500">✕</button>
+              <button @click="showAddModal = false" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500"><MorphIcon name="x" :size="16" class="pointer-events-none" /></button>
             </div>
             <div class="modal-body space-y-4">
               <div>
@@ -187,7 +187,7 @@ onMounted(() => {
           <div class="modal-content">
             <div class="modal-header">
               <h3 class="text-base font-bold text-slate-100">编辑学校</h3>
-              <button @click="showEditModal = false" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500">✕</button>
+              <button @click="showEditModal = false" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500"><MorphIcon name="x" :size="16" class="pointer-events-none" /></button>
             </div>
             <div class="modal-body space-y-4">
               <div>
@@ -211,7 +211,7 @@ onMounted(() => {
           <div class="modal-content max-w-sm">
             <div class="modal-header">
               <h3 class="text-base font-bold text-red-400">删除学校</h3>
-              <button @click="confirmDelete = null" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500">✕</button>
+              <button @click="confirmDelete = null" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500"><MorphIcon name="x" :size="16" class="pointer-events-none" /></button>
             </div>
             <div class="modal-body space-y-4">
               <p class="text-sm text-slate-300">确定删除学校「{{ confirmDelete.name }}」吗？此操作将级联删除该学校下的所有年级、班级和学生数据，不可撤销！</p>

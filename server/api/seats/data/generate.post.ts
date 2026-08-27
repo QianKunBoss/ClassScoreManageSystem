@@ -13,18 +13,18 @@ export default defineEventHandler(async (event) => {
 
   const classId = body.classId
   if (!classId) {
-    throw createError({ statusCode: 400, statusMessage: '请选择班级' })
+    throw createError({ statusCode: 400, message: '请选择班级' })
   }
 
   // 班级管理员只能操作自己管理的班级
   if (admin.role === 'class_admin' && admin.classId !== classId) {
-    throw createError({ statusCode: 403, statusMessage: '只能管理自己班级的座位表' })
+    throw createError({ statusCode: 403, message: '只能管理自己班级的座位表' })
   }
 
   const layout = await db.select().from(seatLayoutConfig)
     .where(eq(seatLayoutConfig.classId, classId)).get()
   if (!layout) {
-    throw createError({ statusCode: 400, statusMessage: '请先配置该班级的座位布局' })
+    throw createError({ statusCode: 400, message: '请先配置该班级的座位布局' })
   }
 
   // 清除该班级的旧座位数据

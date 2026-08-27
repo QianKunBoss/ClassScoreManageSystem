@@ -11,12 +11,12 @@ export default defineEventHandler(async (event) => {
   const id = parseInt(event.context.params?.id || '')
 
   if (isNaN(id)) {
-    throw createError({ statusCode: 400, statusMessage: '无效的管理员ID' })
+    throw createError({ statusCode: 400, message: '无效的管理员ID' })
   }
 
   // 禁止删除自己
   if (currentAdmin.id === id) {
-    throw createError({ statusCode: 400, statusMessage: '不能删除自己的账号' })
+    throw createError({ statusCode: 400, message: '不能删除自己的账号' })
   }
 
   // 查出目标管理员
@@ -27,22 +27,22 @@ export default defineEventHandler(async (event) => {
     .get()
 
   if (!targetAdmin) {
-    throw createError({ statusCode: 404, statusMessage: '管理员不存在' })
+    throw createError({ statusCode: 404, message: '管理员不存在' })
   }
 
   // 检查权限
   if (!canManageAdmin(currentAdmin, targetAdmin)) {
-    throw createError({ statusCode: 403, statusMessage: '无权操作此管理员' })
+    throw createError({ statusCode: 403, message: '无权操作此管理员' })
   }
 
   // 验证确认密码
   const confirmPassword = getHeader(event, 'x-confirm-password') || ''
   if (!confirmPassword) {
-    throw createError({ statusCode: 400, statusMessage: '请提供确认密码' })
+    throw createError({ statusCode: 400, message: '请提供确认密码' })
   }
   const passwordValid = await verifyAdminPassword(currentAdmin.id, confirmPassword)
   if (!passwordValid) {
-    throw createError({ statusCode: 400, statusMessage: '确认密码错误' })
+    throw createError({ statusCode: 400, message: '确认密码错误' })
   }
 
   await db.delete(admins).where(eq(admins.id, id))

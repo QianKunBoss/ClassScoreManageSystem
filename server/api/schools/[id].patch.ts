@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
   
   const id = Number(getRouterParam(event, 'id'))
   if (isNaN(id)) {
-    throw createError({ statusCode: 400, statusMessage: '无效的学校ID' })
+    throw createError({ statusCode: 400, message: '无效的学校ID' })
   }
   
   const body = await readBody(event) as {
@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
   }
   
   if (body.name !== undefined && (!body.name || !body.name.trim())) {
-    throw createError({ statusCode: 400, statusMessage: '请输入学校名称' })
+    throw createError({ statusCode: 400, message: '请输入学校名称' })
   }
   
   const db = useMainDb()
@@ -26,14 +26,14 @@ export default defineEventHandler(async (event) => {
   // 检查学校是否存在
   const existing = await db.select().from(schools).where(eq(schools.id, id)).limit(1)
   if (existing.length === 0) {
-    throw createError({ statusCode: 404, statusMessage: '学校不存在' })
+    throw createError({ statusCode: 404, message: '学校不存在' })
   }
   
   // 检查名称是否与其他学校重复
   if (body.name !== undefined) {
     const duplicate = await db.select().from(schools).where(eq(schools.name, body.name.trim())).all()
     if (duplicate.length > 0 && duplicate[0].id !== id) {
-      throw createError({ statusCode: 400, statusMessage: '学校名称已存在' })
+      throw createError({ statusCode: 400, message: '学校名称已存在' })
     }
   }
   
