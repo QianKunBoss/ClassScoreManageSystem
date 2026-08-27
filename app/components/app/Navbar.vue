@@ -72,13 +72,9 @@ const navLinks = computed(() => {
     if (role === 'super_admin') {
       links.push(
         { to: '/superadmin', label: '系统管理' },
-        { to: '/superadmin/data', label: '数据收纳' },
         { to: '/admin/announcements', label: '公告' },
       )
     }
-  }
-  if (['school_admin', 'grade_admin', 'class_admin'].includes(role)) {
-    links.push({ to: '/admin/data', label: '数据收纳' })
   }
   return links
 })
