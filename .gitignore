@@ -11,6 +11,9 @@ node_modules
 
 # Database (runtime SQLite files)
 data/
+*.db
+*.sqlite
+*.sqlite3
 
 # Backup archives
 *.tar
@@ -26,6 +29,7 @@ logs
 .DS_Store
 .fleet
 .idea
+.cloudstudio
 
 # Local env files
 .env
