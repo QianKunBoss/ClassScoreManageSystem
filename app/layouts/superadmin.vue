@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {
   LayoutDashboard, Users, School, Inbox, Palette, Mail, FileText,
-  Folder, Shield, ChevronDown, ChevronUp, ArrowLeft, GraduationCap,
+  Folder, Shield, ChevronDown, ChevronUp, ArrowLeft, GraduationCap, Database,
 } from '~/utils/icons'
 
 const route = useRoute()
@@ -10,6 +10,7 @@ const navItems = [
   { to: '/superadmin', label: '概览', icon: LayoutDashboard, exact: true },
   { to: '/superadmin/schools', label: '学校管理', icon: School, exact: false },
   { to: '/superadmin/applications', label: '入驻申请', icon: Inbox, exact: false },
+  { to: '/superadmin/data', label: '数据收纳', icon: Database, exact: false },
 ]
 
 // 用户管理分组（管理员管理 + 学生管理）

@@ -33,8 +33,8 @@ const navLinks = computed(() => {
   const links = [
     { to: '/', label: '首页' },
   ]
+  const role = currentUser.value?.role
   if (currentUser.value) {
-    const role = currentUser.value.role
     links.push({ to: '/admin', label: '管理后台' })
     // 班级管理员
     if (role === 'class_admin') {
@@ -72,9 +72,13 @@ const navLinks = computed(() => {
     if (role === 'super_admin') {
       links.push(
         { to: '/superadmin', label: '系统管理' },
+        { to: '/superadmin/data', label: '数据收纳' },
         { to: '/admin/announcements', label: '公告' },
       )
     }
+  }
+  if (['school_admin', 'grade_admin', 'class_admin'].includes(role)) {
+    links.push({ to: '/admin/data', label: '数据收纳' })
   }
   return links
 })
