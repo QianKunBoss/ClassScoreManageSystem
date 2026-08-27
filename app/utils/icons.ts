@@ -5,7 +5,7 @@
 // 用法 B（按名引用）： <MorphIcon name="arrow-right" />  ← 从下方 iconRegistry 解析
 import {
   Menu, X, ChevronDown, ChevronUp, ChevronRight, ChevronLeft,
-  Lock, GraduationCap, School, AlertTriangle, Settings, LogOut, User,
+  Lock, GraduationCap, School, AlertTriangle, Settings, LogOut, LogIn, User,
   CircleUser, Shield, Folder, ArrowLeft, Sun, Moon, Eye, EyeOff, Bell,
   Mail, FileText, LayoutDashboard, Users, Palette, Check, Filter, Search,
   Plus, Trash2, Edit, Save, RefreshCw, ClipboardList, BarChart3, Home,
@@ -41,7 +41,7 @@ export const iconRegistry: Record<string, unknown> = {
 
 export {
   Menu, X, ChevronDown, ChevronUp, ChevronRight, ChevronLeft,
-  Lock, GraduationCap, School, AlertTriangle, Settings, LogOut, User,
+  Lock, GraduationCap, School, AlertTriangle, Settings, LogOut, LogIn, User,
   CircleUser, Shield, Folder, ArrowLeft, Sun, Moon, Eye, EyeOff, Bell,
   Mail, FileText, LayoutDashboard, Users, Palette, Check, Filter, Search,
   Plus, Trash2, Edit, Save, RefreshCw, ClipboardList, BarChart3, Home,

@@ -1,12 +1,12 @@
-import { eq } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 import fs from 'fs'
 import path from 'path'
-import { users } from '../../../database/schema.school'
+import { users, classes } from '../../../database/schema.school'
 import { useSchoolDb } from '../../../database/db'
 import { requireSuperAdmin } from '../../../utils/auth'
 import { EMAIL_RE } from '../../../utils/mail'
 
-// PATCH /api/admin/students/[id]?schoolId= — 超级管理员跨校更新学生（邮箱 / 启用禁用）
+// PATCH /api/admin/students/[id]?schoolId= — 超级管理员跨校更新学生（邮箱 / 启用禁用 / 姓名 / 班级调动）
 export default defineEventHandler(async (event) => {
   await requireSuperAdmin(event)
   const query = getQuery(event) as { schoolId?: string }
@@ -29,9 +29,11 @@ export default defineEventHandler(async (event) => {
   const body = await readBody(event) as {
     email?: string
     disabled?: number
+    actualName?: string
+    classId?: number | null
   }
 
-  if (body.email === undefined && body.disabled === undefined) {
+  if (body.email === undefined && body.disabled === undefined && body.actualName === undefined && body.classId === undefined) {
     throw createError({ statusCode: 400, message: '请指定要修改的字段' })
   }
 
@@ -65,6 +67,38 @@ export default defineEventHandler(async (event) => {
       setData.email = null
       setData.emailBoundAt = null
     }
+  }
+
+  // 姓名
+  if (body.actualName !== undefined) {
+    const name = (body.actualName || '').trim()
+    if (!name) {
+      throw createError({ statusCode: 400, message: '姓名不能为空' })
+    }
+    setData.actualName = name
+  }
+
+  // 班级调动（目标班级须在本校库内存在；同一 (class_id, username) 不可重复）
+  if (body.classId !== undefined) {
+    const cid = body.classId === null ? null : Number(body.classId)
+    if (cid === null || !Number.isInteger(cid) || cid < 1) {
+      throw createError({ statusCode: 400, message: '班级 ID 无效' })
+    }
+    if (cid !== existing.classId) {
+      const cls = await db.select({ id: classes.id }).from(classes).where(eq(classes.id, cid)).get()
+      if (!cls) {
+        throw createError({ statusCode: 404, message: '目标班级不存在' })
+      }
+      const dup = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(and(eq(users.classId, cid), eq(users.username, existing.username)))
+        .get()
+      if (dup && dup.id !== id) {
+        throw createError({ statusCode: 409, message: '该班级已存在同名用户名的学生' })
+      }
+    }
+    setData.classId = cid
   }
 
   // 启用 / 禁用

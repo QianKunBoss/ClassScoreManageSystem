@@ -44,6 +44,7 @@ export default defineEventHandler(async (event) => {
       const client = await getSchoolRawClient(event, sc.id)
       let sql = `SELECT u.id, u.username, u.actual_name, u.email, u.email_bound_at, u.disabled,
                         u.class_id, u.created_at,
+                        u.total_score, u.add_score, u.deduct_score, u.score_count,
                         c.name AS class_name, c.grade_id AS grade_id,
                         g.name AS grade_name
                  FROM users u
@@ -71,6 +72,10 @@ export default defineEventHandler(async (event) => {
           gradeId: r.grade_id || null,
           gradeName: r.grade_name || '',
           createdAt: r.created_at,
+          totalScore: r.total_score ?? 0,
+          addScore: r.add_score ?? 0,
+          deductScore: r.deduct_score ?? 0,
+          scoreCount: r.score_count ?? 0,
         })
       }
     } catch {

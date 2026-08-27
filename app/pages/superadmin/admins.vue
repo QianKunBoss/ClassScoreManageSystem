@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Admin, School } from '~/types'
 import { formatDate } from '~/utils/format'
+import { Ban, CircleCheck, Eye, Trash2, LogIn, Plus } from '~/utils/icons'
 
 definePageMeta({ middleware: 'super-admin', layout: 'superadmin' })
 
@@ -110,8 +111,20 @@ async function loadDetailClasses() {
     detailClasses.value = res.data || []
   } catch { detailClasses.value = [] }
 }
-watch(detailSchoolId, () => { detailGradeId.value = ''; detailClassId.value = ''; loadDetailGrades(); loadDetailClasses() })
-watch(detailGradeId, () => { detailClassId.value = ''; loadDetailClasses() })
+// 级联清空改为 @change 绑定，而非 watch：
+// watch 会在 openDetail 初始化赋值时误触发，把已设好的 gradeId/classId 清空，
+// 导致详情首次打开下拉显示「请选择年级/班级」（需多次打开才正常）。
+// @change 仅在用户交互时触发，初始化赋值不会触发。
+function onDetailSchoolChange() {
+  detailGradeId.value = ''
+  detailClassId.value = ''
+  loadDetailGrades()
+  loadDetailClasses()
+}
+function onDetailGradeChange() {
+  detailClassId.value = ''
+  loadDetailClasses()
+}
 
 async function updateAffiliation() {
   if (!detailAdmin.value) return
@@ -392,7 +405,7 @@ watchEffect(async () => {
               <option :value="''">全部班级</option>
               <option v-for="c in classes" :key="c.id" :value="c.id">{{ c.name }}</option>
             </select>
-            <button @click="showAddAdmin = true" class="btn btn-primary text-sm sm:ml-1">+ 添加</button>
+            <button @click="showAddAdmin = true" class="btn btn-primary text-sm sm:ml-1"><MorphIcon :icon="Plus" :size="14" class="pointer-events-none" /> 添加</button>
           </div>
         </div>
         <div class="overflow-x-auto">
@@ -439,18 +452,18 @@ watchEffect(async () => {
                       @click="toggleAdminDisabled(a)"
                       class="btn btn-ghost text-xs py-1 px-2 !text-red-400 hover:!bg-red-500/10"
                     >
-                      封禁
+                      <MorphIcon :icon="Ban" :size="13" class="pointer-events-none" /> 封禁
                     </button>
                     <button
                       v-else-if="a.id !== currentUser?.id"
                       @click="toggleAdminDisabled(a)"
                       class="btn btn-ghost text-xs py-1 px-2 !text-emerald-400 hover:!bg-emerald-500/10"
                     >
-                      启用
+                      <MorphIcon :icon="CircleCheck" :size="13" class="pointer-events-none" /> 启用
                     </button>
-                    <button v-if="a.id !== currentUser?.id && a.disabled !== 1" @click="loginAs(a)" class="btn btn-ghost text-xs py-1 px-2 text-brand-400 hover:!bg-brand-500/10">登录</button>
-                    <button @click="openDetail(a)" class="btn btn-ghost text-xs py-1 px-2 text-brand-400 hover:!bg-brand-500/10">详情</button>
-                    <button v-if="a.id !== currentUser?.id" @click="confirmDeleteAdmin = a" class="btn btn-ghost text-xs py-1 px-2 !text-red-400 hover:!bg-red-500/10">删除</button>
+                    <button v-if="a.id !== currentUser?.id && a.disabled !== 1" @click="loginAs(a)" class="btn btn-ghost text-xs py-1 px-2 text-brand-400 hover:!bg-brand-500/10"><MorphIcon :icon="LogIn" :size="13" class="pointer-events-none" /> 登录</button>
+                    <button @click="openDetail(a)" class="btn btn-ghost text-xs py-1 px-2 text-brand-400 hover:!bg-brand-500/10"><MorphIcon :icon="Eye" :size="13" class="pointer-events-none" /> 详情</button>
+                    <button v-if="a.id !== currentUser?.id" @click="confirmDeleteAdmin = a" class="btn btn-ghost text-xs py-1 px-2 !text-red-400 hover:!bg-red-500/10"><MorphIcon :icon="Trash2" :size="13" class="pointer-events-none" /> 删除</button>
                   </div>
                 </td>
               </tr>
@@ -571,14 +584,14 @@ watchEffect(async () => {
                     <div class="space-y-2">
                       <div>
                         <label class="block text-xs text-slate-500 mb-1">学校</label>
-                        <select v-model="detailSchoolId" class="form-input text-sm">
+                        <select v-model="detailSchoolId" class="form-input text-sm" @change="onDetailSchoolChange">
                           <option value="" disabled>请选择学校</option>
                           <option v-for="s in schools" :key="s.id" :value="s.id">{{ s.name }}</option>
                         </select>
                       </div>
                       <div v-if="detailAdmin?.role === 'grade_admin' || detailAdmin?.role === 'class_admin'">
                         <label class="block text-xs text-slate-500 mb-1">年级</label>
-                        <select v-model="detailGradeId" class="form-input text-sm" :disabled="!detailSchoolId">
+                        <select v-model="detailGradeId" class="form-input text-sm" :disabled="!detailSchoolId" @change="onDetailGradeChange">
                           <option value="" disabled>请选择年级</option>
                           <option v-for="g in detailGrades" :key="g.id" :value="g.id">{{ g.name }}</option>
                         </select>

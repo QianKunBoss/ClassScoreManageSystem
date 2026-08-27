@@ -98,17 +98,19 @@ export default defineEventHandler(async (event) => {
   )
   const schoolIdSet = new Set(needLookup.map((a: any) => a.schoolId!))
 
-  const gradeNameMap = new Map<number, string>()
-  const classNameMap = new Map<number, string>()
+  // 注意：年级/班级 id 在每个学校库内独立自增，必须用 `${schoolId}:${id}` 复合 key，
+  // 否则不同学校的同名 id 会互相覆盖，导致列表显示的年级/班级名称错乱（与详情页不一致）。
+  const gradeNameMap = new Map<string, string>()
+  const classNameMap = new Map<string, string>()
 
   for (const sid of schoolIdSet) {
     try {
       const schoolDb = await useSchoolDb(event, sid)
       const schoolGrades = await schoolDb.select().from(grades).all()
-      for (const g of schoolGrades) gradeNameMap.set(g.id, g.name)
+      for (const g of schoolGrades) gradeNameMap.set(`${sid}:${g.id}`, g.name)
 
       const schoolClasses = await schoolDb.select().from(classes).all()
-      for (const c of schoolClasses) classNameMap.set(c.id, c.name)
+      for (const c of schoolClasses) classNameMap.set(`${sid}:${c.id}`, c.name)
     } catch {
       // 学校库不存在则跳过
     }
@@ -122,9 +124,9 @@ export default defineEventHandler(async (event) => {
     schoolId: a.schoolId,
     schoolName: a.schoolName || '',
     gradeId: a.gradeId,
-    gradeName: a.gradeId ? gradeNameMap.get(a.gradeId) || '' : '',
+    gradeName: a.gradeId ? gradeNameMap.get(`${a.schoolId}:${a.gradeId}`) || '' : '',
     classId: a.classId,
-    className: a.classId ? classNameMap.get(a.classId) || '' : '',
+    className: a.classId ? classNameMap.get(`${a.schoolId}:${a.classId}`) || '' : '',
     disabled: a.disabled ?? 0,
     email: a.email || null,
     emailBoundAt: a.emailBoundAt || null,
