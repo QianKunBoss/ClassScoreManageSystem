@@ -250,15 +250,16 @@ chmod +x deploy.sh
    ```
 2. **构建并运行**（ PowerShell 示例）：
    ```powershell
-   # 设置会话密钥（必填，建议随机值）
-   $env:SESSION_SECRET = "你的随机密钥（openssl rand -hex 32 生成）"
+   # 设置运行期会话密钥（必填，建议随机值；预构建产物也必须用它）
+   $env:NUXT_SESSION_PASSWORD = "你的随机密钥（openssl rand -hex 32 生成）"
    # 构建
    npm install
    npm run build
    # 直接运行 Nitro 产物
    node .output/server/index.mjs
    ```
-   > CMD 写法：`set SESSION_SECRET=你的密钥` 再 `node .output/server/index.mjs`。
+   > CMD 写法：`set NUXT_SESSION_PASSWORD=你的密钥` 再 `node .output/server/index.mjs`。
+   > 若使用**下载包里的预构建 `.output`** 直接 `npm run preview`，同样只需设 `NUXT_SESSION_PASSWORD`（无需重新 build）。
 3. **常驻 + 开机自启（推荐用 PM2）**：
    ```powershell
    pm2 start ecosystem.config.cjs
@@ -289,17 +290,19 @@ chmod +x deploy.sh
 5. **HTTPS（可选）**：在站点「SSL」中一键申请 Let's Encrypt 证书并强制 HTTPS。
 6. **数据持久化**：SQLite 数据库位于 `/www/wwwroot/csms/data/`（主库 + 各校独立库），**备份时直接复制该目录**；迁移服务器时连同 `data/` 一并打包即可。
 
-> ⚠️ 宝塔 PM2 同样保持单实例运行（`instances: 1`），不要开启多进程；`SESSION_SECRET` 可通过宝塔「环境变量」或 `.env` 文件配置。
+> ⚠️ 宝塔 PM2 同样保持单实例运行（`instances: 1`），不要开启多进程；运行期密钥用 `NUXT_SESSION_PASSWORD`（宝塔「环境变量」或 `.env` 文件配置，预构建产物也必须用它）。
 
 ### 环境变量
 
 | 变量 | 说明 | 必填 |
 |------|------|------|
-| `SESSION_SECRET` | 会话签名密钥，**必须**改为随机值（生成：`openssl rand -base64 32`） | ✅ |
+| `NUXT_SESSION_PASSWORD` | **运行期**会话签名密钥，推荐用它配置。**任何部署方式（含预构建产物 / `npm run preview` / PM2 / Docker）均实时生效**。生成：`openssl rand -hex 32` 或 `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` | ✅ |
+| `SESSION_SECRET` | **构建期**会话密钥备选：仅在 `npm run build` **之前**设置才被烘焙进产物，运行期修改无效。新建构建时可用它替代 `NUXT_SESSION_PASSWORD` | ⚪ |
 | `HOST` | 监听地址，默认 `::`（同时监听 IPv4 + IPv6） | ❌ |
 | `PORT` | 监听端口，默认 `3000` | ❌ |
 | `NODE_ENV` | 设为 `production` 以启用生产模式 | ❌ |
 
+> ⚠️ **预构建产物（如从 Release / 下载包获取的 `.output`）必须用 `NUXT_SESSION_PASSWORD`**，因为 `SESSION_SECRET` 在构建时就已经固定、运行期改不动。
 > 配置模板见 `.env.example` / `.env.production`；`deploy.sh` 会自动从 `.env.production` 复制为 `.env`。`.env` 含密钥，已在 `.gitignore` 中忽略，**请勿提交**。
 
 ### 数据持久化与备份

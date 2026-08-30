@@ -8,7 +8,7 @@ module.exports = {
       NODE_ENV: 'production',
       HOST: '0.0.0.0',
       PORT: 3000,
-      SESSION_SECRET: process.env.SESSION_SECRET || 'change-this-to-a-random-secret',
+      NUXT_SESSION_PASSWORD: process.env.NUXT_SESSION_PASSWORD || 'change-this-to-a-random-secret',
     },
     max_memory_restart: '512M',
     error_file: './logs/csms-error.log',

@@ -14,14 +14,14 @@ echo "========================================"
 if [ ! -f .env ]; then
     echo "⚠️  未找到 .env 文件，从模板创建..."
     cp .env.production .env
-    echo "📝 请编辑 .env 修改 SESSION_SECRET！"
+    echo "📝 请编辑 .env 修改 NUXT_SESSION_PASSWORD！"
     echo "   生成密钥: openssl rand -base64 32"
     exit 1
 fi
 
-# 检查 SESSION_SECRET 是否修改
+# 检查 NUXT_SESSION_PASSWORD 是否修改（占位值含 change-this 即视为未改）
 if grep -q "change-this" .env; then
-    echo "⚠️  SESSION_SECRET 还是默认值，请先修改！"
+    echo "⚠️  NUXT_SESSION_PASSWORD 还是默认值，请先修改！"
     echo "   生成密钥: openssl rand -base64 32"
     exit 1
 fi

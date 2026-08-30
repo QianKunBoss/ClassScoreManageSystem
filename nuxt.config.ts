@@ -97,12 +97,16 @@ export default defineNuxtConfig({
   runtimeConfig: {
     // ============ nuxt-auth-utils session ============
     // 【安全】会话加密密钥不再提供任何硬编码兜底：
-    //  - 生产环境必须通过环境变量注入 SESSION_SECRET（openssl rand -hex 32），
-    //    缺失/过短时由 server/plugins/00.security-guard.ts 在启动阶段直接终止进程；
+    //  - 生产环境必须通过环境变量注入会话密钥；
+    //    运行时读取顺序（见 server/plugins/00.security-guard.ts）：
+    //      NUXT_SESSION_PASSWORD（运行时实时读取，推荐，适用于任何部署 / 预构建产物）
+    //      → 本构建期值（由 process.env.SESSION_SECRET 在 npm run build 前注入，已烘焙进产物）
+    //    缺失/过短时由 00.security-guard.ts 在启动阶段直接终止进程；
     //  - 开发环境由 nuxt-auth-utils 自动生成随机密钥并写入 .env(NUXT_SESSION_PASSWORD)。
-    // 运行时亦可用 NUXT_SESSION_PASSWORD 覆盖（Nuxt runtimeConfig 环境变量约定）。
+    // 说明：NUXT_SESSION_PASSWORD 在运行时实时生效，预构建产物（如下载包）也必须用它；
+    //       SESSION_SECRET 仅在「build 之前」设置才被烘焙进产物，运行期修改无效。
     session: {
-      password: process.env.SESSION_SECRET || '',
+      password: process.env.NUXT_SESSION_PASSWORD || process.env.SESSION_SECRET || '',
       name: 'csms-session',
       // 会话 Cookie 安全标志（显式声明，不依赖框架默认值）
       cookie: {
