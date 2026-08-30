@@ -60,6 +60,11 @@ export const applications = sqliteTable('applications', {
   reviewedAt: text('reviewed_at'),
   createdSchoolId: integer('created_school_id').references(() => schools.id),
   createdAdminId: integer('created_admin_id').references(() => admins.id),
+  // 学校被删除标记：该校审核通过后又被超级管理员删除时为 1，用于在「入驻申请」页打黄色「已删除」标签
+  schoolDeleted: integer('school_deleted').notNull().default(0),
+  // 被删学校 ID 快照：删除学校时把 created_school_id 复制到此列再置空（绕开 FK 约束），
+  // 用于在「入驻申请」页即使学校已被删除仍展示其原始学校 ID。
+  deletedSchoolId: integer('deleted_school_id'),
   createdAt: text('created_at').notNull().$defaultFn(() => new Date().toISOString()),
 })
 

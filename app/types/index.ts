@@ -150,6 +150,8 @@ export interface Application {
   createdAt: string
   createdSchoolId: number | null
   createdAdminId: number | null
+  schoolDeleted?: number
+  deletedSchoolId?: number | null
 }
 
 /** 审核通过后返回的管理员账号信息 */

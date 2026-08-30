@@ -1,10 +1,34 @@
 import { eq, sql, and } from 'drizzle-orm'
+import { getRequestHeader } from 'h3'
 import { schools, admins, applications } from '../../database/schema'
 import { grades, classes } from '../../database/schema'
 import { useMainDb, useSchoolDb } from '../../database/db'
 import { requireSuperAdmin, hashPasswordBcrypt } from '../../utils/auth'
 import { createSchoolDb } from '../../utils/create-school-db'
-import { EMAIL_RE } from '../../utils/mail'
+import { EMAIL_RE, notifyApplicationResult } from '../../utils/mail'
+
+/** 向申请人邮箱发送审核结果通知；邮箱无效或发信失败时返回说明，绝不抛出（不影响审核主流程） */
+async function trySendApplicationEmail(opts: {
+  application: any
+  decision: 'approved' | 'rejected'
+  vars: Record<string, string>
+  loginUrl: string
+}): Promise<{ sent: boolean; message: string }> {
+  const email = (opts.application.contactEmail || '').trim()
+  if (!email || !EMAIL_RE.test(email)) {
+    return { sent: false, message: '申请人未填写有效邮箱，未发送通知邮件' }
+  }
+  try {
+    await notifyApplicationResult({
+      to: email,
+      decision: opts.decision,
+      vars: { ...opts.vars, loginUrl: opts.loginUrl },
+    })
+    return { sent: true, message: `已向 ${email} 发送通知邮件` }
+  } catch (e: any) {
+    return { sent: false, message: `通知邮件发送失败（不影响审核结果）：${e?.message || '未知错误'}` }
+  }
+}
 
 export default defineEventHandler(async (event) => {
   const admin = await requireSuperAdmin(event)
@@ -17,6 +41,11 @@ export default defineEventHandler(async (event) => {
     setResponseStatus(event, 400)
     return { success: false, message: 'status 必须是 approved 或 rejected' }
   }
+
+  // 生成登录地址（用于审核通知邮件中的跳转链接，环境无关）
+  const host = getRequestHeader(event, 'host') || 'localhost'
+  const proto = getRequestHeader(event, 'x-forwarded-proto') || 'http'
+  const loginUrl = `${proto}://${host}/login`
 
   const mainDb = useMainDb()
 
@@ -48,7 +77,20 @@ export default defineEventHandler(async (event) => {
         .where(eq(applications.id, id))
         .returning()
         .all()
-      return { success: true, data: result[0], message: '已拒绝申请' }
+
+      // 向申请人邮箱发送驳回通知
+      const email = await trySendApplicationEmail({
+        application,
+        decision: 'rejected',
+        vars: {
+          applicantName: application.applicantName,
+          schoolName: application.schoolName,
+          reason: reviewNote || '未填写具体原因',
+        },
+        loginUrl,
+      })
+
+      return { success: true, data: result[0], message: '已拒绝申请', loginUrl, email }
     }
 
     // ===== 审核通过 =====
@@ -264,6 +306,29 @@ export default defineEventHandler(async (event) => {
       .returning()
       .all()
 
+    // 角色中文名（用于通知邮件展示）
+    const roleLabelMap: Record<string, string> = {
+      school_admin: '学校管理员',
+      grade_admin: '年级管理员',
+      class_admin: '班级管理员',
+    }
+    const roleLabel = roleLabelMap[role] || role
+
+    // 7. 向申请人发送审核通过通知邮件（含账号凭据 + 学校 ID）
+    const email = await trySendApplicationEmail({
+      application,
+      decision: 'approved',
+      vars: {
+        applicantName: application.applicantName,
+        schoolName: application.schoolName,
+        role: roleLabel,
+        username: defaultUsername,
+        password: defaultPassword,
+        schoolId: String(schoolId),
+      },
+      loginUrl,
+    })
+
     return {
       success: true,
       data: result[0],
@@ -276,6 +341,8 @@ export default defineEventHandler(async (event) => {
         class: application.className || null,
       },
       emailWarning: emailWarning || undefined,
+      loginUrl,
+      email,
       message: emailWarning
         ? '审核通过，管理员账号已自动创建（邮箱未自动绑定，详见提示）'
         : '审核通过，管理员账号已自动创建',
