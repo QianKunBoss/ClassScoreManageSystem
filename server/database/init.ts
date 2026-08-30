@@ -201,6 +201,23 @@ export async function initDatabase() {
     console.log('[CSMS] schools 表已添加 disabled 列')
   }
 
+  // ===== 3.6. 迁移 applications 表，添加 school_deleted 字段 =====
+  // 学校被删除后，原审核通过的申请需保留「已删除」标记，用于在「入驻申请」页展示黄色标签
+  const appsColumns = await client.execute(`PRAGMA table_info(applications)`)
+  const hasSchoolDeleted = (appsColumns.rows as any[]).some((r: any) => r.name === 'school_deleted')
+  if (!hasSchoolDeleted) {
+    await client.execute(`ALTER TABLE applications ADD COLUMN school_deleted INTEGER NOT NULL DEFAULT 0`)
+    console.log('[CSMS] applications 表已添加 school_deleted 列')
+  }
+  // ===== 3.7. 迁移 applications 表，添加 deleted_school_id 快照字段 =====
+  // 学校被删除时把原 created_school_id 复制到此列（再置空以绕开 FK），
+  // 以便「入驻申请」页即便学校已删除仍能展示其原始学校 ID。
+  const hasDeletedSchoolId = (appsColumns.rows as any[]).some((r: any) => r.name === 'deleted_school_id')
+  if (!hasDeletedSchoolId) {
+    await client.execute(`ALTER TABLE applications ADD COLUMN deleted_school_id INTEGER`)
+    console.log('[CSMS] applications 表已添加 deleted_school_id 列')
+  }
+
   // ===== 3. 插入超级管理员（如果不存在）=====
   const db = useMainDb()
   // 注意：username 唯一性由 (username, school_id) 联合索引保证
@@ -294,47 +311,55 @@ export async function initDatabase() {
   }
 
   // ===== 4.6. 种子化邮件模板（若不存在则插入）=====
-  const templateDefaults: { slug: string; name: string; subject: string; bodyHtml: string; variables: string[] }[] = [
-    {
-      slug: 'verification_code',
-      name: '邮箱验证码',
-      subject: '【CSMS】您的邮箱验证码',
-      variables: ['code', 'email', 'expiresMinutes'],
-      bodyHtml: `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#0b1220;color:#e2e8f0;border-radius:16px">
+  // 审核通知模板（application_approved / application_rejected）由审核端点按 slug 渲染发送；
+  // application_approved 携带账号凭据，便于申请人直接登录。
+  const verificationCodeTemplate = {
+    slug: 'verification_code',
+    name: '邮箱验证码',
+    subject: '【CSMS】您的邮箱验证码',
+    variables: ['code', 'email', 'expiresMinutes'],
+    bodyHtml: `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#0b1220;color:#e2e8f0;border-radius:16px">
   <h2 style="color:#4a7ab5;margin:0 0 16px">CSMS 班级积分管理系统</h2>
   <p style="margin:0 0 12px">您好，您正在申请入驻 CSMS，本次操作的邮箱验证码为：</p>
   <div style="font-size:32px;font-weight:700;letter-spacing:6px;color:#4a7ab5;margin:12px 0">{{code}}</div>
   <p style="margin:0 0 8px;color:#94a3b8;font-size:14px">验证码有效期 {{expiresMinutes}} 分钟，请勿泄露给他人。若非本人操作请忽略本邮件。</p>
   <p style="margin:24px 0 0;color:#64748b;font-size:12px">本邮件由系统自动发送，请勿直接回复。</p>
 </div>`,
-    },
-    {
-      slug: 'application_approved',
-      name: '入驻申请通过通知',
-      subject: '【CSMS】您的入驻申请已通过',
-      variables: ['schoolName', 'applicantName', 'loginUrl'],
-      bodyHtml: `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#0b1220;color:#e2e8f0;border-radius:16px">
+  }
+  const approvedTemplate = {
+    slug: 'application_approved',
+    name: '入驻申请通过通知',
+    subject: '【CSMS】您的入驻申请已通过',
+    variables: ['applicantName', 'schoolName', 'role', 'username', 'password', 'loginUrl', 'schoolId'],
+    bodyHtml: `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#0b1220;color:#e2e8f0;border-radius:16px">
   <h2 style="color:#4a7ab5;margin:0 0 16px">恭喜，申请已通过</h2>
   <p style="margin:0 0 12px">尊敬的 {{applicantName}}：</p>
-  <p style="margin:0 0 12px">您提交的「{{schoolName}}」入驻申请已审核通过，现在可以使用分配的账号登录系统。</p>
+  <p style="margin:0 0 12px">您提交的「{{schoolName}}」入驻申请已审核通过，您的账号已创建，可使用以下凭据登录系统：</p>
+  <div style="background:#1a2233;border:1px solid rgba(74,122,181,0.35);border-radius:12px;padding:16px;margin:12px 0">
+    <div style="margin:0 0 8px"><span style="color:#94a3b8;font-size:13px">角色</span><br><b style="color:#e2e8f0">{{role}}</b></div>
+    <div style="margin:0 0 8px"><span style="color:#94a3b8;font-size:13px">用户名</span><br><b style="color:#4a7ab5;font-family:ui-monospace,monospace">{{username}}</b></div>
+    <div style="margin:0"><span style="color:#94a3b8;font-size:13px">初始密码</span><br><b style="color:#4a7ab5;font-family:ui-monospace,monospace">{{password}}</b></div>
+  </div>
+  <p style="margin:0 0 8px;color:#94a3b8;font-size:14px">学校ID：{{schoolId}}</p>
   <p style="margin:0 0 8px"><a href="{{loginUrl}}" style="color:#4a7ab5">点击此处登录系统</a></p>
+  <p style="margin:0;color:#fbbf24;font-size:13px">提示：出于安全考虑，首次登录后请立即修改密码。</p>
   <p style="margin:24px 0 0;color:#64748b;font-size:12px">本邮件由系统自动发送，请勿直接回复。</p>
 </div>`,
-    },
-    {
-      slug: 'application_rejected',
-      name: '入驻申请驳回通知',
-      subject: '【CSMS】您的入驻申请未通过',
-      variables: ['schoolName', 'applicantName', 'reason'],
-      bodyHtml: `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#0b1220;color:#e2e8f0;border-radius:16px">
+  }
+  const rejectedTemplate = {
+    slug: 'application_rejected',
+    name: '入驻申请驳回通知',
+    subject: '【CSMS】您的入驻申请未通过',
+    variables: ['schoolName', 'applicantName', 'reason'],
+    bodyHtml: `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#0b1220;color:#e2e8f0;border-radius:16px">
   <h2 style="color:#c0564a;margin:0 0 16px">很抱歉，申请未通过</h2>
   <p style="margin:0 0 12px">尊敬的 {{applicantName}}：</p>
   <p style="margin:0 0 12px">您提交的「{{schoolName}}」入驻申请未能通过审核，原因如下：</p>
   <blockquote style="margin:8px 0;padding:12px 16px;background:#1a2233;border-left:3px solid #c0564a;color:#cbd5e1">{{reason}}</blockquote>
   <p style="margin:0;color:#94a3b8;font-size:14px">如需进一步沟通，请联系管理员。</p>
 </div>`,
-    },
-  ]
+  }
+  const templateDefaults = [verificationCodeTemplate, approvedTemplate, rejectedTemplate]
   for (const t of templateDefaults) {
     await client.execute({
       sql: 'INSERT OR IGNORE INTO mail_templates (slug, name, subject, body_html, variables, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
@@ -342,6 +367,64 @@ export async function initDatabase() {
     })
   }
   console.log('[CSMS] 邮件模板已就绪')
+
+  // ===== 4.7. 升级旧版「入驻申请通过通知」模板 =====
+  // 初版模板不含账号密码字段；若存量模板仍为初版（subject 一致且正文无 {{username}}），
+  // 则升级为正文含凭据的新版，避免覆盖管理员已自定义的模板内容。
+  {
+    const oldApproved = await client.execute({
+      sql: 'SELECT id, subject, body_html FROM mail_templates WHERE slug = ?',
+      args: ['application_approved'],
+    })
+    const oldRow = (oldApproved.rows as any[])[0]
+    if (oldRow && oldRow.subject === '【CSMS】您的入驻申请已通过' && !(oldRow.body_html || '').includes('{{username}}')) {
+      await client.execute({
+        sql: 'UPDATE mail_templates SET subject = ?, body_html = ?, variables = ?, updated_at = ? WHERE slug = ?',
+        args: [
+          approvedTemplate.subject,
+          approvedTemplate.bodyHtml,
+          JSON.stringify(approvedTemplate.variables),
+          new Date().toISOString(),
+          'application_approved',
+        ],
+      })
+      console.log('[CSMS] 已升级 application_approved 邮件模板（补充账号密码字段）')
+    }
+  }
+
+  // ===== 4.9. 升级「入驻申请通过通知」模板，附带学校 ID =====
+  // 仅当现有模板尚未包含 {{schoolId}} 时，补充 schoolId 变量并在页脚前插入学校 ID 行；
+  // 若管理员已自定义页脚文本，则仅补充变量，避免覆盖其排版。
+  {
+    const tplRows = await client.execute({
+      sql: 'SELECT id, variables, body_html FROM mail_templates WHERE slug = ?',
+      args: ['application_approved'],
+    })
+    const row = (tplRows.rows as any[])[0]
+    if (row) {
+      let vars: string[] = []
+      try { vars = JSON.parse(row.variables || '[]') } catch { vars = [] }
+      let body: string = row.body_html || ''
+      let changed = false
+
+      if (!vars.includes('schoolId')) {
+        vars = [...vars, 'schoolId']
+        changed = true
+      }
+      const footerAnchor = '本邮件由系统自动发送'
+      if (!body.includes('{{schoolId}}') && body.includes(footerAnchor)) {
+        body = body.replace(footerAnchor, '学校ID：{{schoolId}}<br/>' + footerAnchor)
+        changed = true
+      }
+      if (changed) {
+        await client.execute({
+          sql: 'UPDATE mail_templates SET variables = ?, body_html = ?, updated_at = ? WHERE slug = ?',
+          args: [JSON.stringify(vars), body, new Date().toISOString(), 'application_approved'],
+        })
+        console.log('[CSMS] 已升级 application_approved 邮件模板（补充学校 ID 字段）')
+      }
+    }
+  }
 
   console.log('[CSMS] 主库初始化完成')
 }

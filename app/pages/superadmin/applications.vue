@@ -14,6 +14,8 @@ const reviewingApp = ref<Application | null>(null)
 const reviewNote = ref('')
 const reviewLoading = ref(false)
 const createdAccount = ref<CreatedAccount | null>(null)
+const emailInfo = ref<{ sent: boolean; message: string } | null>(null)
+const loginUrl = ref('')
 
 // 学校列表（审核通过后刷新概览用，这里仅用于统计）
 const schools = ref<School[]>([])
@@ -41,6 +43,16 @@ async function loadApplications() {
 async function openReview(app: Application) {
   reviewingApp.value = app
   reviewNote.value = ''
+  emailInfo.value = null
+  loginUrl.value = ''
+}
+
+function closeReview() {
+  reviewingApp.value = null
+  createdAccount.value = null
+  emailInfo.value = null
+  loginUrl.value = ''
+  reviewNote.value = ''
 }
 
 async function submitReview(status: 'approved' | 'rejected') {
@@ -53,11 +65,18 @@ async function submitReview(status: 'approved' | 'rejected') {
     })
     toast.success(status === 'approved' ? '已通过审核' : '已拒绝申请')
 
+    // 记录发信结果与登录地址，用于界面反馈
+    loginUrl.value = (res as any).loginUrl || ''
+    emailInfo.value = (res as any).email || null
+    if (emailInfo.value) {
+      emailInfo.value.sent ? toast.success(emailInfo.value.message) : toast.warning(emailInfo.value.message)
+    }
+
     if (status === 'approved' && res.account) {
       // 显示创建的账号信息
       createdAccount.value = res.account
     } else {
-      reviewingApp.value = null
+      closeReview()
     }
 
     await Promise.all([loadApplications(), loadSchools()])
@@ -102,6 +121,7 @@ onMounted(() => {
             <thead>
               <tr>
                 <th>学校</th>
+                <th>学校ID</th>
                 <th>范围</th>
                 <th>申请人</th>
                 <th>联系</th>
@@ -113,15 +133,20 @@ onMounted(() => {
             <tbody>
               <tr v-for="app in applications" :key="app.id">
                 <td><span class="text-sm font-medium text-slate-200">{{ app.schoolName }}</span></td>
+                <td class="text-xs text-slate-400">{{ app.createdSchoolId ?? app.deletedSchoolId ?? '-' }}</td>
                 <td class="text-xs text-slate-400">
                   {{ app.gradeName ? (app.className ? `年级·${app.gradeName} / 班级·${app.className}` : `年级·${app.gradeName}`) : '全校' }}
                 </td>
                 <td class="text-xs text-slate-300">{{ app.applicantName }}</td>
-                <td class="text-xs text-slate-500 max-w-xs truncate">{{ app.contactPhone || app.contactEmail || '-' }}</td>
+                <td class="text-xs text-slate-500 leading-relaxed">
+                  <div>{{ app.contactPhone || '-' }}</div>
+                  <div class="text-slate-400">{{ app.contactEmail || '-' }}</div>
+                </td>
                 <td>
                   <span v-if="app.status === 'pending'" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-yellow-500/10 text-yellow-400">待审核</span>
                   <span v-else-if="app.status === 'approved'" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-emerald-500/10 text-emerald-400">已通过</span>
                   <span v-else class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-red-500/10 text-red-400">已拒绝</span>
+                  <span v-if="app.status === 'approved' && app.schoolDeleted === 1" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-amber-500/10 text-amber-400 ml-1">已删除</span>
                 </td>
                 <td class="text-xs text-slate-500">{{ formatDate(app.createdAt) }}</td>
                 <td>
@@ -139,11 +164,11 @@ onMounted(() => {
     <ClientOnly>
       <Teleport to="body">
         <!-- 审核表单 -->
-        <div v-if="reviewingApp && !createdAccount" class="modal-backdrop" @click.self="reviewingApp = null">
+        <div v-if="reviewingApp && !createdAccount" class="modal-backdrop" @click.self="closeReview()">
           <div class="modal-content max-w-lg">
             <div class="modal-header">
               <h3 class="text-base font-bold text-slate-100">审核申请</h3>
-              <button @click="reviewingApp = null" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500"><MorphIcon name="x" :size="16" class="pointer-events-none" /></button>
+              <button @click="closeReview()" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500"><MorphIcon name="x" :size="16" class="pointer-events-none" /></button>
             </div>
             <div class="modal-body space-y-4">
               <div><span class="text-xs text-slate-400">学校：</span><span class="text-sm text-slate-200">{{ reviewingApp.schoolName }}</span></div>
@@ -161,34 +186,38 @@ onMounted(() => {
               </div>
             </div>
             <div class="modal-footer">
-              <button @click="reviewingApp = null" class="btn btn-ghost">取消</button>
+              <button @click="closeReview()" class="btn btn-ghost">取消</button>
               <button @click="submitReview('rejected')" :disabled="reviewLoading" class="btn bg-red-500/20 text-red-400 hover:bg-red-500/30 text-sm px-4 py-2">拒绝</button>
               <button @click="submitReview('approved')" :disabled="reviewLoading" class="btn btn-primary text-sm px-4 py-2">通过</button>
             </div>
           </div>
         </div>
         <!-- 审核通过 - 显示账号信息 -->
-        <div v-else-if="createdAccount" class="modal-backdrop" @click.self="createdAccount = null; reviewingApp = null">
+        <div v-else-if="createdAccount" class="modal-backdrop" @click.self="closeReview()">
           <div class="modal-content max-w-lg">
             <div class="modal-header">
               <h3 class="text-base font-bold text-emerald-400"><MorphIcon name="circle-check" size="1em" class="inline-block align-middle" /> 审核通过，账号已创建</h3>
-              <button @click="createdAccount = null; reviewingApp = null" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500"><MorphIcon name="x" :size="16" class="pointer-events-none" /></button>
+              <button @click="closeReview()" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500"><MorphIcon name="x" :size="16" class="pointer-events-none" /></button>
             </div>
             <div class="modal-body space-y-4">
               <div class="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
                 <p class="text-sm text-emerald-300 mb-3">请将这些信息发送给申请人，让其登录系统：</p>
                 <div class="space-y-2 text-sm">
-                  <div class="flex justify-between"><span class="text-slate-400">登录地址：</span><code class="text-slate-200 bg-slate-800/50 px-2 py-0.5 rounded">（当前系统地址）</code></div>
+                  <div class="flex justify-between"><span class="text-slate-400">登录地址：</span><code class="text-slate-200 bg-slate-800/50 px-2 py-0.5 rounded">{{ loginUrl || '（当前系统地址）' }}</code></div>
                   <div class="flex justify-between"><span class="text-slate-400">用户名：</span><code class="text-emerald-300 bg-slate-800/50 px-2 py-0.5 rounded">{{ createdAccount.username }}</code></div>
                   <div class="flex justify-between"><span class="text-slate-400">密码：</span><code class="text-emerald-300 bg-slate-800/50 px-2 py-0.5 rounded">{{ createdAccount.password }}</code></div>
                   <div class="flex justify-between"><span class="text-slate-400">角色：</span><span class="text-slate-200">{{ createdAccount.role === 'school_admin' ? '学校管理员' : createdAccount.role === 'grade_admin' ? '年级管理员' : '班级管理员' }}</span></div>
                   <div class="flex justify-between"><span class="text-slate-400">管辖：</span><span class="text-slate-200">{{ createdAccount.school }}{{ createdAccount.grade ? ' / ' + createdAccount.grade : '' }}{{ createdAccount.class ? ' / ' + createdAccount.class : '' }}</span></div>
                 </div>
               </div>
+              <p v-if="emailInfo" class="text-xs" :class="emailInfo.sent ? 'text-emerald-400' : 'text-amber-400'">
+                <MorphIcon :name="emailInfo.sent ? 'circle-check' : 'alert-triangle'" size="1em" class="inline-block align-middle" />
+                {{ emailInfo.sent ? '已自动向申请人邮箱发送审核通过通知' : emailInfo.message }}
+              </p>
               <p class="text-xs text-slate-500"><MorphIcon name="alert-triangle" size="1em" class="inline-block align-middle" /> 请提醒申请人登录后立即修改密码</p>
             </div>
             <div class="modal-footer">
-              <button @click="createdAccount = null; reviewingApp = null" class="btn btn-primary text-sm px-4 py-2">我知道了</button>
+              <button @click="closeReview()" class="btn btn-primary text-sm px-4 py-2">我知道了</button>
             </div>
           </div>
         </div>

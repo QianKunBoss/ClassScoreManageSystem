@@ -18,6 +18,10 @@ export function sampleValueFor(key: string): string {
     expiresMinutes: '10',
     schoolName: '示范学校',
     applicantName: '张三',
+    role: '班级管理员',
+    username: 'zhangsan',
+    password: '123456',
+    schoolId: '8',
     loginUrl: 'https://csms.example.com/login',
     reason: '提交的资料不完整，请补充后重新提交。',
   }

@@ -218,6 +218,22 @@ export async function renderTemplate(
   }
 }
 
+/**
+ * 申请审核结果通知邮件。
+ * decision: 'approved' → 渲染 slug=application_approved 模板；'rejected' → 渲染 application_rejected 模板。
+ * 调用方应自行 try/catch，发信失败不应影响审核主流程（见 server/api/applications/[id].patch.ts）。
+ */
+export async function notifyApplicationResult(opts: {
+  to: string
+  decision: 'approved' | 'rejected'
+  vars: Record<string, string>
+}): Promise<{ subject: string }> {
+  const slug = opts.decision === 'approved' ? 'application_approved' : 'application_rejected'
+  const { subject, html } = await renderTemplate(slug, opts.vars)
+  await sendMail({ to: opts.to, subject, html })
+  return { subject }
+}
+
 // ===== 邮箱验证码（进程内存储，适合单实例部署）=====
 const CODE_TTL = 10 * 60 * 1000 // 10 分钟有效
 const COOLDOWN = 60 * 1000      // 60 秒重发冷却
