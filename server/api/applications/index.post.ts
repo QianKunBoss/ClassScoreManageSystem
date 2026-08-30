@@ -3,7 +3,7 @@ import { schools, admins } from '../../database/schema'
 import { useMainDb } from '../../database/db'
 import { useSchoolDb } from '../../database/db'
 import { grades, classes } from '../../database/schema.school'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, ne } from 'drizzle-orm'
 import { EMAIL_RE, verifyEmailCode } from '../../utils/mail'
 
 /**
@@ -158,9 +158,15 @@ export default defineEventHandler(async (event) => {
     // 未被拦截，正常走申请流程
   }
 
-  // 2. 查 applications 表中同校名的申请记录（含 pending/approved/rejected）
+  // 2. 查 applications 表中同校名的申请记录
+  //    需求：已拒绝的申请、以及学校已被删除的（school_deleted=1）申请，不计为重复学校，允许重新申请。
+  //    因此仅比对「未拒绝」且「学校未被删除」的记录（pending / 审核通过且学校仍在）。
   const existingApps = await db.select().from(applications).where(
-    eq(applications.schoolName, schoolName)
+    and(
+      eq(applications.schoolName, schoolName),
+      ne(applications.status, 'rejected'),
+      eq(applications.schoolDeleted, 0),
+    )
   ).orderBy(applications.createdAt).all()
 
   if (existingApps.length > 0) {

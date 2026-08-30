@@ -39,6 +39,41 @@ function startCountdown(sec: number) {
 
 onUnmounted(() => { if (codeTimer) clearInterval(codeTimer) })
 
+// ===== 学校名称重复校验（实时）=====
+const schoolNameError = ref('')
+let nameCheckTimer: ReturnType<typeof setTimeout> | null = null
+const checkingName = ref(false)
+
+async function checkSchoolName(name: string) {
+  const trimmed = name.trim()
+  if (!trimmed) {
+    schoolNameError.value = ''
+    return
+  }
+  checkingName.value = true
+  try {
+    const res = await $fetch<{ exists: boolean; schoolId: number | null }>('/api/schools/check-name', {
+      query: { name: trimmed },
+    })
+    // 已删除 / 已拒绝的学校不计入重复（后端 check-name 仅匹配现存 schools 表）
+    schoolNameError.value = res.exists ? '该校名已存在，请勿重复申请' : ''
+  } catch {
+    // 接口异常时不阻断填写，仅清空提示
+    schoolNameError.value = ''
+  } finally {
+    checkingName.value = false
+  }
+}
+
+watch(
+  () => form.schoolName,
+  (val) => {
+    schoolNameError.value = '' // 输入变化先清掉旧提示
+    if (nameCheckTimer) clearTimeout(nameCheckTimer)
+    nameCheckTimer = setTimeout(() => checkSchoolName(val), 500)
+  },
+)
+
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 async function sendCode() {
@@ -100,6 +135,11 @@ async function handleSubmit() {
   }
   if (form.applyScope === 'class' && (!form.gradeName.trim() || !form.className.trim())) {
     error.value = '请填写年级和班级名称'
+    return
+  }
+  // 提交时再次校验学校名称是否重复（与实时校验双重保险）
+  if (schoolNameError.value) {
+    error.value = '该校名已存在，请勿重复申请'
     return
   }
 
@@ -192,6 +232,8 @@ async function handleSubmit() {
               class="form-input"
               :disabled="loading"
             />
+            <p v-if="schoolNameError" class="text-xs text-red-400 mt-1.5">{{ schoolNameError }}</p>
+            <p v-else-if="checkingName" class="text-xs text-slate-500 mt-1.5">正在校验校名是否重复…</p>
           </div>
 
           <!-- 申请范围 -->
@@ -266,7 +308,7 @@ async function handleSubmit() {
               <button
                 type="button"
                 @click="sendCode"
-                :disabled="codeSending || codeCountdown > 0 || loading"
+                :disabled="codeSending || codeCountdown > 0 || loading || !!schoolNameError"
                 class="btn btn-ghost text-sm whitespace-nowrap px-4 shrink-0"
               >
                 <span v-if="codeSending">发送中…</span>
@@ -314,7 +356,7 @@ async function handleSubmit() {
           <!-- 提交按钮 -->
           <button
             type="submit"
-            :disabled="loading"
+            :disabled="loading || !!schoolNameError"
             class="btn btn-primary w-full py-3"
           >
             <span v-if="loading" class="flex items-center gap-2">
