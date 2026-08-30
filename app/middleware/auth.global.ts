@@ -5,9 +5,6 @@ export default defineNuxtRouteMiddleware(async (to) => {
   // 免检页面：首页、登录页、申请页
   if (to.path === '/' || to.path === '/login' || to.path === '/apply') return
 
-  // 已在设置页，放行（设置页内部处理强制模式）
-  if (to.path === '/settings') return
-
   // 客户端才执行（服务端渲染时 session 可能未就绪）
   if (process.server) return
 
@@ -16,11 +13,16 @@ export default defineNuxtRouteMiddleware(async (to) => {
       credentials: 'include',
     })
 
+    // 已登录但需强制改密：仅在尚未处于强制改密页时跳转过去
     if (res.success && res.admin?.mustChangePassword === 1) {
-      return navigateTo('/settings?force=true')
+      if (!(to.path === '/settings' && to.query.force === 'true')) {
+        return navigateTo('/settings?force=true')
+      }
+      // 已在强制改密页，放行以避免重定向死循环
+      return
     }
   } catch {
-    // 未登录，跳转登录页
+    // 未登录（含 /settings），跳转登录页 —— 不再无条件放行设置页
     if (to.path !== '/login') {
       return navigateTo('/login')
     }
