@@ -7,7 +7,7 @@ import { eq } from 'drizzle-orm'
 // 普通管理员：仅处理自己管理的学校
 // 超级管理员：不传 schoolId 则处理所有学校，传则处理指定学校
 export default defineEventHandler(async (event) => {
-  const { requireAdmin, getAdminFromSession } = await import('../../utils/auth')
+  const { requireAdmin } = await import('../../utils/auth')
   const admin = await requireAdmin(event)
 
   const query = getQuery(event)

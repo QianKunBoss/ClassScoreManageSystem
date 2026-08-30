@@ -35,3 +35,6 @@ logs
 .env
 .env.*
 !.env.example
+
+# 内部安全审计报告（含鉴权结构与历史漏洞细节，不入公开仓库）
+docs/API-清单与鉴权报告.md

@@ -2,16 +2,12 @@ import { eq, sql, and } from 'drizzle-orm'
 import { schools, admins, applications } from '../../database/schema'
 import { grades, classes } from '../../database/schema'
 import { useMainDb, useSchoolDb } from '../../database/db'
-import { getAdminFromSession, hashPasswordBcrypt } from '../../utils/auth'
+import { requireSuperAdmin, hashPasswordBcrypt } from '../../utils/auth'
 import { createSchoolDb } from '../../utils/create-school-db'
 import { EMAIL_RE } from '../../utils/mail'
 
 export default defineEventHandler(async (event) => {
-  const admin = await getAdminFromSession(event)
-  if (!admin || admin.role !== 'super_admin') {
-    setResponseStatus(event, 403)
-    return { success: false, message: '无权限' }
-  }
+  const admin = await requireSuperAdmin(event)
 
   const id = Number(getRouterParam(event, 'id'))
   const body = await readBody(event)
