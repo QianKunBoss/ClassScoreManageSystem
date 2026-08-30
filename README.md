@@ -193,13 +193,120 @@ npm run dev
 
 ### 生产部署
 
+CSMS 提供多种生产部署方式，按需选择：
+
+**方式一：直接运行（Node.js）**
+
 ```bash
 # 构建生产版本
 npm run build
 
-# 启动生产服务器
+# 启动生产服务器（任选其一）
 npm run preview
+# 或直接运行 Nitro 产物
+node .output/server/index.mjs
 ```
+
+**方式二：PM2 常驻（推荐单机部署）**
+
+```bash
+npm install -g pm2            # 如未安装
+npm run build
+pm2 start ecosystem.config.cjs
+pm2 save                      # 保存进程列表
+pm2 startup                   # 设置开机自启（按提示执行）
+```
+
+> ⚠️ `ecosystem.config.cjs` 固定 `instances: 1`（SQLite 不支持多进程并发写入），**请勿**改为 cluster 模式。
+
+**方式三：Docker（推荐，可选 Nginx 反代）**
+
+```bash
+# 构建并启动（应用 + 可选 Nginx 反向代理）
+docker compose up -d --build
+
+# 仅启动应用（不含 Nginx）
+docker compose up -d --build csms
+```
+
+- 应用默认监听 `3000`，Nginx 监听 `80`（HTTPS 配置见 `deploy/nginx/`）
+- 数据持久化：compose 已挂载 `csms-data` 卷到容器 `/app/data`
+- 查看日志：`docker compose logs -f csms`
+
+**方式四：一键部署脚本**
+
+```bash
+chmod +x deploy.sh
+./deploy.sh        # 交互选择 Docker / PM2 / 仅构建
+```
+
+**方式五：Windows 部署**
+
+> 适用于 Windows Server / 桌面 Windows 单机运行。同样基于 Node.js 生产产物，无需 WSL。
+
+1. **安装 Node.js 22+**（官网 MSI 安装，勾选「Add to PATH」），并安装 PM2（可选）：
+   ```powershell
+   npm install -g pm2
+   ```
+2. **构建并运行**（ PowerShell 示例）：
+   ```powershell
+   # 设置会话密钥（必填，建议随机值）
+   $env:SESSION_SECRET = "你的随机密钥（openssl rand -hex 32 生成）"
+   # 构建
+   npm install
+   npm run build
+   # 直接运行 Nitro 产物
+   node .output/server/index.mjs
+   ```
+   > CMD 写法：`set SESSION_SECRET=你的密钥` 再 `node .output/server/index.mjs`。
+3. **常驻 + 开机自启（推荐用 PM2）**：
+   ```powershell
+   pm2 start ecosystem.config.cjs
+   pm2 save
+   pm2 startup windows        # 按提示将生成的命令以管理员身份执行，注册为开机服务
+   ```
+4. **放行防火墙**（若需局域网/公网访问，默认端口 `3000`）：
+   ```powershell
+   netsh advfirewall firewall add rule name="CSMS" dir=in action=allow protocol=TCP localport=3000
+   ```
+
+> ⚠️ Windows 下 `ecosystem.config.cjs` 仍为 `instances: 1`，SQLite 不支持多进程并发写入，**请勿**改 cluster。如需公网域名访问，可在前置 Nginx / Caddy 做反向代理。
+
+**方式六：宝塔面板（BT Panel）部署**
+
+> 适用于已安装宝塔的 Linux 服务器，兼顾可视化与 Nginx 反代 / SSL。
+
+1. **安装运行环境**：宝塔「软件商店」安装 **PM2 管理器**（或「Node.js 版本管理器」）与 **Nginx**。
+2. **上传并构建**：将项目上传至 `/www/wwwroot/csms`（或宝塔「文件」中新建目录），进入目录执行：
+   ```bash
+   npm install
+   npm run build
+   ```
+3. **启动服务（任选其一）**：
+   - **PM2 管理器**：在宝塔「PM2 管理器」中添加项目，启动文件填 `.output/server/index.mjs`，或命令行 `pm2 start ecosystem.config.cjs`（需先 `pm2 save` 持久化）。
+   - **宝塔「Node 项目」**（较新版本支持）：直接新建 Node 项目，入口选 `.output/server/index.mjs`，运行目录 `/www/wwwroot/csms`。
+4. **配置反向代理**：宝塔「网站 → 添加站点」（填你的域名）→「反向代理」→ 目标 URL 填 `http://127.0.0.1:3000`，保存。此后通过域名访问 CSMS。
+5. **HTTPS（可选）**：在站点「SSL」中一键申请 Let's Encrypt 证书并强制 HTTPS。
+6. **数据持久化**：SQLite 数据库位于 `/www/wwwroot/csms/data/`（主库 + 各校独立库），**备份时直接复制该目录**；迁移服务器时连同 `data/` 一并打包即可。
+
+> ⚠️ 宝塔 PM2 同样保持单实例运行（`instances: 1`），不要开启多进程；`SESSION_SECRET` 可通过宝塔「环境变量」或 `.env` 文件配置。
+
+### 环境变量
+
+| 变量 | 说明 | 必填 |
+|------|------|------|
+| `SESSION_SECRET` | 会话签名密钥，**必须**改为随机值（生成：`openssl rand -base64 32`） | ✅ |
+| `HOST` | 监听地址，默认 `::`（同时监听 IPv4 + IPv6） | ❌ |
+| `PORT` | 监听端口，默认 `3000` | ❌ |
+| `NODE_ENV` | 设为 `production` 以启用生产模式 | ❌ |
+
+> 配置模板见 `.env.example` / `.env.production`；`deploy.sh` 会自动从 `.env.production` 复制为 `.env`。`.env` 含密钥，已在 `.gitignore` 中忽略，**请勿提交**。
+
+### 数据持久化与备份
+
+- SQLite 数据库位于 `data/`：主库 `data/csms.db`，各校独立库 `data/schools/{id}.db`，**必须持久化保存**。
+- Docker 部署：通过 `docker-compose.yml` 的 `csms-data` 卷挂载，数据不随容器销毁丢失。
+- 原生 / PM2 部署：确保 `data/` 目录不被删除，直接复制 `.db` 文件即可完成备份。
 
 ### 数据库操作
 
@@ -313,6 +420,12 @@ ClassScoreManageSystem/
 ├── nuxt.config.ts                # Nuxt 配置
 ├── package.json                  # 项目依赖
 ├── tailwind.config.ts            # Tailwind 配置
+├── Dockerfile                    # 多阶段 Docker 构建（node:22-alpine）
+├── docker-compose.yml            # Docker Compose 编排（应用 + 可选 Nginx 反代）
+├── ecosystem.config.cjs          # PM2 进程配置（单实例 fork，适配 SQLite）
+├── deploy.sh                     # 一键部署脚本（Docker / PM2 / 仅构建）
+├── deploy/                       # 部署相关配置
+│   └── nginx/                    # Nginx 反向代理配置（含 HTTPS 示例）
 ├── scripts/
 │   └── gen-pwa-icons.py          # PWA 图标生成脚本（Pillow 重绘火箭 logo）
 ├── public/                       # 静态资源目录
