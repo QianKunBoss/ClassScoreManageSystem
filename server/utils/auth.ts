@@ -101,29 +101,61 @@ export async function verifyAdminPassword(adminId: number, password: string): Pr
 }
 
 /**
- * 从请求中获取 schoolId
- * - 普通管理员：从 session 中取 admin.schoolId
- * - 超级管理员：从 query 参数中取 ?schoolId=
- * 都没取到则抛 400
+ * 从请求中解析目标 schoolId（多租户物理分库的库选择依据）
+ *
+ * 【安全约束】schoolId 决定打开哪个学校的 .db 文件，等价于租户边界：
+ *  - 超级管理员（不隶属任何学校）：允许通过 ?schoolId= 跨校指定
+ *  - 校/级/班管理员、学生：强制绑定自身所属学校，
+ *    传入的 ?schoolId= 只允许等于自身学校，否则 403（防止跨租户读写）
+ *
+ * 身份以主库中的真实记录为准，不信任 session 里的 role 字段
+ * （同浏览器同时登录学生会覆盖 session.role，且角色可能已被后台变更）。
  */
 export async function getSchoolIdFromRequest(event: any): Promise<number> {
   const query = getQuery(event)
+  const raw = query.schoolId
 
-  // 超级管理员可以通过 query 参数指定学校
-  if (query.schoolId) {
-    return Number(query.schoolId)
+  const hasRequested = raw != null && raw !== '' && raw !== 'null' && raw !== 'undefined'
+  const requested = hasRequested ? Number(raw) : null
+
+  if (requested != null && (!Number.isFinite(requested) || requested <= 0)) {
+    throw createError({
+      statusCode: 400,
+      message: 'schoolId 参数不合法',
+    })
   }
 
-  // 从 session 中取（登录时存进去的）
+  const admin = await getAdminFromSession(event)
+
+  // 超级管理员：可跨校
+  if (admin?.role === 'super_admin') {
+    if (requested != null) return requested
+    if (admin.schoolId != null) return Number(admin.schoolId)
+    throw createError({
+      statusCode: 400,
+      message: '缺少 schoolId（超级管理员请通过 ?schoolId= 指定目标学校）',
+    })
+  }
+
+  // 其余身份：只能操作自己学校
   const session = await getUserSession(event)
-  if ((session as any)?.data?.schoolId) {
-    return (session as any).data.schoolId
+  const ownSchoolId = admin?.schoolId ?? (session as any)?.data?.schoolId ?? null
+
+  if (ownSchoolId == null) {
+    throw createError({
+      statusCode: 400,
+      message: '缺少 schoolId（请重新登录后再试）',
+    })
   }
 
-  throw createError({
-    statusCode: 400,
-    message: '缺少 schoolId（普通管理员请从登录页正常登录，超级管理员请传递 ?schoolId= 参数）',
-  })
+  if (requested != null && requested !== Number(ownSchoolId)) {
+    throw createError({
+      statusCode: 403,
+      message: '无权限访问其他学校的数据',
+    })
+  }
+
+  return Number(ownSchoolId)
 }
 
 // ========== 学生鉴权 ==========

@@ -1,6 +1,6 @@
 import { users, scoreLogs } from '../../database/schema'
 import { useSchoolDb, getSchoolRawClient } from '../../database/db'
-import { requireAdmin, getSchoolIdFromRequest } from '../../utils/auth'
+import { requireAdmin, getSchoolIdFromRequest, resolveSchoolScope } from '../../utils/auth'
 import { eq, like, or } from 'drizzle-orm'
 
 // GET /api/users — 获取学生列表（从学校库读取）
@@ -10,12 +10,17 @@ export default defineEventHandler(async (event) => {
   const db = await useSchoolDb(event, schoolId)
   const client = await getSchoolRawClient(event, schoolId)
 
+  // 【安全】不能只依赖前端传入的 classId/gradeId 过滤：
+  // 不传参数时原本会返回全校学生名单，班级管理员即可越权拉全校数据。
+  const scope = await resolveSchoolScope(admin, db)
+
   const query = getQuery(event) as {
     search?: string
     page?: string
     limit?: string
     classId?: string
     gradeId?: string
+    status?: string
   }
 
   const page = Math.max(1, Number(query.page) || 1)
@@ -26,6 +31,18 @@ export default defineEventHandler(async (event) => {
   // 构建 WHERE 子句（libsql client.execute 用 ? 占位符）
   const whereParts: string[] = []
   const args: any[] = []
+
+  // 强制注入管理范围：非全校管理员只能看到自己可管理班级的学生
+  // （用 u.class_id IN (...) 实现，不依赖 classes 表 JOIN，count 查询也能复用）
+  if (!scope.schoolWide) {
+    const allowedClassIds = Array.from(scope.classIdSet || [])
+    if (allowedClassIds.length === 0) {
+      return { data: [], total: 0, page, limit }
+    }
+    whereParts.push(`u.class_id IN (${allowedClassIds.map(() => '?').join(',')})`)
+    args.push(...allowedClassIds)
+  }
+
   if (search) {
     whereParts.push(`(u.username LIKE ? OR u.actual_name LIKE ? OR u.email LIKE ?)`)
     const pattern = `%${search.replace(/'/g, "''")}%`

@@ -95,10 +95,24 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
 
   runtimeConfig: {
-    // nuxt-auth-utils session 加密密钥（从 .env 的 SESSION_SECRET 读取）
+    // ============ nuxt-auth-utils session ============
+    // 【安全】会话加密密钥不再提供任何硬编码兜底：
+    //  - 生产环境必须通过环境变量注入 SESSION_SECRET（openssl rand -hex 32），
+    //    缺失/过短时由 server/plugins/00.security-guard.ts 在启动阶段直接终止进程；
+    //  - 开发环境由 nuxt-auth-utils 自动生成随机密钥并写入 .env(NUXT_SESSION_PASSWORD)。
+    // 运行时亦可用 NUXT_SESSION_PASSWORD 覆盖（Nuxt runtimeConfig 环境变量约定）。
     session: {
-      password: process.env.SESSION_SECRET || 'csms-dev-secret-change-in-production',
+      password: process.env.SESSION_SECRET || '',
       name: 'csms-session',
+      // 会话 Cookie 安全标志（显式声明，不依赖框架默认值）
+      cookie: {
+        httpOnly: true,                                  // 禁止前端 JS 读取，缓解 XSS 窃取会话
+        secure: process.env.NODE_ENV === 'production',    // 生产强制仅 HTTPS 传输
+        sameSite: 'lax',                                  // 缓解 CSRF（跨站 POST 不携带）
+        path: '/',
+      },
+      // 会话有效期 7 天：同时作为 Cookie expires 与密封票据 TTL，到期强制重新登录
+      maxAge: 60 * 60 * 24 * 7,
     },
     // Public keys (exposed to client)
     public: {

@@ -1,6 +1,6 @@
 import { users } from '../../database/schema'
 import { useSchoolDb } from '../../database/db'
-import { requireAdmin, hashPasswordBcrypt, getSchoolIdFromRequest } from '../../utils/auth'
+import { requireAdmin, hashPasswordBcrypt, getSchoolIdFromRequest, resolveSchoolScope } from '../../utils/auth'
 import { eq } from 'drizzle-orm'
 import { EMAIL_RE } from '../../utils/mail'
 
@@ -11,6 +11,11 @@ export default defineEventHandler(async (event) => {
   const admin = await requireAdmin(event)
   const schoolId = await getSchoolIdFromRequest(event)
   const db = await useSchoolDb(event, schoolId)
+
+  // 【安全】解析当前管理员的真实可管理范围：
+  // 前端传来的 classId 完全不可信，班级管理员只能在本班建号，
+  // 年级管理员只能在本年级班级建号，否则可跨班/跨年级注入账号。
+  const scope = await resolveSchoolScope(admin, db)
 
   const body = await readBody(event)
 
@@ -41,10 +46,17 @@ export default defineEventHandler(async (event) => {
         continue
       }
 
-      const classId = item.classId || admin.classId
-      if (!classId) {
+      const classId = Number(item.classId || admin.classId)
+      if (!classId || !Number.isFinite(classId)) {
         results.failed++
         results.errors.push(`「${username}」缺少班级信息`)
+        continue
+      }
+
+      // 越权拦截：目标班级必须在当前管理员的管理范围内
+      if (!scope.isClassAllowed(classId)) {
+        results.failed++
+        results.errors.push(`「${username}」无权限在该班级创建账号`)
         continue
       }
 
@@ -82,10 +94,15 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: '请输入密码' })
   }
 
-  // classId：超级管理员可从 body 传递，普通管理员从 session 中取
-  const classId = bodyClassId || admin.classId
-  if (!classId) {
+  // classId：超级/校级管理员可从 body 传递，班级管理员回落到自身班级
+  const classId = Number(bodyClassId || admin.classId)
+  if (!classId || !Number.isFinite(classId)) {
     throw createError({ statusCode: 400, message: '缺少班级信息，无法创建用户' })
+  }
+
+  // 越权拦截：目标班级必须在当前管理员的管理范围内
+  if (!scope.isClassAllowed(classId)) {
+    throw createError({ statusCode: 403, message: '无权限在该班级创建账号' })
   }
   const existing = await db
     .select({ id: users.id })

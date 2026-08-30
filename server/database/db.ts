@@ -1,5 +1,6 @@
 import { createClient } from '@libsql/client'
 import { drizzle } from 'drizzle-orm/libsql'
+import { createError } from 'h3'
 import * as mainSchema from './schema.main'
 import * as schoolSchema from './schema.school'
 import path from 'path'
@@ -42,6 +43,35 @@ export function useDb() {
   return useMainDb()
 }
 
+/**
+ * 【安全】校验学校在主库 schools 表中真实存在。
+ *
+ * useSchoolDb 对不存在的 .db 文件会自动建库，这原本是为兼容旧版迁移。
+ * 但由于 schoolId 可由超级管理员通过 ?schoolId= 任意指定，
+ * 传入一个不存在的数字就会在 data/schools/ 下凭空生成一个空库（"幽灵库"），
+ * 造成磁盘垃圾、统计口径混乱，也让越权探测无法被察觉。
+ * 因此建库前必须确认主库中确有该学校记录。
+ */
+async function assertSchoolExists(schoolId: number) {
+  if (!Number.isInteger(schoolId) || schoolId <= 0) {
+    throw createError({ statusCode: 400, message: `schoolId 不合法：${schoolId}` })
+  }
+
+  try {
+    const result = await getMainClient().execute({
+      sql: 'SELECT id FROM schools WHERE id = ? LIMIT 1',
+      args: [schoolId],
+    })
+    if (result.rows.length === 0) {
+      throw createError({ statusCode: 404, message: `学校不存在（schoolId=${schoolId}）` })
+    }
+  } catch (e: any) {
+    // 主库首次启动尚未建表时放行，交由 initDatabase 流程处理
+    if (typeof e?.message === 'string' && e.message.includes('no such table')) return
+    throw e
+  }
+}
+
 // ===== 学校库（per-request 缓存）=====
 // TODO: useSchoolDb 中的 PRAGMA 未 await，理想情况下应改为 async
 // 当前依赖 libsql 操作序列化保证 PRAGMA 在查询前执行
@@ -54,7 +84,9 @@ export async function useSchoolDb(event: any, schoolId: number) {
 
   const dbPath = path.join(dbDir, `${schoolId}.db`)
   // 数据库文件不存在时自动创建（兼容旧版迁移、手动添加学校等场景）
+  // 但必须先确认主库中确有该学校，避免生成"幽灵库"
   if (!fs.existsSync(dbPath)) {
+    await assertSchoolExists(schoolId)
     const { createSchoolDb } = await import('../utils/create-school-db')
     await createSchoolDb(schoolId)
   }

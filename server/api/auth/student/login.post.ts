@@ -2,6 +2,7 @@ import { verifyPasswordBcrypt } from '../../../utils/auth'
 import { useSchoolDb } from '../../../database/db'
 import { users } from '../../../database/schema'
 import { eq } from 'drizzle-orm'
+import { assertLoginAllowed, recordLoginFailure, clearLoginFailures } from '../../../utils/rate-limit'
 
 // POST /api/auth/student/login — 学生登录（写入学校库）
 export default defineEventHandler(async (event) => {
@@ -16,6 +17,11 @@ export default defineEventHandler(async (event) => {
   // 支持使用已绑定邮箱登录：含 @ 视为邮箱，否则视为用户名
   const identifier = String(username).trim()
   const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier)
+
+  // 【安全】登录限流：学生默认口令较弱（如 123456），必须限制爆破次数。
+  // 学生用户名仅在校内唯一，故限流标识需带上 schoolId。
+  const rateIdentifier = `${Number(schoolId)}#${identifier}`
+  assertLoginAllowed(event, 'student-password', rateIdentifier)
 
   const db = await useSchoolDb(event, Number(schoolId))
 
@@ -35,14 +41,19 @@ export default defineEventHandler(async (event) => {
     .get()
 
   if (!user) {
+    recordLoginFailure(event, 'student-password', rateIdentifier)
     setResponseStatus(event, 401)
     return { success: false, message: '用户名或密码错误' }
   }
 
   if (!verifyPasswordBcrypt(password, user.passwordHash)) {
+    recordLoginFailure(event, 'student-password', rateIdentifier)
     setResponseStatus(event, 401)
     return { success: false, message: '用户名或密码错误' }
   }
+
+  // 凭证正确，清除失败计数
+  clearLoginFailures(event, 'student-password', rateIdentifier)
 
   // 账号被禁用无法登录
   if (user.disabled === 1) {
