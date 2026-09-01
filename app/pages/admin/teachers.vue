@@ -343,12 +343,16 @@ watchEffect(async () => {
                 <td class="text-xs text-slate-500">{{ a.lastLogin ? formatDate(a.lastLogin) : '从未' }}</td>
                 <td>
                   <div class="flex items-center gap-1">
-                    <button @click="openDetail(a)" class="btn btn-ghost text-xs py-1 px-2 text-brand-400 hover:!bg-brand-500/10">详情</button>
+                    <button @click="openDetail(a)" class="btn btn-ghost text-xs py-1 px-2 text-brand-400 hover:!bg-brand-500/10">
+                      <MorphIcon name="eye" :size="14" class="pointer-events-none" />
+                      详情
+                    </button>
                     <button
                       v-if="a.id !== currentUser?.id"
                       @click="confirmDelete = a"
                       class="btn btn-ghost text-xs py-1 px-2 !text-red-400 hover:!bg-red-500/10"
                     >
+                      <MorphIcon name="trash-2" :size="14" class="pointer-events-none" />
                       删除
                     </button>
                   </div>
@@ -469,7 +473,10 @@ watchEffect(async () => {
                   </button>
                 </div>
                 <div class="flex justify-between items-center gap-2">
-                  <span class="text-xs text-slate-500 uppercase shrink-0">邮箱</span>
+                  <span class="text-xs text-slate-500 uppercase shrink-0 flex items-center gap-1.5">
+                    <MorphIcon name="mail" :size="14" class="shrink-0" />
+                    邮箱
+                  </span>
                   <div class="flex items-center gap-1.5">
                     <input v-model="detailEmail" type="email" placeholder="未绑定" class="form-input text-sm w-44 py-1" />
                     <button @click="updateEmail" class="btn btn-ghost text-xs py-1 px-2 text-brand-400 hover:!bg-brand-500/10 shrink-0">保存</button>

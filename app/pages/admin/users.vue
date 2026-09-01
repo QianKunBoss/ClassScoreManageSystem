@@ -372,14 +372,16 @@ async function deleteUser() {
                   <span class="text-sm text-red-400">{{ u.deductScore }}</span>
                 </td>
                 <td>
-                  <div class="flex items-center gap-2">
-                    <NuxtLink :to="`/users/${u.id}`" class="btn btn-ghost text-xs py-1 px-2">
+                  <div class="flex items-center gap-1">
+                    <NuxtLink :to="`/users/${u.id}`" class="btn btn-ghost text-xs py-1 px-2 text-brand-400 hover:!bg-brand-500/10">
+                      <MorphIcon name="eye" :size="14" class="pointer-events-none" />
                       查看
                     </NuxtLink>
                     <button
                       @click="confirmDelete(u)"
                       class="btn btn-ghost text-xs py-1 px-2 !text-red-400 hover:!bg-red-500/10"
                     >
+                      <MorphIcon name="trash-2" :size="14" class="pointer-events-none" />
                       删除
                     </button>
                   </div>
