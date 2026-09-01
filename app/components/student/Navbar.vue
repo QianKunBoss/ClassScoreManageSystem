@@ -68,9 +68,9 @@ async function handleLogout() {
         </span>
         <button
           @click="handleLogout"
-          class="text-xs px-3 py-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/5 transition-all duration-200"
+          class="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/5 transition-all duration-200"
         >
-          退出
+          <MorphIcon name="log-out" size="1em" class="inline-block align-middle" /> 退出
         </button>
       </div>
     </div>

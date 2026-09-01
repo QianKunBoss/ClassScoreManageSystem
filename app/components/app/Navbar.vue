@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useSiteSettings } from '~/composables/useSiteSettings'
 import { useAuth } from '~/composables/useAuth'
-import { Menu, X, ChevronDown, ChevronUp, Settings, LogOut } from '~/utils/icons'
+import { Menu, X, ChevronDown, ChevronUp, Settings, LogOut, Home, LayoutDashboard, Shield, Megaphone, LogIn } from '~/utils/icons'
 // 认证状态（统一走 useAuth composable，key: 'auth-me' 单一数据源）
 const { user: currentUser, status, loggedIn: isLoggedIn } = useAuth()
 
@@ -23,15 +23,15 @@ const mobileMenuOpen = ref(false)
 
 const navLinks = computed(() => {
   const links = [
-    { to: '/', label: '首页' },
+    { to: '/', label: '首页', icon: Home },
   ]
   const role = currentUser.value?.role
   if (currentUser.value) {
-    links.push({ to: '/admin', label: '工作台' })
+    links.push({ to: '/admin', label: '工作台', icon: LayoutDashboard })
     if (role === 'super_admin') {
       links.push(
-        { to: '/superadmin', label: '系统管理' },
-        { to: '/admin/announcements', label: '公告' },
+        { to: '/superadmin', label: '系统管理', icon: Shield },
+        { to: '/admin/announcements', label: '公告', icon: Megaphone },
       )
     }
   }
@@ -59,9 +59,10 @@ const navLinks = computed(() => {
                 v-for="link in navLinks"
                 :key="link.to"
                 :to="link.to"
-                class="px-3.5 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all duration-200"
+                class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all duration-200"
                 active-class="!text-brand-400 !bg-brand-500/10"
               >
+                <MorphIcon :icon="link.icon" :size="16" class="shrink-0" />
                 {{ link.label }}
               </NuxtLink>
             </template>
@@ -126,9 +127,9 @@ const navLinks = computed(() => {
             <NuxtLink
               v-else-if="status !== 'pending'"
               to="/login"
-              class="btn btn-primary text-sm"
+              class="btn btn-primary text-sm flex items-center gap-1.5"
             >
-              登录
+              <MorphIcon :icon="LogIn" :size="16" class="shrink-0" /> 登录
             </NuxtLink>
 
             <!-- 移动端菜单按钮 -->
@@ -150,9 +151,10 @@ const navLinks = computed(() => {
                 :key="link.to"
                 :to="link.to"
                 @click="mobileMenuOpen = false"
-                class="block px-4 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all"
+                class="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all"
                 active-class="!text-brand-400 !bg-brand-500/10"
               >
+                <MorphIcon :icon="link.icon" :size="16" class="shrink-0" />
                 {{ link.label }}
               </NuxtLink>
               <div class="pt-2 mt-2 border-t border-slate-700/50">
@@ -165,9 +167,9 @@ const navLinks = computed(() => {
                 </NuxtLink>
                 <button
                   @click="logout"
-                  class="w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium text-red-400 hover:bg-red-500/10 transition-all"
+                  class="w-full flex items-center gap-2 text-left px-4 py-2.5 rounded-lg text-sm font-medium text-red-400 hover:bg-red-500/10 transition-all"
                 >
-                  退出登录
+                  <MorphIcon :icon="LogOut" :size="16" class="shrink-0" /> 退出登录
                 </button>
               </div>
             </template>
@@ -175,9 +177,9 @@ const navLinks = computed(() => {
               <NuxtLink
                 to="/login"
                 @click="mobileMenuOpen = false"
-                class="block px-4 py-2.5 rounded-lg text-sm font-medium text-brand-400 hover:bg-brand-500/10 transition-all"
+                class="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-brand-400 hover:bg-brand-500/10 transition-all"
               >
-                登录
+                <MorphIcon :icon="LogIn" :size="16" class="shrink-0" /> 登录
               </NuxtLink>
             </template>
           </div>
