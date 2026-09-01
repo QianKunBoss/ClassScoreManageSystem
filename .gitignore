@@ -25,6 +25,10 @@ data/
 logs
 *.log
 
+# Local scratch / smoke tests (not part of the deliverable)
+.tmp-smoke/
+*.local
+
 # Misc
 .DS_Store
 .fleet
