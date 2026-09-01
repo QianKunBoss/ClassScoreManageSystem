@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronRight, ChevronDown, Plus, GraduationCap, Users, LayoutTemplate, Armchair, Star, KeyRound } from '~/utils/icons'
+import { ChevronRight, ChevronDown, Plus, GraduationCap, Users, LayoutTemplate, Armchair, Star, KeyRound, LayoutDashboard } from '~/utils/icons'
 import { useAuth } from '~/composables/useAuth'
 
 const toast = useToast()
@@ -116,6 +116,15 @@ watch(() => user.value?.id, (id) => { if (id) load() })
     class="w-full md:w-60 shrink-0 md:sticky md:top-16 md:h-[calc(100vh-4rem)] border-b md:border-b-0 md:border-r border-slate-800/50 bg-[#0b1220]/60 overflow-y-auto"
   >
     <div class="p-3">
+      <!-- 统计信息（工作台 / 仪表盘） -->
+      <button
+        @click="navigateTo('/admin')"
+        class="flex w-full items-center gap-2 rounded-lg py-1.5 pl-1 pr-2 text-left text-sm text-slate-300 transition-colors hover:bg-slate-800/40 hover:text-brand-400"
+      >
+        <MorphIcon :icon="LayoutDashboard" :size="15" class="shrink-0" />
+        <span class="truncate">统计信息</span>
+      </button>
+
       <!-- 组织 头部 -->
       <div class="flex items-center justify-between py-2">
         <button
