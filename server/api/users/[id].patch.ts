@@ -1,10 +1,10 @@
 import { eq } from 'drizzle-orm'
-import { users } from '../../database/schema'
+import { users, classes } from '../../database/schema'
 import { useSchoolDb } from '../../database/db'
-import { requireAdmin, getSchoolIdFromRequest } from '../../utils/auth'
+import { requireAdmin, getSchoolIdFromRequest, assertClassManagement } from '../../utils/auth'
 import { EMAIL_RE } from '../../utils/mail'
 
-// PATCH /api/users/[id] — 更新学生（用户名 / 邮箱 / 启用禁用）
+// PATCH /api/users/[id] — 更新学生（用户名 / 姓名 / 邮箱 / 所属班级 / 启用禁用）
 export default defineEventHandler(async (event) => {
   const admin = await requireAdmin(event)
   const schoolId = await getSchoolIdFromRequest(event)
@@ -17,11 +17,19 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody(event) as {
     username?: string
+    actualName?: string | null
     email?: string
     disabled?: number
+    classId?: number | null
   }
 
-  if (body.username === undefined && body.email === undefined && body.disabled === undefined) {
+  if (
+    body.username === undefined &&
+    body.actualName === undefined &&
+    body.email === undefined &&
+    body.disabled === undefined &&
+    body.classId === undefined
+  ) {
     throw createError({ statusCode: 400, message: '请指定要修改的字段' })
   }
 
@@ -52,6 +60,11 @@ export default defineEventHandler(async (event) => {
     setData.username = username
   }
 
+  // ===== 姓名（actualName，可空表示清除）=====
+  if (body.actualName !== undefined) {
+    setData.actualName = body.actualName == null ? null : (body.actualName || '').trim() || null
+  }
+
   // ===== 邮箱（修改登录凭证；可空表示解绑）=====
   if (body.email !== undefined) {
     const email = (body.email || '').trim()
@@ -76,6 +89,23 @@ export default defineEventHandler(async (event) => {
       setData.email = null
       setData.emailBoundAt = null
     }
+  }
+
+  // ===== 所属班级（classId，受管理员范围限制）=====
+  if (body.classId !== undefined) {
+    const newClassId = body.classId == null ? null : Number(body.classId)
+    if (newClassId != null) {
+      if (!Number.isFinite(newClassId) || newClassId <= 0) {
+        throw createError({ statusCode: 400, message: '班级 ID 不合法' })
+      }
+      const cls = await db.select({ id: classes.id }).from(classes).where(eq(classes.id, newClassId)).get()
+      if (!cls) {
+        throw createError({ statusCode: 404, message: '班级不存在' })
+      }
+      // 越权校验：只能移动到当前管理员可管理的班级
+      await assertClassManagement(admin, db, newClassId)
+    }
+    setData.classId = newClassId
   }
 
   // ===== 启用 / 禁用 =====

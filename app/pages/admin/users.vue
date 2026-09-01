@@ -239,6 +239,96 @@ function confirmDelete(user: User) {
   showDeleteConfirm.value = true
 }
 
+// ===== 编辑学生 =====
+const showEditModal = ref(false)
+const editUser = ref<User | null>(null)
+const editUsername = ref('')
+const editActualName = ref('')
+const editEmail = ref('')
+const editClassId = ref<number | ''>('')
+const editClasses = ref<any[]>([])
+const editLoading = ref(false)
+const editClassLoading = ref(false)
+
+// 班级管理员仅管理本班，不可更改所属；其余角色可在自己范围内改所属
+const canEditClass = computed(() => currentUser.value?.role !== 'class_admin')
+
+async function openEdit(u: User) {
+  editUser.value = u
+  editUsername.value = u.username
+  editActualName.value = u.actualName || ''
+  editEmail.value = u.email || ''
+  editClassId.value = u.classId ?? ''
+  showEditModal.value = true
+  await loadEditClasses()
+}
+
+async function loadEditClasses() {
+  editClassLoading.value = true
+  try {
+    const cu = currentUser.value
+    const query: any = {}
+    if (cu?.role === 'super_admin') {
+      if (!filterSchoolId.value) { editClasses.value = []; editClassLoading.value = false; return }
+      query.schoolId = filterSchoolId.value
+    } else if (cu?.role === 'grade_admin' && cu.gradeId) {
+      query.gradeId = cu.gradeId
+    }
+    const res = await $fetch<{ data: any[] }>('/api/classes', { query })
+    editClasses.value = res.data || []
+  } catch {
+    editClasses.value = []
+  } finally {
+    editClassLoading.value = false
+  }
+}
+
+async function saveEdit() {
+  if (!editUser.value) return
+  if (!editUsername.value.trim()) {
+    toast.error('用户名不能为空')
+    return
+  }
+  if (editEmail.value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editEmail.value.trim())) {
+    toast.error('邮箱格式不正确')
+    return
+  }
+  editLoading.value = true
+  try {
+    const body: any = {
+      username: editUsername.value.trim(),
+      actualName: editActualName.value.trim() || null,
+      email: editEmail.value.trim() || null,
+    }
+    if (canEditClass.value) {
+      body.classId = editClassId.value === '' ? null : Number(editClassId.value)
+    }
+    const patchQuery: any = {}
+    if (currentUser.value?.role === 'super_admin' && filterSchoolId.value) {
+      patchQuery.schoolId = filterSchoolId.value
+    }
+    await $fetch(`/api/users/${editUser.value.id}`, {
+      method: 'PATCH',
+      body,
+      query: patchQuery,
+    })
+    showEditModal.value = false
+    editUser.value = null
+    toast.success('学生信息已更新')
+    // 重新加载列表
+    const query: any = {}
+    if (currentUser.value?.role === 'super_admin' && filterSchoolId.value) {
+      query.schoolId = filterSchoolId.value
+    }
+    const res = await $fetch<PaginatedResponse<User>>('/api/users', { query })
+    users.value = res.data
+  } catch (err) {
+    toast.error(err.data?.message || err.data?.statusMessage || '更新失败')
+  } finally {
+    editLoading.value = false
+  }
+}
+
 async function deleteUser() {
   if (!userToDelete.value) return
   try {
@@ -378,6 +468,13 @@ async function deleteUser() {
                       查看
                     </NuxtLink>
                     <button
+                      @click="openEdit(u)"
+                      class="btn btn-ghost text-xs py-1 px-2 text-slate-300 hover:!bg-slate-700/30"
+                    >
+                      <MorphIcon name="edit" :size="14" class="pointer-events-none" />
+                      编辑
+                    </button>
+                    <button
                       @click="confirmDelete(u)"
                       class="btn btn-ghost text-xs py-1 px-2 !text-red-400 hover:!bg-red-500/10"
                     >
@@ -493,6 +590,57 @@ async function deleteUser() {
                   {{ batchLoading ? '添加中...' : '添加' }}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      </Teleport>
+    </ClientOnly>
+
+    <!-- 编辑学生模态框 -->
+    <ClientOnly>
+      <Teleport to="body">
+        <div v-if="showEditModal" class="modal-backdrop" @click.self="showEditModal = false">
+          <div class="modal-content max-w-md">
+            <div class="modal-header">
+              <h3 class="text-base font-bold text-slate-100">编辑学生</h3>
+              <button @click="showEditModal = false" class="w-7 h-7 rounded-md hover:bg-slate-800 text-slate-500"><MorphIcon name="x" :size="16" class="pointer-events-none" /></button>
+            </div>
+            <div class="modal-body space-y-4">
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-2 uppercase">用户名</label>
+                <input v-model="editUsername" type="text" placeholder="请输入用户名" class="form-input" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-2 uppercase">姓名</label>
+                <input v-model="editActualName" type="text" placeholder="请输入真实姓名（可选）" class="form-input" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-2 uppercase">所属班级</label>
+                <select
+                  v-if="canEditClass"
+                  v-model="editClassId"
+                  class="form-input"
+                  :disabled="editClassLoading || editClasses.length === 0"
+                >
+                  <option :value="''">未分配</option>
+                  <option v-for="c in editClasses" :key="c.id" :value="c.id">
+                    {{ c.gradeName ? c.gradeName + ' / ' : '' }}{{ c.name }}
+                  </option>
+                </select>
+                <div v-else class="form-input !bg-slate-800/30 !cursor-default text-slate-400">
+                  {{ editUser?.className || '未分配' }}
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-2 uppercase">邮箱</label>
+                <input v-model="editEmail" type="email" placeholder="未绑定（可选）" class="form-input" />
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button @click="showEditModal = false" class="btn btn-ghost">取消</button>
+              <button @click="saveEdit" :disabled="editLoading" class="btn btn-primary">
+                {{ editLoading ? '保存中…' : '保存' }}
+              </button>
             </div>
           </div>
         </div>
