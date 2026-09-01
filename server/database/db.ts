@@ -235,6 +235,21 @@ async function migrateSchoolDb(client: any, schoolId: number) {
     } catch (e: any) {
       console.error(`[CSMS] school ${schoolId} users email 迁移失败:`, e.message)
     }
+
+    // ===== 外部开放 API：幂等键表（新表，CREATE IF NOT EXISTS 天然幂等）=====
+    try {
+      await client.execute(`CREATE TABLE IF NOT EXISTS api_idempotency (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        token_id INTEGER NOT NULL,
+        key TEXT NOT NULL,
+        endpoint TEXT NOT NULL,
+        response_json TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      )`)
+      await client.execute('CREATE UNIQUE INDEX IF NOT EXISTS api_idempotency_token_key_unq ON api_idempotency(token_id, key)')
+    } catch (e: any) {
+      console.error(`[CSMS] school ${schoolId} api_idempotency 建表失败:`, e.message)
+    }
   } catch (e: any) {
     console.error(`[CSMS] school ${schoolId} 迁移失败:`, e.message)
   }

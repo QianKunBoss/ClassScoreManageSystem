@@ -47,28 +47,40 @@ export default defineEventHandler(async (event) => {
     }).from(scoreLogs)
 
     // JS 汇总每个用户的积分
-    const scoreMap: Record<number, number> = {}
+    // 除 total 外同时重算 add / deduct / count 三个汇总列 —— 它们由 score-service 实时维护，
+    // 重算入口必须写同一组字段，否则修复完反而把这三列改回不一致。
+    type Agg = { total: number; add: number; deduct: number; count: number }
+    const scoreMap: Record<number, Agg> = {}
     for (const log of logs) {
-      scoreMap[log.userId] = (scoreMap[log.userId] || 0) + log.scoreChange
+      const agg = scoreMap[log.userId] || (scoreMap[log.userId] = { total: 0, add: 0, deduct: 0, count: 0 })
+      agg.total += log.scoreChange
+      if (log.scoreChange > 0) agg.add += log.scoreChange
+      if (log.scoreChange < 0) agg.deduct += Math.abs(log.scoreChange)
+      agg.count++
     }
 
     // 更新有积分记录的用户
-    for (const [userIdStr, total] of Object.entries(scoreMap)) {
+    for (const [userIdStr, agg] of Object.entries(scoreMap)) {
       const userId = Number(userIdStr)
       await db
         .update(users)
-        .set({ totalScore: total })
+        .set({
+          totalScore: agg.total,
+          addScore: agg.add,
+          deductScore: agg.deduct,
+          scoreCount: agg.count,
+        })
         .where(eq(users.id, userId))
       totalUpdated++
     }
 
-    // 没有积分记录的用户，totalScore 设为 0
+    // 没有积分记录的用户，汇总字段全部归零
     const allUsers = await db.select({ id: users.id }).from(users)
     for (const u of allUsers) {
       if (!(u.id in scoreMap)) {
         await db
           .update(users)
-          .set({ totalScore: 0 })
+          .set({ totalScore: 0, addScore: 0, deductScore: 0, scoreCount: 0 })
           .where(eq(users.id, u.id))
       }
     }

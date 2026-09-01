@@ -91,3 +91,19 @@ export const seatData = sqliteTable('seat_data', {
 }, (table) => ({
   unq: unique('seat_data_unique').on(table.classId, table.groupIndex, table.rowIndex, table.colIndex),
 }))
+
+// ===== api_idempotency（外部 API 幂等键）=====
+//
+// 加分是不可逆累加，第三方网络重试极易造成重复加分。调用方带上 Idempotency-Key 头后，
+// 同一 (token_id, key) 命中即直接回放上次响应，不再执行写入。
+// 放分库而非主库：key 只在单校范围内有意义，且能随学校删除一并清理。保留 24 小时。
+export const apiIdempotency = sqliteTable('api_idempotency', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  tokenId: integer('token_id').notNull(),
+  key: text('key').notNull(),
+  endpoint: text('endpoint').notNull(),
+  responseJson: text('response_json').notNull(),
+  createdAt: text('created_at').notNull().$defaultFn(() => new Date().toISOString()),
+}, (table) => ({
+  unq: unique('api_idempotency_token_key_unq').on(table.tokenId, table.key),
+}))

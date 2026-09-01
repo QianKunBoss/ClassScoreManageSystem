@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronRight, ChevronDown, Plus, GraduationCap, Users, LayoutTemplate, Armchair, Star } from '~/utils/icons'
+import { ChevronRight, ChevronDown, Plus, GraduationCap, Users, LayoutTemplate, Armchair, Star, KeyRound } from '~/utils/icons'
 import { useAuth } from '~/composables/useAuth'
 
 const toast = useToast()
@@ -246,6 +246,15 @@ watch(() => user.value?.id, (id) => { if (id) load() })
       >
         <MorphIcon :icon="Star" :size="15" class="shrink-0" />
         <span class="truncate">积分管理</span>
+      </button>
+
+      <!-- 外部 API 凭证（所有管理员都可签发，范围自动收窄到自身管辖） -->
+      <button
+        @click="navigateTo('/admin/api-tokens')"
+        class="flex w-full items-center gap-2 rounded-lg py-1.5 pl-1 pr-2 text-left text-sm text-slate-300 transition-colors hover:bg-slate-800/40 hover:text-brand-400"
+      >
+        <MorphIcon :icon="KeyRound" :size="15" class="shrink-0" />
+        <span class="truncate">API 凭证</span>
       </button>
     </div>
 

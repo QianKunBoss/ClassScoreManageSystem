@@ -73,8 +73,8 @@ function sweep(now: number) {
   }
 }
 
-/** 取客户端 IP（兼容反向代理） */
-function getClientIp(event: any): string {
+/** 取客户端 IP（兼容反向代理）。外部 API 限流与审计日志也复用此实现。 */
+export function getClientIp(event: any): string {
   const headers = getRequestHeaders(event)
   const forwarded = headers['x-forwarded-for']
   if (forwarded) {

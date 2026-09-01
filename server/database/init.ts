@@ -104,6 +104,47 @@ export async function initDatabase() {
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT
     )`,
+    // ===== 外部开放 API：凭证表 =====
+    // token_hash 唯一索引是鉴权走索引精确查找的前提，不可去掉
+    `CREATE TABLE IF NOT EXISTS api_tokens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      token_prefix TEXT NOT NULL,
+      token_hash TEXT NOT NULL UNIQUE,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      scope_type TEXT NOT NULL,
+      scope_grade_id INTEGER,
+      scope_class_id INTEGER,
+      scopes TEXT NOT NULL DEFAULT '[]',
+      created_by_admin_id INTEGER REFERENCES admins(id) ON DELETE SET NULL,
+      created_by_role TEXT NOT NULL,
+      disabled INTEGER NOT NULL DEFAULT 0,
+      expires_at TEXT,
+      last_used_at TEXT,
+      last_used_ip TEXT,
+      call_count INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`,
+    `CREATE INDEX IF NOT EXISTS api_tokens_school_idx ON api_tokens(school_id)`,
+    // ===== 外部开放 API：调用审计 =====
+    // token_id 不设 FK：鉴权失败时为 null，且 token 吊销后历史记录仍需保留
+    `CREATE TABLE IF NOT EXISTS api_audit_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      token_id INTEGER,
+      token_prefix TEXT,
+      school_id INTEGER,
+      method TEXT NOT NULL,
+      path TEXT NOT NULL,
+      status_code INTEGER NOT NULL,
+      latency_ms INTEGER NOT NULL DEFAULT 0,
+      ip TEXT,
+      user_agent TEXT,
+      request_id TEXT NOT NULL DEFAULT '',
+      error_message TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`,
+    `CREATE INDEX IF NOT EXISTS api_audit_logs_token_idx ON api_audit_logs(token_id, created_at)`,
+    `CREATE INDEX IF NOT EXISTS api_audit_logs_created_idx ON api_audit_logs(created_at)`,
   ]
 
   for (const sql of createStatements) {

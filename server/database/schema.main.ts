@@ -1,5 +1,5 @@
 // ===== 主库 schema：schools / admins / applications / announcements =====
-import { sqliteTable, text, integer, unique } from 'drizzle-orm/sqlite-core'
+import { sqliteTable, text, integer, unique, index } from 'drizzle-orm/sqlite-core'
 
 export const ROLE_SUPER_ADMIN = 'super_admin'
 export const ROLE_SCHOOL_ADMIN = 'school_admin'
@@ -28,6 +28,11 @@ export const admins = sqliteTable('admins', {
   schoolId: integer('school_id').references(() => schools.id, { onDelete: 'cascade' }),
   gradeId: integer('grade_id'),   // 仅 hint，无跨库 FK
   classId: integer('class_id'),  // 仅 hint，无跨库 FK
+  /**
+   * @deprecated 已被 api_tokens 表取代（v0.4.0 外部开放 API）。
+   * 该字段从未被任何鉴权逻辑读取，仅 server/api/admin/list.get.ts 用它算 hasToken 展示。
+   * 保留列以避免迁移风险，后续版本清理。请勿在新代码中使用。
+   */
   apiToken: text('api_token'),
   mustChangePassword: integer('must_change_password').notNull().default(0),
   disabled: integer('disabled').notNull().default(0),  // 0=正常，1=禁用
@@ -81,6 +86,10 @@ export const announcements = sqliteTable('announcements', {
 })
 
 // ===== third_party_apis（主库，全局）=====
+/**
+ * @deprecated 历史遗留空表，从未被任何代码读写。外部开放 API 请用 api_tokens。
+ * 保留以避免迁移风险，后续版本清理。
+ */
 export const thirdPartyApis = sqliteTable('third_party_apis', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   apiName: text('api_name').notNull(),
@@ -131,4 +140,62 @@ export const mailTemplates = sqliteTable('mail_templates', {
   createdAt: text('created_at').notNull().$defaultFn(() => new Date().toISOString()),
   updatedAt: text('updated_at'),
 })
+
+// ===== api_tokens（主库，外部开放 API 凭证）=====
+//
+// 【安全】设计要点：
+// 1. 库里只存 sha256(明文) —— 泄库也拿不到可用凭证。用 sha256 而非 bcrypt 的原因：
+//    bcrypt 带随机盐，无法建索引，鉴权只能全表扫描逐个 compare（O(n) × ~100ms）。
+//    而 token 是 256bit 高熵随机串，不存在字典/彩虹表风险，单次 sha256 已足够，
+//    且能对 token_hash 建唯一索引做 O(log n) 精确查找。密码才需要 bcrypt（低熵、人为选择）。
+// 2. token_prefix 存明文前 12 字符，让管理界面能识别"这是哪个 token"，但不足以还原密钥。
+// 3. scope_type + scope_grade_id / scope_class_id 存的是 id 而非快照后的 class 列表 ——
+//    grade token 的语义是"这个年级"，年级后续新增班级应自动纳入，
+//    与内部 resolveSchoolScope() 的动态行为保持一致，避免出现两套语义。
+// 4. school_id 带 cascade：学校被删除时其 token 一并消失，不留悬空凭证。
+export const apiTokens = sqliteTable('api_tokens', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),                        // 备注名，如"教务系统对接"
+  tokenPrefix: text('token_prefix').notNull(),         // 明文前 12 字符，仅用于识别
+  tokenHash: text('token_hash').notNull().unique(),    // sha256(明文) hex
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  scopeType: text('scope_type').notNull(),             // 'school' | 'grade' | 'class'
+  scopeGradeId: integer('scope_grade_id'),             // 分库内 id，跨库故无 FK
+  scopeClassId: integer('scope_class_id'),             // 分库内 id，跨库故无 FK
+  scopes: text('scopes').notNull().default('[]'),      // JSON 数组，权限白名单
+  createdByAdminId: integer('created_by_admin_id').references(() => admins.id, { onDelete: 'set null' }),
+  createdByRole: text('created_by_role').notNull(),    // 签发时角色快照，供事后审计
+  disabled: integer('disabled').notNull().default(0),  // 0=启用，1=禁用
+  expiresAt: text('expires_at'),                       // ISO 字符串，null = 永不过期
+  lastUsedAt: text('last_used_at'),
+  lastUsedIp: text('last_used_ip'),
+  callCount: integer('call_count').notNull().default(0),
+  createdAt: text('created_at').notNull().$defaultFn(() => new Date().toISOString()),
+}, (table) => ({
+  schoolIdx: index('api_tokens_school_idx').on(table.schoolId),
+}))
+
+// ===== api_audit_logs（主库，外部 API 调用审计）=====
+//
+// 放主库而非分库的原因：鉴权失败的请求拿不到有效 schoolId，分库根本开不出来，
+// 日志将无处落地；且超级管理员需要看全平台调用情况，跨分库聚合成本过高。
+// token_id 不加 FK —— 鉴权失败时该字段为 null，且 token 被吊销后历史日志仍需保留。
+export const apiAuditLogs = sqliteTable('api_audit_logs', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  tokenId: integer('token_id'),
+  tokenPrefix: text('token_prefix'),
+  schoolId: integer('school_id'),
+  method: text('method').notNull(),
+  path: text('path').notNull(),
+  statusCode: integer('status_code').notNull(),
+  latencyMs: integer('latency_ms').notNull().default(0),
+  ip: text('ip'),
+  userAgent: text('user_agent'),
+  requestId: text('request_id').notNull().default(''),
+  errorMessage: text('error_message'),
+  createdAt: text('created_at').notNull().$defaultFn(() => new Date().toISOString()),
+}, (table) => ({
+  tokenIdx: index('api_audit_logs_token_idx').on(table.tokenId, table.createdAt),
+  createdIdx: index('api_audit_logs_created_idx').on(table.createdAt),
+}))
 

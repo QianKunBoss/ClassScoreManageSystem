@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {
   LayoutDashboard, Users, School, Inbox, Palette, Mail, FileText,
-  Folder, Shield, ChevronDown, ChevronUp, ArrowLeft, GraduationCap, Database,
+  Folder, Shield, ChevronDown, ChevronUp, ArrowLeft, GraduationCap, Database, KeyRound,
 } from '~/utils/icons'
 
 const route = useRoute()
@@ -126,7 +126,12 @@ const isActive = (item: typeof navItems[number]) =>
             </Transition>
           </div>
         </nav>
-        <div class="px-3 py-4 border-t border-slate-800/50">
+        <div class="px-3 py-4 border-t border-slate-800/50 space-y-1">
+          <!-- API 凭证页属于校级功能（走 /admin 布局），故放在底部而非 /superadmin 导航组 -->
+          <NuxtLink to="/admin/api-tokens" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 transition-all">
+            <MorphIcon :icon="KeyRound" :size="18" class="shrink-0" />
+            <span>API 凭证</span>
+          </NuxtLink>
           <NuxtLink to="/admin" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-500 hover:text-slate-300 hover:bg-slate-800/40 transition-all">
             <MorphIcon :icon="ArrowLeft" :size="18" class="shrink-0" />
             <span>返回管理后台</span>

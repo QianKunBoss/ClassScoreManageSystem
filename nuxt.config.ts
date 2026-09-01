@@ -58,6 +58,12 @@ export default defineNuxtConfig({
     },
     client: {
       installPrompt: true,
+      // 开发模式下不注入 Service Worker 客户端插件（生产构建照常注入）。
+      // 该插件会无条件执行 navigator.serviceWorker.register('/sw.js')，
+      // 而 dev 下 sw.js 并不存在（devOptions.enabled: false）→ 请求落到 SSR 渲染 →
+      // Vue Router 报 "No match found for location with path /sw.js" 并触发 404。
+      // 关闭后 $pwa 不存在，PwaPrompt.vue 已有完整 fallback，两个弹窗均不渲染，无副作用。
+      registerPlugin: process.env.NODE_ENV === 'production',
     },
   },
 
