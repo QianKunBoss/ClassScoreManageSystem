@@ -34,6 +34,90 @@ const detailNewPassword = ref('')
 const detailConfirmPassword = ref('')
 const detailLoading = ref(false)
 
+// 所属编辑（学校/年级管理员可改下级所属，且限定在本校/本年级范围内）
+const detailAffGradeId = ref<number | ''>('')
+const detailAffClassId = ref<number | ''>('')
+const detailAffGrades = ref<any[]>([])
+const detailAffClasses = ref<any[]>([])
+const detailAffLoading = ref(false)
+
+// 邮箱（修改登录凭证；可空表示解绑）
+const detailEmail = ref('')
+
+function canEditAff(): boolean {
+  const cu = currentUser.value
+  if (!cu || !detailAdmin.value) return false
+  if (detailAdmin.value.id === cu.id) return false
+  if (cu.role === 'school_admin') return true
+  if (cu.role === 'grade_admin') return detailAdmin.value.role === 'class_admin'
+  return false
+}
+
+async function loadDetailAffGrades() {
+  const cu = currentUser.value
+  if (!cu || cu.role !== 'school_admin') { detailAffGrades.value = []; return }
+  try {
+    const res = await $fetch<{ data: any[] }>(`/api/grades?schoolId=${cu.schoolId}`)
+    detailAffGrades.value = res.data || []
+  } catch { detailAffGrades.value = [] }
+}
+async function loadDetailAffClasses() {
+  const cu = currentUser.value
+  if (!cu) { detailAffClasses.value = []; return }
+  const gradeId = cu.role === 'school_admin' ? detailAffGradeId.value : cu.gradeId
+  if (!gradeId) { detailAffClasses.value = []; return }
+  try {
+    const query: any = { gradeId }
+    if (cu.role === 'school_admin' && cu.schoolId) query.schoolId = cu.schoolId
+    const res = await $fetch<{ data: any[] }>('/api/classes', { query })
+    detailAffClasses.value = res.data || []
+  } catch { detailAffClasses.value = [] }
+}
+function onDetailAffGradeChange() {
+  detailAffClassId.value = ''
+  loadDetailAffClasses()
+}
+
+async function updateAffiliation() {
+  if (!detailAdmin.value) return
+  const role = detailAdmin.value.role
+  const cu = currentUser.value
+  if (role === 'grade_admin' && !detailAffGradeId.value) { toast.error('请选择年级'); return }
+  if (role === 'class_admin' && (!detailAffGradeId.value || !detailAffClassId.value)) { toast.error('请选择年级和班级'); return }
+  detailAffLoading.value = true
+  try {
+    await $fetch(`/api/admin/manage/${detailAdmin.value.id}`, {
+      method: 'PATCH',
+      body: {
+        schoolId: cu?.schoolId ?? null,
+        gradeId: detailAffGradeId.value || null,
+        classId: detailAffClassId.value || null,
+      },
+    })
+    toast.success('所属已更新')
+    await loadAdmins()
+  } catch (err) { toast.error(err.data?.message || err.data?.statusMessage || '更新失败') }
+  finally { detailAffLoading.value = false }
+}
+
+// 修改邮箱（与超级管理员一致：校验格式，空值表示解绑，后端保证全局唯一）
+async function updateEmail() {
+  if (detailEmail.value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(detailEmail.value.trim())) {
+    toast.error('邮箱格式不正确')
+    return
+  }
+  try {
+    await $fetch(`/api/admin/manage/${detailAdmin.value!.id}`, {
+      method: 'PATCH',
+      body: { email: detailEmail.value.trim() || null },
+    })
+    toast.success('邮箱已更新')
+    await loadAdmins()
+  } catch (err) {
+    toast.error(err.data?.message || err.data?.statusMessage || '更新失败')
+  }
+}
+
 // 所属显示文本
 function schoolDisplay(a: Admin): string {
   if (!a.schoolName) return '-'
@@ -143,7 +227,14 @@ function openDetail(a: Admin) {
   detailAdmin.value = a
   detailNewPassword.value = ''
   detailConfirmPassword.value = ''
+  detailAffGradeId.value = a.gradeId ?? ''
+  detailAffClassId.value = a.classId ?? ''
+  detailEmail.value = a.email || ''
   showDetail.value = true
+  if (canEditAff()) {
+    loadDetailAffGrades()
+    loadDetailAffClasses()
+  }
 }
 
 // 修改密码
@@ -345,6 +436,44 @@ watchEffect(async () => {
                 <div class="flex justify-between items-center">
                   <span class="text-xs text-slate-500 uppercase">所属</span>
                   <span class="text-sm text-slate-400">{{ detailAdmin ? schoolDisplay(detailAdmin) : '-' }}</span>
+                </div>
+                <!-- 修改所属（学校/年级管理员，限定本校/本年级范围） -->
+                <div v-if="canEditAff()" class="mt-3 p-3 rounded-lg border border-slate-700/50 bg-slate-900/40 space-y-3">
+                  <p class="text-xs text-slate-400 uppercase">修改所属</p>
+                  <div class="flex justify-between items-center gap-3">
+                    <span class="text-xs text-slate-500">学校</span>
+                    <span class="text-sm text-slate-300">{{ detailAdmin?.schoolName || '-' }}</span>
+                  </div>
+                  <div v-if="detailAdmin?.role === 'grade_admin' || detailAdmin?.role === 'class_admin'" class="space-y-1">
+                    <label class="block text-xs text-slate-500">年级</label>
+                    <select
+                      v-if="currentUser?.role === 'school_admin'"
+                      v-model="detailAffGradeId"
+                      class="form-input text-sm"
+                      @change="onDetailAffGradeChange"
+                    >
+                      <option value="">请选择年级</option>
+                      <option v-for="g in detailAffGrades" :key="g.id" :value="g.id">{{ g.name }}</option>
+                    </select>
+                    <span v-else class="text-sm text-slate-300">{{ detailAdmin?.gradeName || '-' }}</span>
+                  </div>
+                  <div v-if="detailAdmin?.role === 'class_admin'" class="space-y-1">
+                    <label class="block text-xs text-slate-500">班级</label>
+                    <select v-model="detailAffClassId" class="form-input text-sm" :disabled="detailAffClasses.length === 0">
+                      <option value="">请选择班级</option>
+                      <option v-for="c in detailAffClasses" :key="c.id" :value="c.id">{{ c.name }}</option>
+                    </select>
+                  </div>
+                  <button @click="updateAffiliation" :disabled="detailAffLoading" class="btn btn-primary text-sm w-full">
+                    {{ detailAffLoading ? '保存中…' : '保存所属' }}
+                  </button>
+                </div>
+                <div class="flex justify-between items-center gap-2">
+                  <span class="text-xs text-slate-500 uppercase shrink-0">邮箱</span>
+                  <div class="flex items-center gap-1.5">
+                    <input v-model="detailEmail" type="email" placeholder="未绑定" class="form-input text-sm w-44 py-1" />
+                    <button @click="updateEmail" class="btn btn-ghost text-xs py-1 px-2 text-brand-400 hover:!bg-brand-500/10 shrink-0">保存</button>
+                  </div>
                 </div>
                 <div class="flex justify-between items-center">
                   <span class="text-xs text-slate-500 uppercase">创建时间</span>

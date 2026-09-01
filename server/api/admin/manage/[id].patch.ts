@@ -182,6 +182,15 @@ async function resolveAffiliation(
     if (current.role === 'school_admin' && norm.schoolId && norm.schoolId !== current.schoolId) {
       throw createError({ statusCode: 403, message: '无权将管理员调整到其它学校' })
     }
+    // 年级管理员只能在本年级范围内调整所属（学校与年级均不得越界）
+    if (current.role === 'grade_admin') {
+      if (norm.schoolId && norm.schoolId !== current.schoolId) {
+        throw createError({ statusCode: 403, message: '无权将管理员调整到其它学校' })
+      }
+      if (norm.gradeId && norm.gradeId !== current.gradeId) {
+        throw createError({ statusCode: 403, message: '无权将管理员调整到其它年级' })
+      }
+    }
   }
 
   return norm
