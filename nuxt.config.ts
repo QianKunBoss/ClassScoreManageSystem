@@ -154,7 +154,7 @@ export default defineNuxtConfig({
       viewport: 'width=500, initial-scale=1',
       title: 'CSMS - 班级积分管理系统',
       meta: [
-        { name: 'description', content: '班级积分管理系统 v0.3.1' },
+        { name: 'description', content: '班级积分管理系统 v0.3.2' },
         { name: 'theme-color', content: '#070b14' },
         { name: 'apple-mobile-web-app-capable', content: 'yes' },
         { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
