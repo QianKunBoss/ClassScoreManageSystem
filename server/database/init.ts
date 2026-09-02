@@ -284,9 +284,11 @@ export async function initDatabase() {
         passwordHash,
         role: 'super_admin',
         schoolId: null,
+        // 初始超级管理员使用默认口令，强制首次登录改密（与创建/重置其他账号的语义一致）
+        mustChangePassword: 1,
         createdAt: new Date().toISOString(),
       })
-      console.log('[CSMS] 超级管理员已创建: admin / admin123')
+      console.log('[CSMS] 超级管理员已创建: admin / admin123（已强制首次登录修改密码）')
     }
   }
 
