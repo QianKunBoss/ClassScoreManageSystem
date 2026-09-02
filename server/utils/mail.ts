@@ -160,6 +160,16 @@ export async function sendMail(opts: { to: string; subject: string; html: string
   throw new Error(`所有邮件服务发送失败：${errors.join('；')}`)
 }
 
+/** 系统是否已配置至少一个「启用」的邮件服务（供前端判断是否能发验证码） */
+export async function isMailConfigured(): Promise<boolean> {
+  try {
+    const services = await loadMailServices()
+    return services.length > 0
+  } catch {
+    return false
+  }
+}
+
 /** 用指定配置发送测试邮件（不持久化，用于模态框实时测试） */
 export async function sendTestWithConfig(
   cfgInput: Parameters<typeof toConfig>[0],

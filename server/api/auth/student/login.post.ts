@@ -34,6 +34,7 @@ export default defineEventHandler(async (event) => {
       totalScore: users.totalScore,
       email: users.email,
       disabled: users.disabled,
+      mustChangePassword: users.mustChangePassword,
       passwordHash: users.passwordHash,
     })
     .from(users)
@@ -84,6 +85,7 @@ export default defineEventHandler(async (event) => {
       classId: user.classId,
       totalScore: user.totalScore,
       email: user.email,
+      mustChangePassword: !!user.mustChangePassword,
     },
   }
 })

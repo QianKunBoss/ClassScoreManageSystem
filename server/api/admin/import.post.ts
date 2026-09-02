@@ -182,7 +182,7 @@ async function doOverwrite(db: any, bg: any[], bc: any[], bu: any[], bl: any[]) 
     await db.insert(classes).values(bc.map((c: any) => pick(c, ['id', 'gradeId', 'name', 'createdAt'])))
   }
   if (bu.length) {
-    await db.insert(users).values(bu.map((u: any) => pick(u, ['id', 'classId', 'username', 'passwordHash', 'actualName', 'totalScore', 'addScore', 'deductScore', 'scoreCount', 'createdAt'])))
+    await db.insert(users).values(bu.map((u: any) => pick(u, ['id', 'classId', 'username', 'passwordHash', 'actualName', 'mustChangePassword', 'totalScore', 'addScore', 'deductScore', 'scoreCount', 'createdAt'])))
   }
   if (bl.length) {
     await db.insert(scoreLogs).values(bl.map((l: any) => pick(l, ['id', 'userId', 'username', 'scoreChange', 'description', 'createdAt'])))
@@ -247,6 +247,8 @@ async function doMerge(db: any, bg: any[], bc: any[], bu: any[], bl: any[], scop
       username: u.username,
       passwordHash: u.passwordHash,
       actualName: u.actualName,
+      // 还原时忠实保留原始 mustChangePassword（缺省按 0）
+      mustChangePassword: u.mustChangePassword ?? 0,
       totalScore: u.totalScore ?? 0,
       addScore: u.addScore ?? 0,
       deductScore: u.deductScore ?? 0,

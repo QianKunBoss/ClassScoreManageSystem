@@ -49,6 +49,7 @@ export async function createSchoolDb(schoolId: number) {
         actual_name TEXT,
         email TEXT,
         email_bound_at TEXT,
+        must_change_password INTEGER NOT NULL DEFAULT 0,
         total_score INTEGER NOT NULL DEFAULT 0,
         add_score INTEGER NOT NULL DEFAULT 0,
         deduct_score INTEGER NOT NULL DEFAULT 0,
@@ -91,8 +92,19 @@ export async function createSchoolDb(schoolId: number) {
         user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
         username TEXT,
         is_aisle INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
         UNIQUE(class_id, group_index, row_index, col_index)
       )`,
+      `CREATE TABLE IF NOT EXISTS api_idempotency (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        token_id INTEGER NOT NULL,
+        key TEXT NOT NULL,
+        endpoint TEXT NOT NULL,
+        response_json TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      )`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS api_idempotency_token_key_unq ON api_idempotency(token_id, key)`,
     ]
 
     for (const sql of tables) {

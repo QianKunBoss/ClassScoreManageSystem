@@ -42,7 +42,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const tempPassword = generateTempPassword()
-  await db.update(users).set({ passwordHash: hashPasswordBcrypt(tempPassword) }).where(eq(users.id, id))
+  await db.update(users).set({ passwordHash: hashPasswordBcrypt(tempPassword), mustChangePassword: 1 }).where(eq(users.id, id))
 
   return {
     success: true,

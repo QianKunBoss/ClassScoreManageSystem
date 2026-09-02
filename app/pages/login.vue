@@ -106,6 +106,8 @@ async function handleLogin() {
         credentials: 'include',
       })
       if (data.success) {
+        // 仅在使用默认/重置密码时强制进入安全设置；未绑邮箱且系统已配 SMTP 的情况
+        // 由全局中间件在目标页再重定向处理，避免未配置邮件服务时把用户卡进模态框
         if (data.admin?.mustChangePassword) {
           await navigateTo('/settings?force=true')
         } else {
@@ -124,10 +126,12 @@ async function handleLogin() {
         credentials: 'include',
       })
       if (data.success) {
-        if (data.user?.email) {
-          await navigateTo('/student')
+        // 仅在使用默认/重置密码时强制进入设置页；未绑邮箱且系统已配 SMTP 的情况由
+        // student 中间件在目标页再重定向处理
+        if (data.user?.mustChangePassword) {
+          await navigateTo('/student/setup-required')
         } else {
-          await navigateTo('/student/bind-email')
+          await navigateTo('/student')
         }
       }
     }

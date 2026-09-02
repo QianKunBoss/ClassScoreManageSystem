@@ -2,6 +2,7 @@ import { getStudentFromSession } from '../../../utils/auth'
 import { useSchoolDb } from '../../../database/db'
 import { users, classes, grades } from '../../../database/schema'
 import { eq } from 'drizzle-orm'
+import { isMailConfigured } from '../../../utils/mail'
 
 // GET /api/auth/student/me — 获取当前登录学生信息（从数据库读取最新数据）
 export default defineEventHandler(async (event) => {
@@ -21,6 +22,7 @@ export default defineEventHandler(async (event) => {
       classId: users.classId,
       totalScore: users.totalScore,
       email: users.email,
+      mustChangePassword: !!users.mustChangePassword,
       className: classes.name,
       gradeName: grades.name,
     })
@@ -34,8 +36,13 @@ export default defineEventHandler(async (event) => {
     return { success: false, student: null }
   }
 
+  const emailServiceConfigured = await isMailConfigured()
+
   return {
     success: true,
-    student: dbUser,
+    student: {
+      ...dbUser,
+      emailServiceConfigured,
+    },
   }
 })

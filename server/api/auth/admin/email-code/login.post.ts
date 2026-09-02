@@ -75,6 +75,7 @@ export default defineEventHandler(async (event) => {
       gradeId: admin.gradeId,
       classId: admin.classId,
       mustChangePassword: !!admin.mustChangePassword,
+      email: admin.email || null,
     },
   }
 })

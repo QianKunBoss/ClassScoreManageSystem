@@ -119,7 +119,7 @@ export async function getSchoolRawClient(event: any, schoolId: number): Promise<
  * 学校库迁移：为 seat_layout_config 表添加 class_id 列
  * 旧版表结构没有 class_id，需要重建表
  */
-async function migrateSchoolDb(client: any, schoolId: number) {
+export async function migrateSchoolDb(client: any, schoolId: number) {
   try {
     // ===== 迁移 seat_layout_config：添加 class_id 列 =====
     try {
@@ -232,6 +232,11 @@ async function migrateSchoolDb(client: any, schoolId: number) {
         await client.execute('ALTER TABLE users ADD COLUMN disabled INTEGER NOT NULL DEFAULT 0')
         console.log(`[CSMS] school ${schoolId} users 表迁移完成：添加 disabled 列`)
       }
+      // 强制改密标志（1=使用默认/重置密码登录，需强制改密）
+      if (!userCols.includes('must_change_password')) {
+        await client.execute('ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0')
+        console.log(`[CSMS] school ${schoolId} users 表迁移完成：添加 must_change_password 列`)
+      }
     } catch (e: any) {
       console.error(`[CSMS] school ${schoolId} users email 迁移失败:`, e.message)
     }
@@ -253,4 +258,49 @@ async function migrateSchoolDb(client: any, schoolId: number) {
   } catch (e: any) {
     console.error(`[CSMS] school ${schoolId} 迁移失败:`, e.message)
   }
+}
+
+/**
+ * 启动期全量迁移所有学校库（data/schools/*.db）。
+ *
+ * 背景：migrateSchoolDb 原本只在 useSchoolDb(event, schoolId) 被调用时才针对
+ * 单个学校库执行（懒迁移）。这导致升级代码后、长时间未被访问的学校库会一直停留
+ * 在旧 schema（例如本项目新增的 users.must_change_password、api_idempotency 表），
+ * 首次访问对应学校时才临时补齐，期间相关查询可能报 "no such column"。
+ *
+ * 此函数在服务启动、主库 initDatabase() 之后调用一次，扫描磁盘上所有学校库文件，
+ * 逐个跑一遍 migrateSchoolDb，保证所有库在对外服务前已是最新结构。
+ * 单库失败不影响其它库，也不阻断启动。
+ */
+export async function migrateAllSchoolDbs() {
+  const dbDir = path.join(process.cwd(), 'data', 'schools')
+  if (!fs.existsSync(dbDir)) return
+
+  const files = fs.readdirSync(dbDir).filter((f) => /^(\d+)\.db$/.test(f))
+  if (files.length === 0) {
+    console.log('[CSMS] 未发现学校库，跳过全量迁移')
+    return
+  }
+
+  let ok = 0
+  let fail = 0
+  for (const f of files) {
+    const schoolId = parseInt(f.replace(/\.db$/, ''), 10)
+    const dbPath = path.join(dbDir, f)
+    try {
+      const client = createClient({ url: `file:${dbPath}` })
+      try {
+        await client.execute('PRAGMA journal_mode = WAL')
+        await client.execute('PRAGMA foreign_keys = ON')
+        await migrateSchoolDb(client, schoolId)
+        ok++
+      } finally {
+        await client.close()
+      }
+    } catch (e: any) {
+      fail++
+      console.error(`[CSMS] 启动迁移学校库 ${schoolId} 失败:`, e?.message || e)
+    }
+  }
+  console.log(`[CSMS] 学校库全量迁移完成：成功 ${ok}，失败 ${fail}`)
 }

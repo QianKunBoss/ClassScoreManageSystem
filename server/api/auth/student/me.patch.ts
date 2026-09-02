@@ -3,6 +3,7 @@ import { users } from '../../../database/schema'
 import { useSchoolDb } from '../../../database/db'
 import { eq } from 'drizzle-orm'
 import bcrypt from 'bcryptjs'
+import { verifyEmailCode } from '../../../utils/mail'
 
 // PATCH /api/auth/student/me — 学生修改密码和真实姓名
 export default defineEventHandler(async (event) => {
@@ -13,7 +14,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody(event)
-  const { currentPassword, newPassword, actualName, username } = body
+  const { currentPassword, newPassword, actualName, username, emailCode } = body
 
   const db = await useSchoolDb(event, student.schoolId)
   const updates: any = {}
@@ -61,27 +62,48 @@ export default defineEventHandler(async (event) => {
     messages.push('姓名已更新')
   }
 
-  // 修改密码（需要验证当前密码）
+  // 修改密码（验证当前密码 或 已绑定邮箱的验证码）
   if (newPassword) {
-    if (!currentPassword) {
-      setResponseStatus(event, 400)
-      return { success: false, message: '修改密码需输入当前密码' }
-    }
     if (newPassword.length < 6) {
       setResponseStatus(event, 400)
       return { success: false, message: '新密码长度至少6位' }
     }
-    // 验证当前密码
+
     const userWithHash = await db
-      .select({ passwordHash: users.passwordHash })
+      .select({ passwordHash: users.passwordHash, email: users.email })
       .from(users)
       .where(eq(users.id, student.id))
       .get()
-    if (!userWithHash || !bcrypt.compareSync(currentPassword, userWithHash.passwordHash)) {
+
+    let authedByCode = false
+    if (currentPassword) {
+      if (!userWithHash || !bcrypt.compareSync(currentPassword, userWithHash.passwordHash)) {
+        setResponseStatus(event, 400)
+        return { success: false, message: '当前密码错误' }
+      }
+    } else if (emailCode) {
+      if (!userWithHash?.email) {
+        setResponseStatus(event, 400)
+        return { success: false, message: '未绑定邮箱，无法使用验证码验证' }
+      }
+      if (!verifyEmailCode(userWithHash.email, emailCode)) {
+        setResponseStatus(event, 400)
+        return { success: false, message: '邮箱验证码错误或已失效' }
+      }
+      authedByCode = true
+    } else {
       setResponseStatus(event, 400)
-      return { success: false, message: '当前密码错误' }
+      return { success: false, message: '修改密码需输入当前密码或邮箱验证码' }
     }
+
+    // 新密码不能和当前密码相同（仅当前密码校验路径）
+    if (!authedByCode && userWithHash && bcrypt.compareSync(newPassword, userWithHash.passwordHash)) {
+      setResponseStatus(event, 400)
+      return { success: false, message: '新密码不能和当前密码相同' }
+    }
+
     updates.passwordHash = bcrypt.hashSync(newPassword, 10)
+    updates.mustChangePassword = 0
     messages.push('密码已更新')
   }
 

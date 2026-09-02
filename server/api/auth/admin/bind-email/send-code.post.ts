@@ -1,12 +1,12 @@
-import { requireStudent } from '../../../../utils/auth'
-import { useSchoolDb } from '../../../../database/db'
-import { users } from '../../../../database/schema'
+import { requireAdmin } from '../../../../utils/auth'
+import { useMainDb } from '../../../../database/db'
+import { admins } from '../../../../database/schema'
 import { eq } from 'drizzle-orm'
 import { EMAIL_RE, issueVerificationCode, sendMail, renderTemplate } from '../../../../utils/mail'
 
-// POST /api/auth/student/bind-email/send-code — 学生绑定邮箱：发送验证码（需登录）
+// POST /api/auth/admin/bind-email/send-code — 管理员绑定邮箱：发送验证码（需登录）
 export default defineEventHandler(async (event) => {
-  const student = await requireStudent(event)
+  const admin = await requireAdmin(event)
   const body = await readBody(event)
   const email = (body.email || '').toString().trim().toLowerCase()
 
@@ -15,15 +15,15 @@ export default defineEventHandler(async (event) => {
     return { success: false, message: '请输入有效的电子邮箱' }
   }
 
-  const db = await useSchoolDb(event, student.schoolId)
+  const db = useMainDb()
 
   // 同一邮箱不可绑定多个账号
   const conflict = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.email, email))
+    .select({ id: admins.id })
+    .from(admins)
+    .where(eq(admins.email, email))
     .get()
-  if (conflict && conflict.id !== student.id) {
+  if (conflict && conflict.id !== admin.id) {
     setResponseStatus(event, 409)
     return { success: false, message: '该邮箱已被其他账号绑定，请更换邮箱' }
   }
@@ -47,7 +47,6 @@ export default defineEventHandler(async (event) => {
   } catch (e: any) {
     if (e?.message === 'NO_ENABLED_MAIL_SERVICE') {
       if (process.env.NODE_ENV !== 'production') {
-        // 开发模式：未配置邮件服务时把验证码打到控制台，便于本地测试
         console.warn(`[DEV] 未配置邮件服务，邮箱 ${email} 的绑定验证码为：${code}`)
         return { success: true, dev: true, message: '当前未配置邮件服务（开发模式）：验证码已输出到服务器控制台，请查看运行日志。' }
       }

@@ -112,6 +112,8 @@ export default defineApiV1Handler(async (event) => {
                 passwordHash: hashPasswordBcrypt(plain),
                 actualName: item?.actualName ? String(item.actualName) : null,
                 classId,
+                // 外部 API 创建的学生使用初始密码，强制首次登录改密
+                mustChangePassword: 1,
               })
               .returning()
               .all()
@@ -159,6 +161,8 @@ export default defineApiV1Handler(async (event) => {
           passwordHash: hashPasswordBcrypt(plain),
           actualName: body.actualName ? String(body.actualName) : null,
           classId,
+          // 外部 API 创建的学生使用初始密码，强制首次登录改密
+          mustChangePassword: 1,
         })
         .returning()
         .all()

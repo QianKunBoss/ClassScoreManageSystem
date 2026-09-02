@@ -32,6 +32,8 @@ export const users = sqliteTable('users', {
   emailBoundAt: text('email_bound_at'),
   // 账号状态：0=正常，1=禁用（禁用后无法登录）
   disabled: integer('disabled').notNull().default(0),
+  // 强制改密标志：1=使用默认/重置密码登录，需强制修改密码后才能进入系统
+  mustChangePassword: integer('must_change_password').notNull().default(0),
   totalScore: integer('total_score').notNull().default(0),
   addScore: integer('add_score').notNull().default(0),
   deductScore: integer('deduct_score').notNull().default(0),

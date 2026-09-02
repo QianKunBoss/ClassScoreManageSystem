@@ -2,30 +2,23 @@ import { requireStudent } from '../../../../utils/auth'
 import { useSchoolDb } from '../../../../database/db'
 import { users } from '../../../../database/schema'
 import { eq } from 'drizzle-orm'
-import { EMAIL_RE, issueVerificationCode, sendMail, renderTemplate } from '../../../../utils/mail'
+import { issueVerificationCode, sendMail, renderTemplate } from '../../../../utils/mail'
 
-// POST /api/auth/student/bind-email/send-code — 学生绑定邮箱：发送验证码（需登录）
+// POST /api/auth/student/security/send-code — 改密验证：向已绑定邮箱发送验证码（需登录且已绑定邮箱）
 export default defineEventHandler(async (event) => {
   const student = await requireStudent(event)
-  const body = await readBody(event)
-  const email = (body.email || '').toString().trim().toLowerCase()
-
-  if (!email || !EMAIL_RE.test(email)) {
-    setResponseStatus(event, 400)
-    return { success: false, message: '请输入有效的电子邮箱' }
-  }
-
   const db = await useSchoolDb(event, student.schoolId)
 
-  // 同一邮箱不可绑定多个账号
-  const conflict = await db
-    .select({ id: users.id })
+  const user = await db
+    .select({ email: users.email })
     .from(users)
-    .where(eq(users.email, email))
+    .where(eq(users.id, student.id))
     .get()
-  if (conflict && conflict.id !== student.id) {
-    setResponseStatus(event, 409)
-    return { success: false, message: '该邮箱已被其他账号绑定，请更换邮箱' }
+
+  const email = user?.email
+  if (!email) {
+    setResponseStatus(event, 400)
+    return { success: false, message: '尚未绑定邮箱，无法发送验证码' }
   }
 
   const issued = issueVerificationCode(email)
@@ -47,8 +40,7 @@ export default defineEventHandler(async (event) => {
   } catch (e: any) {
     if (e?.message === 'NO_ENABLED_MAIL_SERVICE') {
       if (process.env.NODE_ENV !== 'production') {
-        // 开发模式：未配置邮件服务时把验证码打到控制台，便于本地测试
-        console.warn(`[DEV] 未配置邮件服务，邮箱 ${email} 的绑定验证码为：${code}`)
+        console.warn(`[DEV] 未配置邮件服务，邮箱 ${email} 的改密验证码为：${code}`)
         return { success: true, dev: true, message: '当前未配置邮件服务（开发模式）：验证码已输出到服务器控制台，请查看运行日志。' }
       }
       setResponseStatus(event, 400)

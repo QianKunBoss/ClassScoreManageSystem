@@ -73,6 +73,8 @@ export default defineEventHandler(async (event) => {
     }
     const { hashPasswordBcrypt } = await import('../../../utils/auth')
     setData.passwordHash = hashPasswordBcrypt(body.password)
+    // 被管理员改密后，强制目标管理员下次登录必须改密
+    setData.mustChangePassword = 1
   }
 
   if (body.disabled !== undefined) {

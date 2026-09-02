@@ -67,6 +67,7 @@ export default defineEventHandler(async (event) => {
           passwordHash,
           actualName: item.actualName || null,
           classId,
+          mustChangePassword: 1,
         }).returning().all()
         created.push(newUser)
         results.success++
@@ -137,6 +138,7 @@ export default defineEventHandler(async (event) => {
     classId,
     email: bindEmail,
     emailBoundAt: bindEmail ? new Date().toISOString() : null,
+    mustChangePassword: 1,
   }).returning().all()
 
   return {

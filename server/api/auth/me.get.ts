@@ -3,6 +3,7 @@ import { requireAdmin } from '../../utils/auth'
 import { useMainDb, useSchoolDb } from '../../database/db'
 import { schools } from '../../database/schema.main'
 import { classes, grades } from '../../database/schema.school'
+import { isMailConfigured } from '../../utils/mail'
 
 export default defineEventHandler(async (event) => {
   const admin = await requireAdmin(event)
@@ -34,6 +35,8 @@ export default defineEventHandler(async (event) => {
     if (school) schoolName = school.name
   }
 
+  const emailServiceConfigured = await isMailConfigured()
+
   return {
     success: true,
     admin: {
@@ -44,9 +47,11 @@ export default defineEventHandler(async (event) => {
       gradeId: admin.gradeId,
       classId: admin.classId,
       mustChangePassword: !!admin.mustChangePassword,
+      email: admin.email || null,
       className,
       gradeName,
       schoolName,
+      emailServiceConfigured,
     },
   }
 })

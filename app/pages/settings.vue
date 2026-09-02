@@ -2,6 +2,8 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useToast } from '~/composables/useToast'
 import { onBeforeRouteLeave } from 'vue-router'
+import SecuritySetup from '~/components/security/SecuritySetup.vue'
+import { Send, Check, RefreshCw } from '~/utils/icons'
 
 const toast = useToast()
 
@@ -13,7 +15,8 @@ const { data: authData, refresh: refreshAuth } = useFetch('/api/auth/me', {
 })
 
 const currentUser = computed(() => authData.value?.admin || null)
-const mustChange = computed(() => currentUser.value?.mustChangePassword === 1)
+// mustChangePassword 由后端以布尔形式返回（true/false），用真值判断（不能用 === 1）
+const mustChange = computed(() => !!currentUser.value?.mustChangePassword)
 
 const belongInfo = computed(() => {
   const u = currentUser.value
@@ -26,6 +29,79 @@ const belongInfo = computed(() => {
   if (u.role === 'super_admin') return '系统全局'
   return ''
 })
+
+// ===== 邮箱安全：修改/绑定邮箱（复用 bind-email 接口，无需改后端） =====
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const emailFormOpen = ref(false)
+const newEmail = ref('')
+const emailCode = ref('')
+const emailSending = ref(false)
+const emailBinding = ref(false)
+const emailCooldown = ref(0)
+let emailCooldownTimer: ReturnType<typeof setInterval> | null = null
+
+const canSendEmailCode = computed(
+  () => EMAIL_RE.test(newEmail.value.trim()) && emailCooldown.value === 0 && !emailSending.value,
+)
+
+function startEmailCooldown(secs = 60) {
+  emailCooldown.value = secs
+  if (emailCooldownTimer) clearInterval(emailCooldownTimer)
+  emailCooldownTimer = setInterval(() => {
+    emailCooldown.value--
+    if (emailCooldown.value <= 0 && emailCooldownTimer) {
+      clearInterval(emailCooldownTimer)
+      emailCooldownTimer = null
+    }
+  }, 1000)
+}
+
+async function sendEmailCode() {
+  if (!canSendEmailCode.value) return
+  emailSending.value = true
+  try {
+    const res = await $fetch('/api/auth/admin/bind-email/send-code', {
+      method: 'POST',
+      credentials: 'include',
+      body: { email: newEmail.value.trim().toLowerCase() },
+    })
+    toast.success(res.message || '验证码已发送')
+    startEmailCooldown()
+  } catch (err: any) {
+    const msg = err.data?.message || err.data?.statusMessage || '发送失败'
+    toast.error(msg)
+    if (err.data?.code === 'MAIL_NOT_CONFIGURED') {
+      toast.error('系统尚未配置邮件服务，无法发送验证码，请先配置 SMTP 后再修改邮箱')
+    }
+    if (err.data?.remainingMs) startEmailCooldown(Math.ceil(err.data.remainingMs / 1000))
+  } finally {
+    emailSending.value = false
+  }
+}
+
+async function confirmEmail() {
+  if (!newEmail.value.trim() || !emailCode.value.trim()) {
+    toast.error('请填写邮箱与验证码')
+    return
+  }
+  emailBinding.value = true
+  try {
+    const res = await $fetch('/api/auth/admin/bind-email/verify', {
+      method: 'POST',
+      credentials: 'include',
+      body: { email: newEmail.value.trim().toLowerCase(), code: emailCode.value.trim() },
+    })
+    toast.success(res.message || '邮箱已更新')
+    emailFormOpen.value = false
+    newEmail.value = ''
+    emailCode.value = ''
+    await refreshAuth()
+  } catch (err: any) {
+    toast.error(err.data?.message || err.data?.statusMessage || '绑定失败')
+  } finally {
+    emailBinding.value = false
+  }
+}
 
 // 强制改密模式
 const forceMode = ref(false)
@@ -55,6 +131,7 @@ onMounted(() => {
 })
 onBeforeUnmount(() => {
   window.removeEventListener('beforeunload', beforeUnloadHandler)
+  if (emailCooldownTimer) clearInterval(emailCooldownTimer)
 })
 
 // 修改用户名
@@ -134,25 +211,30 @@ async function updatePassword() {
     pwdLoading.value = false
   }
 }
+
+// 强制安全设置（SecuritySetup 模态框）完成后的回调
+async function onSetupDone() {
+  // 刷新用户信息（mustChangePassword 已清零、email 已绑定）
+  await refreshAuth()
+  forceMode.value = false
+  window.history.replaceState(null, '', '/settings')
+  toast.success('安全设置已完成，现在可以正常使用系统了')
+}
 </script>
 
 <template>
   <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-    <!-- 强制改密提示 -->
-    <div
+    <!-- 强制安全设置：渲染全屏模态框，未完成任务前不可关闭 -->
+    <SecuritySetup
       v-if="forceMode"
-      class="glass-card p-6 mb-8 border-amber-500/30 bg-amber-500/5"
-    >
-      <div class="flex items-center gap-3 mb-2">
-        <span class="text-2xl"><MorphIcon name="alert-triangle" size="1em" class="inline-block align-middle" /></span>
-        <h2 class="text-lg font-bold text-amber-400">请先修改密码</h2>
-      </div>
-      <p class="text-sm text-slate-400 leading-relaxed">
-        您使用的是初始密码，为了账号安全，请先设置新密码再继续使用系统。<br />
-        <span class="text-amber-400/80">新密码不能与初始密码相同。</span>
-      </p>
-    </div>
+      role="admin"
+      :initial-email="currentUser?.email"
+      :email-service-configured="currentUser?.emailServiceConfigured"
+      force
+      @done="onSetupDone"
+    />
 
+    <template v-else>
     <h1 class="text-2xl font-bold text-slate-100 mb-1">个人设置</h1>
         <p class="text-sm text-slate-500 mb-8">{{ belongInfo || '账号设置' }}</p>
 
@@ -190,6 +272,13 @@ async function updatePassword() {
             <span class="text-sm text-slate-500">所属</span>
             <span class="text-sm text-slate-200 font-medium">{{ belongInfo }}</span>
           </div>
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-slate-500">邮箱</span>
+            <span class="text-sm text-slate-200 font-medium flex items-center gap-2">
+              <MorphIcon v-if="currentUser?.email" name="mail-check" size="1em" class="text-green-400" />
+              {{ currentUser?.email || '未绑定' }}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -223,6 +312,86 @@ async function updatePassword() {
           >
             {{ usernameLoading ? '更新中...' : '更新用户名' }}
           </button>
+        </div>
+      </div>
+
+      <!-- 邮箱安全 -->
+      <div class="glass-card p-6">
+        <h2 class="text-sm font-bold text-slate-100 mb-4">邮箱安全</h2>
+        <div class="space-y-4">
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-slate-500">绑定邮箱</span>
+            <span class="text-sm text-slate-200 font-medium flex items-center gap-2">
+              <MorphIcon v-if="currentUser?.email" name="mail-check" size="1em" class="text-green-400" />
+              {{ currentUser?.email || '未绑定' }}
+            </span>
+          </div>
+
+          <template v-if="!emailFormOpen">
+            <button class="btn btn-ghost text-sm" @click="emailFormOpen = true">
+              {{ currentUser?.email ? '更换邮箱' : '绑定邮箱' }}
+            </button>
+          </template>
+
+          <template v-else>
+            <div>
+              <label class="block text-xs text-slate-500 mb-1.5">新邮箱地址</label>
+              <input
+                v-model="newEmail"
+                type="email"
+                placeholder="请输入新邮箱"
+                class="form-input w-full"
+                :disabled="emailBinding"
+                @keyup.enter="sendEmailCode"
+              />
+            </div>
+            <div>
+              <label class="block text-xs text-slate-500 mb-1.5">验证码</label>
+              <div class="flex gap-2">
+                <input
+                  v-model="emailCode"
+                  type="text"
+                  inputmode="numeric"
+                  placeholder="6 位验证码"
+                  class="form-input flex-1"
+                  :disabled="emailBinding"
+                  @keyup.enter="confirmEmail"
+                />
+                <button
+                  type="button"
+                  :disabled="!canSendEmailCode"
+                  @click="sendEmailCode"
+                  class="btn btn-ghost text-sm whitespace-nowrap min-w-[104px]"
+                >
+                  <span v-if="emailCooldown > 0" class="tabular-nums">{{ emailCooldown }} 秒后重发</span>
+                  <span v-else-if="emailSending" class="flex items-center gap-1.5">
+                    <MorphIcon :icon="RefreshCw" :size="14" class="animate-spin" /> 发送中
+                  </span>
+                  <span v-else class="flex items-center gap-1.5"><MorphIcon :icon="Send" :size="14" /> 获取验证码</span>
+                </button>
+              </div>
+            </div>
+            <div class="flex gap-3">
+              <button
+                class="btn btn-primary text-sm flex-1"
+                :disabled="emailBinding"
+                @click="confirmEmail"
+              >
+                <span v-if="emailBinding" class="flex items-center gap-2">
+                  <span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                  提交中...
+                </span>
+                <span v-else class="flex items-center gap-1.5"><MorphIcon :icon="Check" :size="16" /> 确认修改</span>
+              </button>
+              <button
+                class="btn btn-ghost text-sm"
+                :disabled="emailBinding"
+                @click="emailFormOpen = false"
+              >
+                取消
+              </button>
+            </div>
+          </template>
         </div>
       </div>
 
@@ -267,6 +436,7 @@ async function updatePassword() {
         </div>
       </div>
     </div>
+  </template>
   </div>
 </template>
 
