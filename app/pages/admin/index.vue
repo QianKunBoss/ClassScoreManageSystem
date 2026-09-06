@@ -3,6 +3,10 @@ import type { School, Grade, Class, User, ScoreLog } from '~/types'
 import { formatDate, formatTime } from '~/utils/format'
 import { useToast } from '~/composables/useToast'
 import DatePicker from '~/components/ui/DatePicker.vue'
+import ScoreTrendLine from '~/components/chart/ScoreTrendLine.vue'
+import ScoreCandlestick from '~/components/chart/ScoreCandlestick.vue'
+import MiniSparkline from '~/components/chart/MiniSparkline.vue'
+import MiniCandles from '~/components/chart/MiniCandles.vue'
 
 definePageMeta({ auth: true })
 
@@ -151,6 +155,7 @@ watch([filterClassId, filterGradeId, statsScope], ([cid, gid, scope]) => {
     classInfo.value = null
   }
   loadLogs()
+  if (showDataView.value) loadTrendUsers()
 })
 
 // 年级筛选变更时，清空班级选择（如果当前班级不属于该年级）
@@ -240,6 +245,84 @@ const classStats = computed(() => {
     min: Math.min(...scores),
   }
 })
+
+// ===== 积分趋势迷你图（排行榜每行一份：折线 + K 线） =====
+const TREND_DAYS = 30
+const trendUsers = ref<{ days: string[]; users: Record<string, number[][]> }>({
+  days: [],
+  users: {},
+})
+const trendLoading = ref(false)
+
+// 迷你图较小，点击行可展开查看该生的大图
+const expandedUserId = ref<number | null>(null)
+const expandedTrend = ref<any>(null)
+const expandedLoading = ref(false)
+
+// 每个学生 → { candles: OHLC 序列, nets: 每日净变化 }
+const trendMap = computed<Record<number, {
+  candles: { o: number; c: number; h: number; l: number; n: number }[]
+  nets: number[]
+}>>(() => {
+  const out: Record<number, any> = {}
+  for (const [k, arr] of Object.entries(trendUsers.value.users || {})) {
+    const candles = (arr as number[][]).map(([o, c, h, l, n]) => ({ o, c, h, l, n }))
+    out[Number(k)] = { candles, nets: candles.map(d => d.n) }
+  }
+  return out
+})
+
+// 一次请求拉取作用域内全部学生的序列（避免逐行请求）
+async function loadTrendUsers() {
+  trendLoading.value = true
+  expandedUserId.value = null
+  expandedTrend.value = null
+  try {
+    const params: Record<string, any> = { days: TREND_DAYS }
+    if (statsScope.value !== 'all' && filterClassId.value) {
+      params.classId = Number(filterClassId.value)
+    } else if (statsScope.value !== 'all' && filterGradeId.value) {
+      params.gradeId = Number(filterGradeId.value)
+    } else if (
+      statsScope.value === 'all'
+      && admin.value?.role === 'grade_admin'
+      && admin.value.gradeId
+    ) {
+      params.gradeId = admin.value.gradeId
+    }
+    const res = await $fetch<any>('/api/scores/trend/users', { params })
+    trendUsers.value = { days: res?.days || [], users: res?.users || {} }
+  } catch (err) {
+    console.error('加载学生趋势失败', err)
+    trendUsers.value = { days: [], users: {} }
+  } finally {
+    trendLoading.value = false
+  }
+}
+
+// 展开大图：按需拉取该生明细（含加分/减分/操作次数，用于 tooltip）
+async function toggleExpand(u: User) {
+  if (expandedUserId.value === u.id) {
+    expandedUserId.value = null
+    expandedTrend.value = null
+    return
+  }
+  expandedUserId.value = u.id
+  expandedTrend.value = null
+  expandedLoading.value = true
+  try {
+    const res = await $fetch<any>('/api/scores/trend', {
+      params: { days: TREND_DAYS, userId: u.id },
+    })
+    expandedTrend.value = res
+  } catch (err) {
+    console.error('加载学生趋势明细失败', err)
+  } finally {
+    expandedLoading.value = false
+  }
+}
+
+const expandedPoints = computed<any[]>(() => expandedTrend.value?.days || [])
 
 // ===== 数据导出 / 导入（备份 / 恢复） =====
 const toast = useToast()
@@ -591,13 +674,14 @@ function cancelImport() {
                   </h2>
                 <span class="text-xs text-slate-600">全部</span>
               </div>
-              <!-- 列头：用户 / 总积分 / 加分 / 减分 -->
-              <div class="flex items-center gap-4 px-3 pb-1 text-xs text-slate-500">
+              <!-- 列头：用户 / 总积分 / 加分 / 减分 / 趋势 -->
+              <div class="flex items-center gap-3 px-3 pb-1 text-xs text-slate-500">
                 <div class="w-7 shrink-0 text-center">#</div>
                 <div class="flex-1 min-w-0">用户</div>
                 <div class="w-20 text-right">总积分</div>
                 <div class="w-16 text-right text-emerald-400">加分</div>
                 <div class="w-16 text-right text-red-400">减分</div>
+                <div class="w-[176px] shrink-0 text-center">最近 {{ TREND_DAYS }} 天趋势</div>
               </div>
               <div v-if="contentLoading" class="space-y-2">
                 <div v-for="i in 5" :key="i" class="h-12 rounded-lg bg-slate-800/40 animate-pulse"></div>
@@ -607,19 +691,69 @@ function cancelImport() {
                 暂无学生数据
               </div>
               <div v-else class="space-y-1">
-                <div
-                  v-for="(u, idx) in rankList"
-                  :key="u.id"
-                  class="flex items-center gap-4 px-3 py-2.5 rounded-lg hover:bg-slate-800/40 transition-colors"
-                >
-                  <div :class="`w-7 shrink-0 text-center text-sm tabular-nums ${idx < 3 ? 'font-bold text-brand-400' : 'text-slate-500'}`">{{ idx + 1 }}</div>
-                  <div class="flex-1 min-w-0">
-                    <span class="text-sm text-slate-200 truncate block">{{ u.actualName || u.username }}</span>
-                    <span v-if="u.actualName" class="text-xs text-slate-600">{{ u.username }}</span>
+                <div v-for="(u, idx) in rankList" :key="u.id">
+                  <div
+                    @click="toggleExpand(u)"
+                    :title="`查看「${u.actualName || u.username}」的趋势大图`"
+                    :class="`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+                      expandedUserId === u.id
+                        ? 'bg-brand-500/10 ring-1 ring-brand-500/25'
+                        : 'hover:bg-slate-800/40'
+                    }`"
+                  >
+                    <div :class="`w-7 shrink-0 text-center text-sm tabular-nums ${idx < 3 ? 'font-bold text-brand-400' : 'text-slate-500'}`">{{ idx + 1 }}</div>
+                    <div class="flex-1 min-w-0">
+                      <span class="text-sm text-slate-200 truncate block">{{ u.actualName || u.username }}</span>
+                      <span v-if="u.actualName" class="text-xs text-slate-600">{{ u.username }}</span>
+                    </div>
+                    <span class="w-20 text-right text-sm font-bold text-brand-400 tabular-nums">{{ u.totalScore ?? 0 }}</span>
+                    <span class="w-16 text-right text-sm font-bold text-emerald-400 tabular-nums">+{{ u.addScore ?? 0 }}</span>
+                    <span class="w-16 text-right text-sm font-bold text-red-400 tabular-nums">{{ u.deductScore ?? 0 }}</span>
+
+                    <!-- 该生专属迷你图：折线（每日净变化）+ K 线（累计积分 OHLC） -->
+                    <div class="w-[176px] shrink-0 flex items-center justify-end gap-2">
+                      <template v-if="trendMap[u.id]">
+                        <MiniSparkline :values="trendMap[u.id].nets" :width="78" :height="26" />
+                        <MiniCandles :candles="trendMap[u.id].candles" :width="78" :height="26" />
+                      </template>
+                      <span v-else class="text-[10px] text-slate-700">—</span>
+                    </div>
                   </div>
-                  <span class="w-20 text-right text-sm font-bold text-brand-400 tabular-nums">{{ u.totalScore ?? 0 }}</span>
-                  <span class="w-16 text-right text-sm font-bold text-emerald-400 tabular-nums">+{{ u.addScore ?? 0 }}</span>
-                  <span class="w-16 text-right text-sm font-bold text-red-400 tabular-nums">{{ u.deductScore ?? 0 }}</span>
+
+                  <!-- 展开：该生大图（迷你图太小，点开看细节） -->
+                  <div v-if="expandedUserId === u.id" class="px-3 pb-3 pt-0.5">
+                    <div class="rounded-lg border border-slate-800/60 bg-slate-900/30 p-3">
+                      <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+                        <span class="text-[11px] text-slate-400">
+                          {{ u.actualName || u.username }} · 最近 {{ TREND_DAYS }} 天
+                        </span>
+                        <button
+                          @click.stop="toggleExpand(u)"
+                          class="text-[11px] text-brand-400 hover:text-brand-300 transition-colors"
+                        >
+                          收起
+                        </button>
+                      </div>
+                      <div v-if="expandedLoading" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="h-[150px] rounded-lg bg-slate-800/40 animate-pulse"></div>
+                        <div class="h-[150px] rounded-lg bg-slate-800/40 animate-pulse"></div>
+                      </div>
+                      <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <p class="text-[11px] text-slate-500 mb-1">每日净变化（折线）</p>
+                          <ClientOnly>
+                            <ScoreTrendLine :points="expandedPoints" />
+                          </ClientOnly>
+                        </div>
+                        <div>
+                          <p class="text-[11px] text-slate-500 mb-1">累计积分 K 线</p>
+                          <ClientOnly>
+                            <ScoreCandlestick :points="expandedPoints" />
+                          </ClientOnly>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <p class="text-xs text-slate-600 text-center pt-2">
                   共 {{ classUsers.length }} 名同学

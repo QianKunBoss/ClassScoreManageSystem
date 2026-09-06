@@ -1,6 +1,9 @@
 <script setup lang="ts">
 definePageMeta({ middleware: 'student', layout: 'student' })
 
+import ScoreTrendLine from '~/components/chart/ScoreTrendLine.vue'
+import ScoreCandlestick from '~/components/chart/ScoreCandlestick.vue'
+
 const toast = useToast()
 const route = useRoute()
 
@@ -17,6 +20,10 @@ const student = computed(() => meData.value?.student || null)
 const logs = ref<any[]>([])
 const logsLoading = ref(true)
 
+// 最近 30 天积分趋势（折线 + K 线）
+const trend = ref<any[]>([])
+const trendLoading = ref(true)
+
 // 班级同学（用于排名）
 const classmates = ref<any[]>([])
 const classRank = computed(() => {
@@ -29,6 +36,7 @@ const classRank = computed(() => {
 watch(student, async (val) => {
   if (!val) return
   logsLoading.value = true
+  trendLoading.value = true
   try {
     const [logsRes, classmatesRes] = await Promise.all([
       $fetch('/api/student/logs', {
@@ -41,10 +49,18 @@ watch(student, async (val) => {
     ])
     logs.value = logsRes.data || []
     classmates.value = classmatesRes.data || []
+
+    // 趋势数据（学生端专用，仅本人）
+    const trendRes = await $fetch<{ success: boolean; data?: { days: any[] } }>('/api/student/trend', {
+      params: { days: 30 },
+      credentials: 'include',
+    })
+    trend.value = trendRes.data?.days || []
   } catch (err) {
     console.error('加载数据失败', err)
   } finally {
     logsLoading.value = false
+    trendLoading.value = false
   }
 }, { immediate: true })
 
@@ -89,6 +105,32 @@ function formatTime(t: string) {
         <div class="glass-card p-6 animate-slide-up" style="animation-delay: 0.1s">
           <p class="text-xs text-slate-500 mb-1">班级总人数</p>
           <p class="text-3xl font-black text-slate-300">{{ classmates.length }}</p>
+        </div>
+      </div>
+
+      <!-- 最近 30 天积分趋势（折线图 + K 线图） -->
+      <div class="glass-card p-6 animate-slide-up mb-10" style="animation-delay: 0.12s">
+        <div class="flex items-center justify-between mb-5">
+          <h2 class="text-sm font-bold text-slate-100">最近 30 天积分趋势</h2>
+          <span class="text-xs text-slate-600">折线：每日净变化 · K 线：累计积分（红涨绿跌）</span>
+        </div>
+        <div v-if="trendLoading" class="h-[200px] rounded-lg bg-slate-800/40 animate-pulse"></div>
+        <div v-else-if="trend.length === 0" class="text-center py-10 text-slate-600 text-sm">
+          暂无趋势数据
+        </div>
+        <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <p class="text-xs text-slate-500 mb-2">每日净变化（折线图）</p>
+            <ClientOnly>
+              <ScoreTrendLine :points="trend" />
+            </ClientOnly>
+          </div>
+          <div>
+            <p class="text-xs text-slate-500 mb-2">累计积分（K 线图）</p>
+            <ClientOnly>
+              <ScoreCandlestick :points="trend" />
+            </ClientOnly>
+          </div>
         </div>
       </div>
 
