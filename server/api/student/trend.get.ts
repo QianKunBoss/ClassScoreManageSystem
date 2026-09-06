@@ -35,22 +35,23 @@ export default defineEventHandler(async (event) => {
   const days = Math.min(90, Math.max(2, Number(query.days) || 30))
 
   // 默认查看本人；支持查看同班同学（用于排名页展开大图）
-  let targetId = student.id
-  let currentTotal = Number(student.totalScore || 0)
+  // 注意：getStudentFromSession 不含 totalScore，须从学校库读取真实积分
   const reqUserId = query.userId ? Number(query.userId) : null
-  if (reqUserId && reqUserId !== student.id) {
-    const tu = await db
-      .select({ id: users.id, classId: users.classId, totalScore: users.totalScore })
-      .from(users)
-      .where(eq(users.id, reqUserId))
-      .get()
-    if (!tu || tu.classId !== student.classId) {
-      setResponseStatus(event, 403)
-      return { success: false, message: '无权查看该学生' }
-    }
-    targetId = tu.id
-    currentTotal = Number(tu.totalScore || 0)
+  const targetId = reqUserId && reqUserId !== student.id ? reqUserId : student.id
+
+  const tu = await db
+    .select({ id: users.id, classId: users.classId, totalScore: users.totalScore })
+    .from(users)
+    .where(eq(users.id, targetId))
+    .get()
+
+  // 目标必须是本人或同班同学（学生只能看自己班级）
+  if (!tu || tu.classId !== student.classId) {
+    setResponseStatus(event, 403)
+    return { success: false, message: '无权查看该学生' }
   }
+
+  const currentTotal = Number(tu.totalScore || 0)
 
   // 时间窗口（本地时区，含今天）
   const now = new Date()

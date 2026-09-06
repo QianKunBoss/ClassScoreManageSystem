@@ -7,6 +7,7 @@ import ScoreTrendLine from '~/components/chart/ScoreTrendLine.vue'
 import ScoreCandlestick from '~/components/chart/ScoreCandlestick.vue'
 import MiniSparkline from '~/components/chart/MiniSparkline.vue'
 import MiniCandles from '~/components/chart/MiniCandles.vue'
+import ScoreAddDeductBar from '~/components/chart/ScoreAddDeductBar.vue'
 
 definePageMeta({ auth: true })
 
@@ -155,7 +156,10 @@ watch([filterClassId, filterGradeId, statsScope], ([cid, gid, scope]) => {
     classInfo.value = null
   }
   loadLogs()
-  if (showDataView.value) loadTrendUsers()
+  if (showDataView.value) {
+    loadTrendUsers()
+    loadOverview()
+  }
 })
 
 // 年级筛选变更时，清空班级选择（如果当前班级不属于该年级）
@@ -323,6 +327,81 @@ async function toggleExpand(u: User) {
 }
 
 const expandedPoints = computed<any[]>(() => expandedTrend.value?.days || [])
+
+// ===== 总体图表（品字形：加扣分趋势 + K线 在上，各维度条形图在下） =====
+const overviewTrend = ref<any>(null)          // /api/scores/trend 返回 { days:[...] }
+const overviewBars = ref<{ label: string; add: number; deduct: number }[]>([])
+const overviewLoading = ref(false)
+
+const overviewScope = computed<'school' | 'grade' | 'class'>(() => {
+  const role = admin.value?.role
+  if (role === 'class_admin') return 'class'
+  if (statsScope.value === 'all') return role === 'school_admin' ? 'school' : 'grade'
+  return statsScope.value
+})
+
+const overviewScopeLabel = computed(() => {
+  if (overviewScope.value === 'school') return '全校'
+  if (overviewScope.value === 'grade') {
+    if (admin.value?.role === 'grade_admin') {
+      const g = allGrades.value.find(x => x.id === Number((admin.value as any).gradeId))
+      return g?.name || '全年级'
+    }
+    return selectedGrade.value?.name || '年级'
+  }
+  return selectedClass.value?.name || '班级'
+})
+
+const overviewBarsTitle = computed(() =>
+  overviewScope.value === 'school' ? '各年级加扣分对比' : '各班级加扣分对比'
+)
+
+async function loadOverview() {
+  const scope = overviewScope.value
+  const tParams: Record<string, any> = { days: TREND_DAYS }
+  const bParams: Record<string, any> = { scope }
+
+  if (scope === 'grade') {
+    const gid = admin.value?.role === 'grade_admin'
+      ? (admin.value as any).gradeId
+      : (filterGradeId.value ? Number(filterGradeId.value) : undefined)
+    if (gid == null) {
+      overviewTrend.value = null
+      overviewBars.value = []
+      return
+    }
+    tParams.gradeId = gid
+    bParams.gradeId = gid
+  } else if (scope === 'class') {
+    const cid = admin.value?.role === 'class_admin'
+      ? (admin.value as any).classId
+      : (filterClassId.value ? Number(filterClassId.value) : undefined)
+    if (cid == null) {
+      overviewTrend.value = null
+      overviewBars.value = []
+      return
+    }
+    tParams.classId = cid
+    bParams.classId = cid
+  }
+  // scope === 'school'：无额外参数（全校）
+
+  overviewLoading.value = true
+  try {
+    const [tRes, bRes] = await Promise.all([
+      $fetch<any>('/api/scores/trend', { params: tParams }),
+      $fetch<{ data: { label: string; add: number; deduct: number }[] }>('/api/scores/breakdown', { params: bParams }),
+    ])
+    overviewTrend.value = tRes
+    overviewBars.value = bRes?.data || []
+  } catch (err) {
+    console.error('加载总体图表失败', err)
+    overviewTrend.value = null
+    overviewBars.value = []
+  } finally {
+    overviewLoading.value = false
+  }
+}
 
 // ===== 数据导出 / 导入（备份 / 恢复） =====
 const toast = useToast()
@@ -803,6 +882,51 @@ function cancelImport() {
                     {{ log.scoreChange > 0 ? '+' : '' }}{{ log.scoreChange }}
                   </span>
                 </div>
+              </div>
+            </div>
+
+            <!-- 总体图表（品字形：加扣分趋势 + K线 在上，各维度条形图在下） -->
+            <div v-if="showDataView" class="glass-card p-6">
+              <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+                <h2 class="text-base font-bold text-slate-100">总体积分趋势</h2>
+                <span class="text-xs text-slate-600">{{ overviewScopeLabel }} · 最近 {{ TREND_DAYS }} 天</span>
+              </div>
+
+              <div v-if="overviewLoading" class="space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div class="h-[180px] rounded-lg bg-slate-800/40 animate-pulse"></div>
+                  <div class="h-[180px] rounded-lg bg-slate-800/40 animate-pulse"></div>
+                </div>
+                <div class="h-[200px] rounded-lg bg-slate-800/40 animate-pulse"></div>
+              </div>
+
+              <div v-else-if="overviewTrend?.days?.length || overviewBars.length" class="space-y-6">
+                <!-- 上排：每日净变化折线 + K线（与管理员/学生排行榜大图一致） -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div>
+                    <p class="text-xs text-slate-500 mb-2">每日净变化（折线）</p>
+                    <ClientOnly>
+                      <ScoreTrendLine :points="overviewTrend?.days || []" />
+                    </ClientOnly>
+                  </div>
+                  <div>
+                    <p class="text-xs text-slate-500 mb-2">累计积分 K 线</p>
+                    <ClientOnly>
+                      <ScoreCandlestick :points="overviewTrend?.days || []" />
+                    </ClientOnly>
+                  </div>
+                </div>
+                <!-- 下排：各维度加扣分条形图 -->
+                <div>
+                  <p class="text-xs text-slate-500 mb-2">{{ overviewBarsTitle }}</p>
+                  <ClientOnly>
+                    <ScoreAddDeductBar :items="overviewBars" />
+                  </ClientOnly>
+                </div>
+              </div>
+
+              <div v-else class="text-center py-10 text-slate-600 text-sm">
+                暂无总体数据
               </div>
             </div>
           </div>
