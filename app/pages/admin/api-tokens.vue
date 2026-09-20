@@ -384,7 +384,7 @@ async function submitRevoke() {
 const showGuide = ref(false)
 const curlSample = computed(
   () => `curl -X POST "${baseUrl.value || 'https://<你的域名>/api/v1'}/scores" \\
-  -H "Authorization: Bearer csms_xxxxxxxx" \\
+  -H "Authorization: Bearer classfire_xxxxxxxx" \\
   -H "Content-Type: application/json" \\
   -H "Idempotency-Key: $(uuidgen)" \\
   -d '{"username":"20240101","scoreChange":2,"description":"课堂表现优秀"}'`,

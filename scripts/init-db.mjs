@@ -7,7 +7,7 @@ import bcrypt from 'bcryptjs'
 import fs from 'fs'
 import path from 'path'
 
-const dbPath = path.join(process.cwd(), 'data', 'csms.db')
+const dbPath = path.join(process.cwd(), 'data', 'classfire.db')
 const dataDir = path.dirname(dbPath)
 
 if (!fs.existsSync(dataDir)) {
@@ -18,7 +18,7 @@ const client = createClient({ url: `file:${dbPath}` })
 client.execute('PRAGMA journal_mode = WAL')
 client.execute('PRAGMA foreign_keys = ON')
 
-console.log('[CSMS] 开始初始化数据库...')
+console.log('[ClassFire] 开始初始化数据库...')
 
 // 建表 SQL（逐条执行）
 const statements = [
@@ -51,13 +51,13 @@ try {
     `INSERT OR IGNORE INTO admins (username, password_hash, role, created_at) VALUES (?, ?, 'super_admin', ?)`,
     ['admin', passwordHash, new Date().toISOString()]
   )
-  console.log('[CSMS] 超级管理员已创建: admin / admin123')
+  console.log('[ClassFire] 超级管理员已创建: admin / admin123')
 } catch {}
 
 // 插入默认系统设置
 const defaultSettings = [
-  ['system_title', '班级操行分管理系统'],
-  ['nav_title', 'CSMS'],
+  ['system_title', 'ClassFire 班级操行分管理系统'],
+  ['nav_title', 'ClassFire'],
   ['show_ranking', '1'],
   ['show_search', '1'],
   ['enable_user_detail', '1'],
@@ -75,6 +75,6 @@ for (const [key, value] of defaultSettings) {
   } catch {}
 }
 
-console.log('[CSMS] 数据库初始化完成！')
-console.log('[CSMS] 数据库文件:', dbPath)
+console.log('[ClassFire] 数据库初始化完成！')
+console.log('[ClassFire] 数据库文件:', dbPath)
 process.exit(0)

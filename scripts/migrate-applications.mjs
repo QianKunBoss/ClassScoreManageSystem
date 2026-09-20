@@ -3,7 +3,7 @@ import { createClient } from '@libsql/client'
 import fs from 'fs'
 import path from 'path'
 
-const dbPath = path.join(process.cwd(), 'data', 'csms.db')
+const dbPath = path.join(process.cwd(), 'data', 'classfire.db')
 console.log('数据库路径:', dbPath)
 
 if (!fs.existsSync(dbPath)) {

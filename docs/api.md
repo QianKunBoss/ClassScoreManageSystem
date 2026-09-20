@@ -1,8 +1,8 @@
-# CSMS API 接口文档
+# ClassFire API 接口文档
 
 ## 概述
 
-CSMS v0.3.0 基于 Nuxt 4 框架重构，采用 RESTful API 设计。所有 API 接口均以 `/api` 为前缀。
+ClassFire v0.3.0 基于 Nuxt 4 框架重构，采用 RESTful API 设计。所有 API 接口均以 `/api` 为前缀。
 
 **基础URL**: `/api`
 

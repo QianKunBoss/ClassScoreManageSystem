@@ -1,13 +1,13 @@
 #!/bin/bash
 # ===========================================
-# CSMS v0.3.0 - 一键部署脚本
+# ClassFire v0.3.0 - 一键部署脚本
 # 支持 Docker 和 PM2 两种方式
 # ===========================================
 
 set -e
 
 echo "========================================"
-echo "  CSMS v0.3.0 部署脚本"
+echo "  ClassFire v0.3.0 部署脚本"
 echo "========================================"
 
 # 检查 .env 文件
@@ -63,7 +63,7 @@ case $DEPLOY_MODE in
         echo "   访问: http://localhost"
         echo "   查看日志: docker compose logs -f"
         echo "   停止服务: docker compose down"
-        echo "   数据备份: docker run --rm -v csms-data:/data -v $(pwd):/backup alpine cp /data/csms.db /backup/"
+        echo "   数据备份: docker run --rm -v classfire-data:/data -v $(pwd):/backup alpine cp /data/classfire.db /backup/"
         ;;
     
     2)
@@ -97,8 +97,8 @@ case $DEPLOY_MODE in
         echo ""
         echo "✅ 部署完成！"
         echo "   访问: http://localhost:3000"
-        echo "   查看日志: pm2 logs csms"
-        echo "   停止服务: pm2 stop csms"
+        echo "   查看日志: pm2 logs classfire"
+        echo "   停止服务: pm2 stop classfire"
         echo "   设置开机自启: pm2 startup"
         ;;
     

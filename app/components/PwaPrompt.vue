@@ -22,9 +22,9 @@ const showInstall = computed(() => pwa.showInstallPrompt && !pwa.isPWAInstalled)
       class="fixed bottom-4 left-1/2 z-[100] w-[min(92vw,26rem)] -translate-x-1/2 rounded-xl border border-[#3b82a0]/40 bg-[#0b1220] p-4 shadow-lg shadow-black/40"
     >
       <div class="flex items-center gap-3">
-        <img src="/pwa-192x192.png" alt="CSMS" class="h-10 w-10 rounded-lg" >
+        <img src="/pwa-192x192.png" alt="ClassFire" class="h-10 w-10 rounded-lg" >
         <div class="min-w-0 flex-1">
-          <p class="text-sm font-medium text-[#dbe7f3]">安装 CSMS 到桌面</p>
+          <p class="text-sm font-medium text-[#dbe7f3]">安装 ClassFire 到桌面</p>
           <p class="text-xs text-[#7d93ab]">像原生应用一样离线使用，全屏无浏览器栏</p>
         </div>
       </div>

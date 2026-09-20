@@ -1,7 +1,7 @@
 [
   {
     "pageKey": "ppt-1",
-    "title": "CSMS 封面",
+    "title": "ClassFire 封面",
     "url": "/index.html?page=1",
     "poster": "/assets/images/posters/pages/page-1.png",
     "pageNum": 1
@@ -15,7 +15,7 @@
   },
   {
     "pageKey": "ppt-3",
-    "title": "CSMS 是什么",
+    "title": "ClassFire 是什么",
     "url": "/index.html?page=3",
     "poster": "/assets/images/posters/pages/page-3.png",
     "pageNum": 3
@@ -64,14 +64,14 @@
   },
   {
     "pageKey": "ppt-10",
-    "title": "谁在用 CSMS",
+    "title": "谁在用 ClassFire",
     "url": "/index.html?page=10",
     "poster": "/assets/images/posters/pages/page-10.png",
     "pageNum": 10
   },
   {
     "pageKey": "ppt-11",
-    "title": "为什么选择 CSMS",
+    "title": "为什么选择 ClassFire",
     "url": "/index.html?page=11",
     "poster": "/assets/images/posters/pages/page-11.png",
     "pageNum": 11

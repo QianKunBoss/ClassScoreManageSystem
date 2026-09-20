@@ -193,7 +193,7 @@ async function handleSubmit() {
       <!-- 标题 -->
       <div class="text-center mb-8">
         <NuxtLink to="/" class="inline-flex w-16 h-16 rounded-2xl overflow-hidden bg-brand-500 p-2 shadow-2xl shadow-brand-500/25 mb-4">
-          <img src="/favicon.ico" alt="CSMS" class="w-full h-full object-contain" />
+          <img src="/favicon.ico" alt="ClassFire" class="w-full h-full object-contain" />
         </NuxtLink>
         <h1 class="text-2xl font-bold text-slate-100 mb-1">申请入驻</h1>
         <p class="text-sm text-slate-500">填写以下信息，提交入驻申请</p>

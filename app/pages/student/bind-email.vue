@@ -106,9 +106,9 @@ function logout() {
     <header class="h-14 flex items-center justify-between px-4 sm:px-6 border-b border-slate-800/50">
       <div class="flex items-center gap-2">
         <div class="w-8 h-8 rounded-lg overflow-hidden bg-brand-500 p-1">
-          <img src="/favicon.ico" alt="CSMS" class="w-full h-full object-contain" />
+          <img src="/favicon.ico" alt="ClassFire" class="w-full h-full object-contain" />
         </div>
-        <span class="text-sm font-bold text-slate-100">CSMS 学生端</span>
+        <span class="text-sm font-bold text-slate-100">ClassFire 学生端</span>
       </div>
       <button
         @click="logout"

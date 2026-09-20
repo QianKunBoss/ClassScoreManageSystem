@@ -2,7 +2,7 @@ import { createClient } from '@libsql/client'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
-const dbPath = path.join(process.cwd(), 'data', 'csms.db')
+const dbPath = path.join(process.cwd(), 'data', 'classfire.db')
 const client = createClient({ url: `file:${dbPath}` })
 
 const cols = [

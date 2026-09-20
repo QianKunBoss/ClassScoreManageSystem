@@ -22,7 +22,7 @@ export function sampleValueFor(key: string): string {
     username: 'zhangsan',
     password: '123456',
     schoolId: '8',
-    loginUrl: 'https://csms.example.com/login',
+    loginUrl: 'https://classfire.example.com/login',
     reason: '提交的资料不完整，请补充后重新提交。',
   }
   return map[key] ?? `{{${key}}}`

@@ -4,9 +4,9 @@ node_modules
 .output
 .cache
 dist
-data/csms.db
-data/csms.db-wal
-data/csms.db-shm
+data/classfire.db
+data/classfire.db-wal
+data/classfire.db-shm
 .git
 .gitignore
 backups

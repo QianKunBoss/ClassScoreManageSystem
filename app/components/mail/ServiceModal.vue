@@ -182,7 +182,7 @@ async function testSend() {
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="lbl">发件人名称</label>
-            <input v-model="form.fromName" class="form-input" placeholder="如 CSMS 系统" />
+            <input v-model="form.fromName" class="form-input" placeholder="如 ClassFire 系统" />
           </div>
           <div>
             <label class="lbl">发件人邮箱</label>

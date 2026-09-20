@@ -160,7 +160,7 @@ export async function initDatabase() {
   )
 
   if (oldIndex.rows.length > 0) {
-    console.log('[CSMS] 检测到旧版 admins 表结构（username 全局唯一），开始迁移...')
+    console.log('[ClassFire] 检测到旧版 admins 表结构（username 全局唯一），开始迁移...')
 
     // 关闭 FK 检查（重建表期间）
     await client.execute('PRAGMA foreign_keys = OFF')
@@ -207,7 +207,7 @@ export async function initDatabase() {
     // 重新打开 FK 检查
     await client.execute('PRAGMA foreign_keys = ON')
 
-    console.log('[CSMS] admins 表迁移完成：username 全局唯一 → (username, school_id) 联合唯一')
+    console.log('[ClassFire] admins 表迁移完成：username 全局唯一 → (username, school_id) 联合唯一')
   } else {
     // 表已是新结构，确保联合唯一索引存在
     await client.execute(`CREATE UNIQUE INDEX IF NOT EXISTS admins_username_school_unq ON admins(username, school_id)`)
@@ -216,13 +216,13 @@ export async function initDatabase() {
     const hasCol = (columns.rows as any[]).some((r: any) => r.name === 'must_change_password')
     if (!hasCol) {
       await client.execute(`ALTER TABLE admins ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0`)
-      console.log('[CSMS] admins 表已添加 must_change_password 列')
+      console.log('[ClassFire] admins 表已添加 must_change_password 列')
     }
     // 确保 disabled 列存在（v0.3.0 新增）
     const hasDisabledAdmin = (columns.rows as any[]).some((r: any) => r.name === 'disabled')
     if (!hasDisabledAdmin) {
       await client.execute(`ALTER TABLE admins ADD COLUMN disabled INTEGER NOT NULL DEFAULT 0`)
-      console.log('[CSMS] admins 表已添加 disabled 列')
+      console.log('[ClassFire] admins 表已添加 disabled 列')
     }
     // 确保 email / email_bound_at 列存在（v0.4.0 新增，用于邮箱登录 / 找回密码）
     const hasEmailCol = (columns.rows as any[]).some((r: any) => r.name === 'email')
@@ -230,7 +230,7 @@ export async function initDatabase() {
       await client.execute(`ALTER TABLE admins ADD COLUMN email TEXT`)
       await client.execute(`ALTER TABLE admins ADD COLUMN email_bound_at TEXT`)
       await client.execute(`CREATE UNIQUE INDEX IF NOT EXISTS admins_email_unq ON admins(email)`)
-      console.log('[CSMS] admins 表已添加 email / email_bound_at 列')
+      console.log('[ClassFire] admins 表已添加 email / email_bound_at 列')
     }
   }
 
@@ -239,7 +239,7 @@ export async function initDatabase() {
   const hasSchoolDisabled = (schoolsColumns.rows as any[]).some((r: any) => r.name === 'disabled')
   if (!hasSchoolDisabled) {
     await client.execute(`ALTER TABLE schools ADD COLUMN disabled INTEGER NOT NULL DEFAULT 0`)
-    console.log('[CSMS] schools 表已添加 disabled 列')
+    console.log('[ClassFire] schools 表已添加 disabled 列')
   }
 
   // ===== 3.6. 迁移 applications 表，添加 school_deleted 字段 =====
@@ -248,7 +248,7 @@ export async function initDatabase() {
   const hasSchoolDeleted = (appsColumns.rows as any[]).some((r: any) => r.name === 'school_deleted')
   if (!hasSchoolDeleted) {
     await client.execute(`ALTER TABLE applications ADD COLUMN school_deleted INTEGER NOT NULL DEFAULT 0`)
-    console.log('[CSMS] applications 表已添加 school_deleted 列')
+    console.log('[ClassFire] applications 表已添加 school_deleted 列')
   }
   // ===== 3.7. 迁移 applications 表，添加 deleted_school_id 快照字段 =====
   // 学校被删除时把原 created_school_id 复制到此列（再置空以绕开 FK），
@@ -256,7 +256,7 @@ export async function initDatabase() {
   const hasDeletedSchoolId = (appsColumns.rows as any[]).some((r: any) => r.name === 'deleted_school_id')
   if (!hasDeletedSchoolId) {
     await client.execute(`ALTER TABLE applications ADD COLUMN deleted_school_id INTEGER`)
-    console.log('[CSMS] applications 表已添加 deleted_school_id 列')
+    console.log('[ClassFire] applications 表已添加 deleted_school_id 列')
   }
 
   // ===== 3. 插入超级管理员（如果不存在）=====
@@ -288,7 +288,7 @@ export async function initDatabase() {
         mustChangePassword: 1,
         createdAt: new Date().toISOString(),
       })
-      console.log('[CSMS] 超级管理员已创建: admin / admin123（已强制首次登录修改密码）')
+      console.log('[ClassFire] 超级管理员已创建: admin / admin123（已强制首次登录修改密码）')
     }
   }
 
@@ -309,7 +309,7 @@ export async function initDatabase() {
       args: [e.key, e.value, e.desc, new Date().toISOString()],
     })
   }
-  console.log('[CSMS] 邮件设置默认值已就绪')
+  console.log('[ClassFire] 邮件设置默认值已就绪')
 
   // ===== 4.5. 迁移旧邮件设置 → mail_services 第一条记录（若服务表为空且有旧配置）=====
   const svcCountRows = await client.execute('SELECT COUNT(*) AS c FROM mail_services')
@@ -349,7 +349,7 @@ export async function initDatabase() {
           new Date().toISOString(),
         ],
       })
-      console.log('[CSMS] 已将旧邮件设置迁移为 mail_services 记录')
+      console.log('[ClassFire] 已将旧邮件设置迁移为 mail_services 记录')
     }
   }
 
@@ -359,11 +359,11 @@ export async function initDatabase() {
   const verificationCodeTemplate = {
     slug: 'verification_code',
     name: '邮箱验证码',
-    subject: '【CSMS】您的邮箱验证码',
+    subject: '【ClassFire】您的邮箱验证码',
     variables: ['code', 'email', 'expiresMinutes'],
     bodyHtml: `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#0b1220;color:#e2e8f0;border-radius:16px">
-  <h2 style="color:#4a7ab5;margin:0 0 16px">CSMS 班级积分管理系统</h2>
-  <p style="margin:0 0 12px">您好，您正在申请入驻 CSMS，本次操作的邮箱验证码为：</p>
+  <h2 style="color:#4a7ab5;margin:0 0 16px">ClassFire 班级积分管理系统</h2>
+  <p style="margin:0 0 12px">您好，您正在申请入驻 ClassFire，本次操作的邮箱验证码为：</p>
   <div style="font-size:32px;font-weight:700;letter-spacing:6px;color:#4a7ab5;margin:12px 0">{{code}}</div>
   <p style="margin:0 0 8px;color:#94a3b8;font-size:14px">验证码有效期 {{expiresMinutes}} 分钟，请勿泄露给他人。若非本人操作请忽略本邮件。</p>
   <p style="margin:24px 0 0;color:#64748b;font-size:12px">本邮件由系统自动发送，请勿直接回复。</p>
@@ -372,7 +372,7 @@ export async function initDatabase() {
   const approvedTemplate = {
     slug: 'application_approved',
     name: '入驻申请通过通知',
-    subject: '【CSMS】您的入驻申请已通过',
+    subject: '【ClassFire】您的入驻申请已通过',
     variables: ['applicantName', 'schoolName', 'role', 'username', 'password', 'loginUrl', 'schoolId'],
     bodyHtml: `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#0b1220;color:#e2e8f0;border-radius:16px">
   <h2 style="color:#4a7ab5;margin:0 0 16px">恭喜，申请已通过</h2>
@@ -392,7 +392,7 @@ export async function initDatabase() {
   const rejectedTemplate = {
     slug: 'application_rejected',
     name: '入驻申请驳回通知',
-    subject: '【CSMS】您的入驻申请未通过',
+    subject: '【ClassFire】您的入驻申请未通过',
     variables: ['schoolName', 'applicantName', 'reason'],
     bodyHtml: `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#0b1220;color:#e2e8f0;border-radius:16px">
   <h2 style="color:#c0564a;margin:0 0 16px">很抱歉，申请未通过</h2>
@@ -409,7 +409,7 @@ export async function initDatabase() {
       args: [t.slug, t.name, t.subject, t.bodyHtml, JSON.stringify(t.variables), new Date().toISOString(), new Date().toISOString()],
     })
   }
-  console.log('[CSMS] 邮件模板已就绪')
+  console.log('[ClassFire] 邮件模板已就绪')
 
   // ===== 4.7. 升级旧版「入驻申请通过通知」模板 =====
   // 初版模板不含账号密码字段；若存量模板仍为初版（subject 一致且正文无 {{username}}），
@@ -420,7 +420,13 @@ export async function initDatabase() {
       args: ['application_approved'],
     })
     const oldRow = (oldApproved.rows as any[])[0]
-    if (oldRow && oldRow.subject === '【CSMS】您的入驻申请已通过' && !(oldRow.body_html || '').includes('{{username}}')) {
+    // 兼容产品改名前的存量值：产品名由 CSMS 改为 ClassFire 后，
+    // 旧库中该模板的主题仍是「【CSMS】…」，只比对新值会让本升级分支永远不触发。
+    const stockSubjects = [
+      '【ClassFire】您的入驻申请已通过',
+      '【CSMS】您的入驻申请已通过',
+    ]
+    if (oldRow && stockSubjects.includes(oldRow.subject) && !(oldRow.body_html || '').includes('{{username}}')) {
       await client.execute({
         sql: 'UPDATE mail_templates SET subject = ?, body_html = ?, variables = ?, updated_at = ? WHERE slug = ?',
         args: [
@@ -431,7 +437,7 @@ export async function initDatabase() {
           'application_approved',
         ],
       })
-      console.log('[CSMS] 已升级 application_approved 邮件模板（补充账号密码字段）')
+      console.log('[ClassFire] 已升级 application_approved 邮件模板（补充账号密码字段）')
     }
   }
 
@@ -464,10 +470,10 @@ export async function initDatabase() {
           sql: 'UPDATE mail_templates SET variables = ?, body_html = ?, updated_at = ? WHERE slug = ?',
           args: [JSON.stringify(vars), body, new Date().toISOString(), 'application_approved'],
         })
-        console.log('[CSMS] 已升级 application_approved 邮件模板（补充学校 ID 字段）')
+        console.log('[ClassFire] 已升级 application_approved 邮件模板（补充学校 ID 字段）')
       }
     }
   }
 
-  console.log('[CSMS] 主库初始化完成')
+  console.log('[ClassFire] 主库初始化完成')
 }

@@ -1,26 +1,29 @@
-# ClassScoreManageSystem（CSMS）v0.3.2
+# ClassFire v0.3.2
 
 <div align="center">
 
-![CSMS Logo](./docs/favicon.ico)
+![ClassFire Logo](./docs/favicon.ico)
 
 </div>
 
-## 班级操行分管理系统（CSMS）
+## 班级操行分管理系统
 
-> 简称 CSMS — 完全重构版本
+> 完全重构版本
 
 基于 Nuxt 4 + Vue 3 + TypeScript + Drizzle ORM + SQLite 的现代化班级操行分管理系统。支持多校分级管理、四级权限架构、实时积分追踪、可视化座位表等功能。
 
+> **关于项目名**：本项目原名 CSMS（ClassScoreManageSystem），v0.3.2 起更名为 **ClassFire**，取「班级像火焰一样越烧越旺」之意，构词参照 ClassIsland 的双驼峰写法。代码内标识符（数据库文件名、Session Cookie 名、API token 前缀、部署资源名等）已同步更新，升级注意事项见[发布说明](docs/RELEASE-NOTES-v0.3.2.md)。
+
 ## 📖 文档导航
 
-- 📚 [CSMS 文档站](https://docs.csms.tianrld.top) — 外部开放 API（v1）、内部 API 等全部接口文档
+- 📚 [ClassFire 文档站](https://docs.csms.tianrld.top) — 外部开放 API（v1）、内部 API 等全部接口文档
+- 🚀 [v0.3.2 发布说明](docs/RELEASE-NOTES-v0.3.2.md) — 完全重构版本的功能全景（全部模块、数据模型、接口规模、安全基线、部署与升级说明）
 
 ---
 
 ## ✨ 版本特色（v0.3.0）
 
-v0.3.0 是 CSMS 的一次**完全重构**，从 PHP + jQuery 的传统架构全面升级为现代化的 Nuxt 全栈框架：
+v0.3.0 是 ClassFire 的一次**完全重构**，从 PHP + jQuery 的传统架构全面升级为现代化的 Nuxt 全栈框架：
 
 - **技术栈升级**：PHP → Nuxt 4 + Vue 3 + TypeScript
 - **数据库层**：原生 SQL → Drizzle ORM + SQLite
@@ -99,14 +102,14 @@ v0.3.0 是 CSMS 的一次**完全重构**，从 PHP + jQuery 的传统架构全�
 - **全量调用审计**：每次调用（含鉴权失败/限流）写入日志并带 `X-Request-Id`，保留 30 天
 - **管理能力**：管理后台「API 凭证」页面签发/编辑/禁用/吊销凭证、查看调用日志，签发与吊销均需二次验密
 - 覆盖 22 个外部端点（学生 / 积分 / 年级 / 班级 / 模板 / 统计 / 自检）+ 6 个凭证管理内部端点
-- 完整接口文档见 CSMS 文档站（https://docs.csms.tianrld.top）
+- 完整接口文档见 ClassFire 文档站（https://docs.csms.tianrld.top）
 
 ### 📱 PWA 渐进式 Web 应用（已端到端验证生效）
 
 - 支持安装到桌面/主屏幕，全屏独立窗口运行（Android 自适应图标 + iOS 全屏）
 - 静态资源与构建产物离线缓存（Workbox 预缓存 + 运行时缓存）
 - **API 请求（`/api/*`）强制走网络，永不缓存**，保证积分/学生等数据实时准确
-- 品牌图标体系：浏览器标签/应用内 logo 采用「CS 字母徽标 + 星星」（CS 即 ClassScoreManageSystem 缩写，星星寓意步步高升/评分之星），PWA 主屏幕图标保留火箭主体（寓意成长与超越）
+- 品牌图标体系：浏览器标签/应用内 logo 采用「CS 字母徽标 + 星星」（该徽标沿用更名前 CSMS 的缩写，尚未按 ClassFire 重做），PWA 主屏幕图标保留火箭主体（寓意成长与超越）
 - 新版本自动检测并更新（`registerType: autoUpdate`），无需手动刷新
 - manifest、Service Worker、主题色等已在构建产物中实测注入 `<head>` 并可通过 HTTPS 访问
 
@@ -209,8 +212,8 @@ v0.3.0 是 CSMS 的一次**完全重构**，从 PHP + jQuery 的传统架构全�
 
 ```bash
 # 克隆项目
-git clone https://github.com/QianKunBoss/ClassScoreManageSystem.git
-cd ClassScoreManageSystem
+git clone https://github.com/QianKunBoss/ClassFire.git
+cd ClassFire
 
 # 安装依赖
 npm install
@@ -227,7 +230,7 @@ npm run dev
 
 ### 生产部署
 
-CSMS 提供多种生产部署方式，按需选择：
+ClassFire 提供多种生产部署方式，按需选择：
 
 **方式一：直接运行（Node.js）**
 
@@ -260,12 +263,12 @@ pm2 startup                   # 设置开机自启（按提示执行）
 docker compose up -d --build
 
 # 仅启动应用（不含 Nginx）
-docker compose up -d --build csms
+docker compose up -d --build classfire
 ```
 
 - 应用默认监听 `3000`，Nginx 监听 `80`（HTTPS 配置见 `deploy/nginx/`）
-- 数据持久化：compose 已挂载 `csms-data` 卷到容器 `/app/data`
-- 查看日志：`docker compose logs -f csms`
+- 数据持久化：compose 已挂载 `classfire-data` 卷到容器 `/app/data`
+- 查看日志：`docker compose logs -f classfire`
 
 **方式四：一键部署脚本**
 
@@ -302,7 +305,7 @@ chmod +x deploy.sh
    ```
 4. **放行防火墙**（若需局域网/公网访问，默认端口 `3000`）：
    ```powershell
-   netsh advfirewall firewall add rule name="CSMS" dir=in action=allow protocol=TCP localport=3000
+   netsh advfirewall firewall add rule name="ClassFire" dir=in action=allow protocol=TCP localport=3000
    ```
 
 > ⚠️ Windows 下 `ecosystem.config.cjs` 仍为 `instances: 1`，SQLite 不支持多进程并发写入，**请勿**改 cluster。如需公网域名访问，可在前置 Nginx / Caddy 做反向代理。
@@ -312,17 +315,17 @@ chmod +x deploy.sh
 > 适用于已安装宝塔的 Linux 服务器，兼顾可视化与 Nginx 反代 / SSL。
 
 1. **安装运行环境**：宝塔「软件商店」安装 **PM2 管理器**（或「Node.js 版本管理器」）与 **Nginx**。
-2. **上传并构建**：将项目上传至 `/www/wwwroot/csms`（或宝塔「文件」中新建目录），进入目录执行：
+2. **上传并构建**：将项目上传至 `/www/wwwroot/classfire`（或宝塔「文件」中新建目录），进入目录执行：
    ```bash
    npm install
    npm run build
    ```
 3. **启动服务（任选其一）**：
    - **PM2 管理器**：在宝塔「PM2 管理器」中添加项目，启动文件填 `.output/server/index.mjs`，或命令行 `pm2 start ecosystem.config.cjs`（需先 `pm2 save` 持久化）。
-   - **宝塔「Node 项目」**（较新版本支持）：直接新建 Node 项目，入口选 `.output/server/index.mjs`，运行目录 `/www/wwwroot/csms`。
-4. **配置反向代理**：宝塔「网站 → 添加站点」（填你的域名）→「反向代理」→ 目标 URL 填 `http://127.0.0.1:3000`，保存。此后通过域名访问 CSMS。
+   - **宝塔「Node 项目」**（较新版本支持）：直接新建 Node 项目，入口选 `.output/server/index.mjs`，运行目录 `/www/wwwroot/classfire`。
+4. **配置反向代理**：宝塔「网站 → 添加站点」（填你的域名）→「反向代理」→ 目标 URL 填 `http://127.0.0.1:3000`，保存。此后通过域名访问 ClassFire。
 5. **HTTPS（可选）**：在站点「SSL」中一键申请 Let's Encrypt 证书并强制 HTTPS。
-6. **数据持久化**：SQLite 数据库位于 `/www/wwwroot/csms/data/`（主库 + 各校独立库），**备份时直接复制该目录**；迁移服务器时连同 `data/` 一并打包即可。
+6. **数据持久化**：SQLite 数据库位于 `/www/wwwroot/classfire/data/`（主库 + 各校独立库），**备份时直接复制该目录**；迁移服务器时连同 `data/` 一并打包即可。
 
 > ⚠️ 宝塔 PM2 同样保持单实例运行（`instances: 1`），不要开启多进程；运行期密钥用 `NUXT_SESSION_PASSWORD`（宝塔「环境变量」或 `.env` 文件配置，预构建产物也必须用它）。
 
@@ -341,8 +344,8 @@ chmod +x deploy.sh
 
 ### 数据持久化与备份
 
-- SQLite 数据库位于 `data/`：主库 `data/csms.db`，各校独立库 `data/schools/{id}.db`，**必须持久化保存**。
-- Docker 部署：通过 `docker-compose.yml` 的 `csms-data` 卷挂载，数据不随容器销毁丢失。
+- SQLite 数据库位于 `data/`：主库 `data/classfire.db`，各校独立库 `data/schools/{id}.db`，**必须持久化保存**。
+- Docker 部署：通过 `docker-compose.yml` 的 `classfire-data` 卷挂载，数据不随容器销毁丢失。
 - 原生 / PM2 部署：确保 `data/` 目录不被删除，直接复制 `.db` 文件即可完成备份。
 
 ### 数据库操作
@@ -366,7 +369,7 @@ npm run db:studio
 ## 📁 项目结构
 
 ```
-ClassScoreManageSystem/
+ClassFire/
 ├── app/                          # 前端应用
 │   ├── assets/                   # 静态资源
 │   │   └── css/
@@ -466,7 +469,7 @@ ClassScoreManageSystem/
 ├── scripts/
 │   └── gen-pwa-icons.py          # PWA 图标生成脚本（Pillow 绘制火箭主体）
 ├── public/                       # 静态资源目录
-│   ├── favicon.ico               # 品牌 favicon（CS 字母徽标 + 星星：CS 即 ClassScoreManageSystem 缩写，星星寓意步步高升/评分之星）
+│   ├── favicon.ico               # 品牌 favicon（CS 字母徽标 + 星星；CS 沿用更名前 CSMS 的缩写，待重做）
 │   ├── pwa-192x192.png           # PWA 标准图标（火箭主体）
 │   ├── pwa-512x512.png           # PWA 标准图标（大，火箭主体）
 │   ├── pwa-maskable-192x192.png  # Android 自适应图标（火箭主体）
@@ -515,17 +518,17 @@ ClassScoreManageSystem/
 3. **查看排名**：首页或学生页面查看积分排行榜
 4. **座位编排**：进入「座位表」页面，拖拽调整座位
 5. **免密登录**：超级管理员在「系统管理」→「管理员账号」中点击「登录」，可直接切换为该账号（退出后需重新登录超管账号）
-6. **安装为应用**：在生产环境（**需通过 HTTPS 访问**，如 `localhost` 或已配置 SSL 的域名）下，浏览器会弹出「安装 CSMS 到桌面」提示，安装后可像原生应用一样离线使用。开发模式（`npm run dev`）默认不启用安装提示
+6. **安装为应用**：在生产环境（**需通过 HTTPS 访问**，如 `localhost` 或已配置 SSL 的域名）下，浏览器会弹出「安装 ClassFire 到桌面」提示，安装后可像原生应用一样离线使用。开发模式（`npm run dev`）默认不启用安装提示
 
 ---
 
 ## ❓ 常见问题
 
 **Q: 如何重置管理员密码？**  
-A: 管理员可在登录页通过「忘记密码」用邮箱验证码自助重置；超级管理员也可在「用户管理 → 管理员」中重置他人密码。若超级管理员自身密码遗忘，需手动修改 `data/csms.db`。
+A: 管理员可在登录页通过「忘记密码」用邮箱验证码自助重置；超级管理员也可在「用户管理 → 管理员」中重置他人密码。若超级管理员自身密码遗忘，需手动修改 `data/classfire.db`。
 
 **Q: 数据如何备份？**  
-A: SQLite 数据库文件位于项目根目录 `data/` 下（主库 `data/csms.db`，各校独立库 `data/schools/{id}.db`），直接复制对应 `.db` 文件即可备份。注意 `data/` 已在 `.gitignore` 中忽略，不会进入版本库。
+A: SQLite 数据库文件位于项目根目录 `data/` 下（主库 `data/classfire.db`，各校独立库 `data/schools/{id}.db`），直接复制对应 `.db` 文件即可备份。注意 `data/` 已在 `.gitignore` 中忽略，不会进入版本库。
 
 **Q: 支持 MySQL 吗？**  
 A: v0.3.0 当前仅支持 SQLite。后续版本可能会增加 MySQL 支持。
@@ -559,7 +562,7 @@ A: 拉取最新代码后，运行 `npm install` 更新依赖，然后运行 `npm
 - ✅ 新增**超管「用户管理」模块**：集中管理全部管理员账号与跨校学生列表
 - ✅ 管理员**所属（学校 / 年级 / 班级）可编辑**，可选项由管理级别约束（`super_admin` 无所属；`school_admin` 仅学校；`grade_admin` 学校+年级；`class_admin` 学校+年级+班级）
 - ✅ 学生端支持**邮箱绑定**与**邮箱验证码找回密码**
-- 🔧 文档与仓库修正：数据库文件位于 `data/`（主库 `data/csms.db`）；`.gitignore` 已忽略 `*.db` / `*.sqlite` / `.cloudstudio` 等运行期文件
+- 🔧 文档与仓库修正：数据库文件位于 `data/`（主库 `data/classfire.db`）；`.gitignore` 已忽略 `*.db` / `*.sqlite` / `.cloudstudio` 等运行期文件
 - ✅ 入驻学校列表展示**学校ID**
 - ✅ 入驻申请**实时校名校验**：输入时防抖检查重名，红字提示并禁用提交 / 获取验证码按钮，提交时二次校验
 - ✅ **重复学校判定放宽**：已删除、已拒绝的学校不计入重复，允许重新申请
@@ -586,4 +589,4 @@ A: 拉取最新代码后，运行 `npm install` 更新依赖，然后运行 `npm
 ## 📮 交流
 
 - QQ 群：1074247379
-- GitHub Issues：[提交问题](https://github.com/QianKunBoss/ClassScoreManageSystem/issues)
+- GitHub Issues：[提交问题](https://github.com/QianKunBoss/ClassFire/issues)

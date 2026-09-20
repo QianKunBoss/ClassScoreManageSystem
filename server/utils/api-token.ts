@@ -12,9 +12,13 @@ import { classes, grades } from '../database/schema.school'
 import { API_CODE, apiError } from './api-response'
 
 /** token 明文前缀，便于在日志/代码库里一眼识别泄露的凭证 */
-const TOKEN_PLAINTEXT_PREFIX = 'csms_'
-/** 存入 token_prefix 的长度（含 'csms_'），仅用于识别，不足以还原密钥 */
-const TOKEN_PREFIX_LEN = 12
+const TOKEN_PLAINTEXT_PREFIX = 'classfire_'
+/**
+ * 存入 token_prefix 的长度（含 'classfire_'）。
+ * 前缀本身 10 字符，再取 7 位随机字符，保证前缀间有足够区分度；
+ * 仅用于识别，不足以还原密钥。
+ */
+const TOKEN_PREFIX_LEN = 17
 
 /** 全部可用 scope。新增端点时必须同步维护此表与 docs/API.md */
 export const API_SCOPES = [

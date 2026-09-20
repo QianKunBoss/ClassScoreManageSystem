@@ -32,10 +32,10 @@ export default defineEventHandler(async (event) => {
       },
       {
         to: recipient,
-        subject: '【CSMS】邮件发送测试',
+        subject: '【ClassFire】邮件发送测试',
         html: `
           <div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#e2e8f0;background:#0b1220;padding:24px;border-radius:12px;max-width:440px;margin:0 auto">
-            <h2 style="color:#4a7ab5;margin:0 0 16px">CSMS 班级积分管理系统</h2>
+            <h2 style="color:#4a7ab5;margin:0 0 16px">ClassFire 班级积分管理系统</h2>
             <p style="margin:0 0 12px">这是一封<b>邮件发送测试</b>邮件。</p>
             <p style="margin:0 0 12px">如果您收到此邮件，说明该邮件服务配置正确，系统已可正常发送邮件。</p>
             <p style="margin:0;color:#94a3b8;font-size:13px">发送时间：${new Date().toLocaleString('zh-CN')}</p>

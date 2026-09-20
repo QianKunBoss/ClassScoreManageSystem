@@ -92,7 +92,7 @@ export function respondApiError(event: any, err: any): ApiEnvelope<null> {
 
   // 未预期的 500 需要留栈供排查；已知业务错误不刷日志
   if (statusCode >= 500) {
-    console.error('[CSMS][api/v1] 未处理异常:', err)
+    console.error('[ClassFire][api/v1] 未处理异常:', err)
   }
 
   setResponseStatus(event, statusCode, httpStatusText(statusCode))

@@ -19,9 +19,13 @@
 
 /** 已知的示例 / 历史默认密钥，出现即视为不安全 */
 const KNOWN_WEAK_SECRETS = new Set([
+  // 改名前的历史示例值：旧部署的 .env 里可能仍在用，故保留
   'csms-dev-secret-change-in-production',
-  'change-this-to-a-random-secret',
   'csms-session-secret',
+  // 现用示例值
+  'classfire-dev-secret-change-in-production',
+  'classfire-session-secret',
+  'change-this-to-a-random-secret',
   'change-me',
   'changeme',
   'secret',
@@ -75,7 +79,7 @@ export default defineNitroPlugin((nitroApp) => {
   // ---------- 开发环境：告警即可 ----------
   if (import.meta.dev) {
     console.warn(
-      '\n[CSMS][安全告警] 会话密钥配置存在问题（开发环境不阻断）：\n'
+      '\n[ClassFire][安全告警] 会话密钥配置存在问题（开发环境不阻断）：\n'
       + `${detail}\n`
       + '  开发环境下 nuxt-auth-utils 会自动生成随机密钥并写入 .env。\n',
     )
@@ -85,7 +89,7 @@ export default defineNitroPlugin((nitroApp) => {
   // ---------- 生产环境：拒绝服务 ----------
   const fatal
     = '\n============================================================\n'
-      + '[CSMS][FATAL] 会话密钥配置不安全，已拒绝启动\n'
+      + '[ClassFire][FATAL] 会话密钥配置不安全，已拒绝启动\n'
       + '============================================================\n'
       + `${detail}\n`
       + '------------------------------------------------------------\n'
@@ -110,5 +114,5 @@ export default defineNitroPlugin((nitroApp) => {
   })
 
   // 抛出后 Nitro 会 rethrow，node-server 进程退出
-  throw new Error(`[CSMS][FATAL] 会话密钥配置不安全，已拒绝启动：${problems.join('；')}`)
+  throw new Error(`[ClassFire][FATAL] 会话密钥配置不安全，已拒绝启动：${problems.join('；')}`)
 })

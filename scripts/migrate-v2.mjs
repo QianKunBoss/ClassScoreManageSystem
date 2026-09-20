@@ -1,7 +1,7 @@
 // 必须在项目根目录下运行： node scripts/migrate-v2.mjs
 import { createClient } from '@libsql/client'
 
-const dbPath = './data/csms.db'
+const dbPath = './data/classfire.db'
 console.log('数据库路径:', dbPath)
 
 const client = createClient({ url: `file:${dbPath}` })

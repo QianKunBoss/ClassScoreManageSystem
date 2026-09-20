@@ -54,7 +54,7 @@ export async function restoreDb(
         `SELECT name FROM sqlite_master WHERE type='table' AND name = '${t.table}'`,
       )
       if (!(exists.rows as any[]).length) {
-        console.warn(`[CSMS-BACKUP] 恢复跳过未知表 ${t.table}（目标库无此表）`)
+        console.warn(`[ClassFire-BACKUP] 恢复跳过未知表 ${t.table}（目标库无此表）`)
         continue
       }
       const cols = await tableColumns(client, t.table)

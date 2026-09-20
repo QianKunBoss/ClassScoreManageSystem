@@ -1,5 +1,5 @@
 # ============================
-# CSMS v0.3.0 - Multi-stage Docker Build
+# ClassFire v0.3.0 - Multi-stage Docker Build
 # Nuxt 3 + @libsql/client + Drizzle ORM
 # No native C++ compilation needed!
 # ============================

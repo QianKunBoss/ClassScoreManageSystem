@@ -8,7 +8,7 @@ const { data: siteSettings } = useSiteSettings()
 watch(
   () => siteSettings.value?.data?.system_title,
   (t) => {
-    if (import.meta.client) document.title = t || 'CSMS'
+    if (import.meta.client) document.title = t || 'ClassFire'
   },
   { immediate: true },
 )

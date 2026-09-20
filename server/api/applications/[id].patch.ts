@@ -95,10 +95,10 @@ export default defineEventHandler(async (event) => {
 
     // ===== 审核通过 =====
 
-    console.log(`[CSMS] 开始审核申请 ID=${id}, status=${status}`)
+    console.log(`[ClassFire] 开始审核申请 ID=${id}, status=${status}`)
     
     // 1. 查找或创建学校（主库）
-    console.log(`[CSMS] 步骤1: 查找或创建学校`)
+    console.log(`[ClassFire] 步骤1: 查找或创建学校`)
     let schoolId: number | null = application.createdSchoolId
     if (!schoolId) {
       const existingSchool = await mainDb
@@ -109,14 +109,14 @@ export default defineEventHandler(async (event) => {
 
       if (existingSchool) {
         schoolId = existingSchool.id
-        console.log(`[CSMS] 找到已有学校 ID=${schoolId}`)
+        console.log(`[ClassFire] 找到已有学校 ID=${schoolId}`)
       } else {
         const [newSchool] = await mainDb.insert(schools)
           .values({ name: application.schoolName })
           .returning()
           .all()
         schoolId = newSchool.id
-        console.log(`[CSMS] 已创建新学校 ID=${schoolId}`)
+        console.log(`[ClassFire] 已创建新学校 ID=${schoolId}`)
       }
     }
 
@@ -126,15 +126,15 @@ export default defineEventHandler(async (event) => {
       return { success: false, message: '学校 ID 获取失败，请检查申请数据' }
     }
 
-    console.log(`[CSMS] 步骤2: 创建学校库文件, schoolId=${schoolId}`)
+    console.log(`[ClassFire] 步骤2: 创建学校库文件, schoolId=${schoolId}`)
     // 2. 创建学校库文件（含所有表）
     await createSchoolDb(schoolId)
-    console.log(`[CSMS] 学校库文件已就绪`)
+    console.log(`[ClassFire] 学校库文件已就绪`)
 
-    console.log(`[CSMS] 步骤3: 连接学校库并创建年级/班级`)
+    console.log(`[ClassFire] 步骤3: 连接学校库并创建年级/班级`)
     // 3. 连接学校库，创建年级/班级
     const schoolDb = await useSchoolDb(event, schoolId)
-    console.log(`[CSMS] 学校库已连接`)
+    console.log(`[ClassFire] 学校库已连接`)
     let role: string
     let gradeId: number | null = null
     let classId: number | null = null
@@ -142,7 +142,7 @@ export default defineEventHandler(async (event) => {
     if (application.className) {
       role = 'class_admin'
       const gradeName = (application.gradeName && application.gradeName.trim()) || '默认年级'
-      console.log(`[CSMS] 审核class_admin申请: gradeName="${gradeName}", className="${application.className}"`)
+      console.log(`[ClassFire] 审核class_admin申请: gradeName="${gradeName}", className="${application.className}"`)
 
       let grade = await schoolDb
         .select()
@@ -151,14 +151,14 @@ export default defineEventHandler(async (event) => {
         .get()
 
       if (!grade) {
-        console.log(`[CSMS] 年级"${gradeName}"不存在，创建新年级`)
+        console.log(`[ClassFire] 年级"${gradeName}"不存在，创建新年级`)
         const [newGrade] = await schoolDb.insert(grades)
           .values({ name: gradeName })
           .returning()
           .all()
         grade = newGrade
       }
-      console.log(`[CSMS] 绑定年级: id=${grade.id}, name=${grade.name}`)
+      console.log(`[ClassFire] 绑定年级: id=${grade.id}, name=${grade.name}`)
       gradeId = grade.id
 
       let cls = await schoolDb
@@ -168,14 +168,14 @@ export default defineEventHandler(async (event) => {
         .get()
 
       if (!cls) {
-        console.log(`[CSMS] 班级"${application.className}"不存在，创建新班级`)
+        console.log(`[ClassFire] 班级"${application.className}"不存在，创建新班级`)
         const [newClass] = await schoolDb.insert(classes)
           .values({ gradeId, name: application.className! })
           .returning()
           .all()
         cls = newClass
       }
-      console.log(`[CSMS] 绑定班级: id=${cls.id}, name=${cls.name}`)
+      console.log(`[ClassFire] 绑定班级: id=${cls.id}, name=${cls.name}`)
       classId = cls.id
 
     } else if (application.gradeName) {
@@ -203,7 +203,7 @@ export default defineEventHandler(async (event) => {
     // 用户名规则：同一学校内唯一，不同学校可以重名
     // 基础用户名 = 申请人姓名（去掉空格，小写）
     const baseUsername = application.applicantName.replace(/\s+/g, '').toLowerCase()
-    console.log(`[CSMS] 步骤4: 生成默认账号, baseUsername=${baseUsername}`)
+    console.log(`[ClassFire] 步骤4: 生成默认账号, baseUsername=${baseUsername}`)
     let defaultUsername = baseUsername
 
     // 检查 baseUsername 是否已被同一学校的管理员占用
@@ -235,13 +235,13 @@ export default defineEventHandler(async (event) => {
         suffix++
       }
       defaultUsername = `${baseUsername}${suffix}`
-      console.log(`[CSMS] baseUsername 冲突，使用带后缀的用户名: ${defaultUsername}`)
+      console.log(`[ClassFire] baseUsername 冲突，使用带后缀的用户名: ${defaultUsername}`)
     }
 
     const defaultPassword = '123456'
-    console.log(`[CSMS] 默认账号: username=${defaultUsername}`)
+    console.log(`[ClassFire] 默认账号: username=${defaultUsername}`)
 
-    console.log(`[CSMS] 步骤5: 创建管理员账号, role=${role}, gradeId=${gradeId}, classId=${classId}`)
+    console.log(`[ClassFire] 步骤5: 创建管理员账号, role=${role}, gradeId=${gradeId}, classId=${classId}`)
     // 5. 创建管理员账号（主库）— 幂等：防止重复审核导致 UNIQUE 冲突
     let newAdminId: number
     let emailWarning: string | null = null
@@ -288,10 +288,10 @@ export default defineEventHandler(async (event) => {
         .returning()
         .all()
       newAdminId = newAdmin.id
-      console.log(`[CSMS] 已创建新管理员 ID=${newAdminId}${bindEmail ? ` 已绑定邮箱 ${bindEmail}` : ''}`)
+      console.log(`[ClassFire] 已创建新管理员 ID=${newAdminId}${bindEmail ? ` 已绑定邮箱 ${bindEmail}` : ''}`)
     }
 
-    console.log(`[CSMS] 步骤6: 更新申请记录`)
+    console.log(`[ClassFire] 步骤6: 更新申请记录`)
     // 6. 更新申请记录（主库）
     const result = await mainDb.update(applications)
       .set({
@@ -352,7 +352,7 @@ export default defineEventHandler(async (event) => {
     setResponseStatus(event, 500)
     // 暴露 libsql 底层错误原因（error.cause 包含 SQLite 错误码和描述）
     const cause = error.cause?.message || (typeof error.cause === 'string' ? error.cause : '')
-    console.error('[CSMS] 审核申请失败:', {
+    console.error('[ClassFire] 审核申请失败:', {
       message: error.message,
       cause: cause,
       code: error.cause?.code,

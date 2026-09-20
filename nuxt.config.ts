@@ -13,8 +13,8 @@ export default defineNuxtConfig({
   pwa: {
     registerType: 'autoUpdate',
     manifest: {
-      name: 'CSMS - 班级积分管理系统',
-      short_name: 'CSMS',
+      name: 'ClassFire - 班级积分管理系统',
+      short_name: 'ClassFire',
       description: '基于 Nuxt 4 的多级班级积分管理系统',
       lang: 'zh-CN',
       theme_color: '#070b14',
@@ -39,13 +39,13 @@ export default defineNuxtConfig({
         {
           urlPattern: /\/api\/.*/,
           handler: 'NetworkOnly',
-          options: { cacheName: 'csms-no-cache' },
+          options: { cacheName: 'classfire-no-cache' },
         },
         {
           urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp|woff2?|ttf|otf)$/i,
           handler: 'CacheFirst',
           options: {
-            cacheName: 'csms-static',
+            cacheName: 'classfire-static',
             expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },
             cacheableResponse: { statuses: [0, 200] },
           },
@@ -87,7 +87,7 @@ export default defineNuxtConfig({
     preference: 'dark',  // 默认深色模式
     fallback: 'dark',
     classSuffix: '',
-    storageKey: 'csms-theme',
+    storageKey: 'classfire-theme',
   },
 
   auth: {
@@ -113,7 +113,7 @@ export default defineNuxtConfig({
     //       SESSION_SECRET 仅在「build 之前」设置才被烘焙进产物，运行期修改无效。
     session: {
       password: process.env.NUXT_SESSION_PASSWORD || process.env.SESSION_SECRET || '',
-      name: 'csms-session',
+      name: 'classfire-session',
       // 会话 Cookie 安全标志（显式声明，不依赖框架默认值）
       cookie: {
         httpOnly: true,                                  // 禁止前端 JS 读取，缓解 XSS 窃取会话
@@ -152,14 +152,14 @@ export default defineNuxtConfig({
     head: {
       charset: 'utf-8',
       viewport: 'width=500, initial-scale=1',
-      title: 'CSMS - 班级积分管理系统',
+      title: 'ClassFire - 班级积分管理系统',
       meta: [
         { name: 'description', content: '班级积分管理系统 v0.3.2' },
         { name: 'theme-color', content: '#070b14' },
         { name: 'mobile-web-app-capable', content: 'yes' },
         { name: 'apple-mobile-web-app-capable', content: 'yes' },
         { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
-        { name: 'apple-mobile-web-app-title', content: 'CSMS' },
+        { name: 'apple-mobile-web-app-title', content: 'ClassFire' },
       ],
       link: [
         { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },

@@ -515,7 +515,7 @@ onBeforeUnmount(() => {
         </h1>
 
         <p class="hero-sub animate-fade-in" style="animation-delay: 0.2s">
-          CSMS 是一款面向各级学校的班级积分管理系统。<br />
+          ClassFire 是一款面向各级学校的班级积分管理系统。<br />
           支持多级管理架构，让积分管理变得简单、透明、有趣。
         </p>
 
@@ -529,7 +529,7 @@ onBeforeUnmount(() => {
             <span>立即申请入驻</span>
           </NuxtLink>
           <a
-            href="https://github.com/QianKunBoss/ClassScoreManageSystem"
+            href="https://github.com/QianKunBoss/ClassFire"
             target="_blank"
             rel="noopener noreferrer"
             class="btn-ghost-neon"
@@ -554,7 +554,7 @@ onBeforeUnmount(() => {
           <div class="glass-console">
             <div class="console-bar">
               <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
-              <span class="console-path">csms://dashboard</span>
+              <span class="console-path">classfire://dashboard</span>
             </div>
             <div class="console-body">
               <div class="console-line w-1-3"></div>
@@ -614,7 +614,7 @@ onBeforeUnmount(() => {
     <section class="section">
       <div class="container">
         <div class="text-center mb-14" data-reveal="up">
-          <h2 class="section-title inline-block">为什么选择 CSMS？</h2>
+          <h2 class="section-title inline-block">为什么选择 ClassFire？</h2>
           <p class="section-sub">从学校到班级，每一层都有专属管理面板，权限分明，操作高效。</p>
         </div>
 

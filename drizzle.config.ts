@@ -5,6 +5,6 @@ export default defineConfig({
   out: './server/database/migrations',
   dialect: 'sqlite',
   dbCredentials: {
-    url: './data/csms.db',
+    url: './data/classfire.db',
   },
 })

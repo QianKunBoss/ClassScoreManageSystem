@@ -10,7 +10,10 @@ dist
 node_modules
 
 # Database (runtime SQLite files)
-data/
+# 必须带前导斜杠：裸写 `data/` 会匹配任意层级叫 data 的目录，
+# 曾导致 server/api/data/（7 个接口）与 app/components/data/（DataHub 组件）
+# 被静默排除在版本库之外 —— 全新克隆会缺失整个「超管数据枢纽」模块。
+/data/
 *.db
 *.sqlite
 *.sqlite3

@@ -1,4 +1,4 @@
-// == CSMS 类型定义 - 匹配实际 API 返回结构 ==
+// == ClassFire 类型定义 - 匹配实际 API 返回结构 ==
 
 /** 管理员角色 */
 export type AdminRole = 'super_admin' | 'school_admin' | 'grade_admin' | 'class_admin'
@@ -206,7 +206,7 @@ export type ApiScopeType = 'school' | 'grade' | 'class'
 export interface ApiTokenItem {
   id: number
   name: string
-  /** 明文前 12 位，用于人工辨识（如 csms_AbC12345） */
+  /** 明文前 12 位，用于人工辨识（如 classfire_AbC12345） */
   tokenPrefix: string
   scopeType: ApiScopeType
   scopeGradeId: number | null

@@ -11,7 +11,7 @@ chdir(path.resolve(__dirname, '../..')) // 切到项目根目录
 
 console.log('工作目录:', process.cwd())
 
-const client = createClient({ url: 'file:./data/csms.db' })
+const client = createClient({ url: 'file:./data/classfire.db' })
 
 async function migrate() {
   try {

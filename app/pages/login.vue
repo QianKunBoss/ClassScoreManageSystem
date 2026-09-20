@@ -341,7 +341,7 @@ async function forgotReset() {
           aria-label="返回首页"
           @click="navigateTo('/')"
         >
-          <img src="/favicon.ico" alt="CSMS" class="w-full h-full object-contain pointer-events-none" />
+          <img src="/favicon.ico" alt="ClassFire" class="w-full h-full object-contain pointer-events-none" />
         </button>
         <h1 class="text-2xl font-bold text-slate-100 mb-1">欢迎回来</h1>
         <p class="text-sm text-slate-500">登录班级积分管理系统</p>
@@ -508,7 +508,7 @@ async function forgotReset() {
         </div>
         <div class="mt-3 text-center">
           <p class="text-center text-xs text-slate-600">
-            CSMS v0.3.0 &middot; Nuxt 4 + SQLite
+            ClassFire v0.3.0 &middot; Nuxt 4 + SQLite
           </p>
         </div>
       </div>

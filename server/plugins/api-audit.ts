@@ -61,7 +61,7 @@ export default defineNitroPlugin((nitroApp) => {
         await db.delete(apiAuditLogs).where(sql`created_at < ${cutoff}`)
       }
     } catch (e: any) {
-      console.error('[CSMS][api-audit] 审计写入失败（已忽略，不影响业务）:', e?.message || e)
+      console.error('[ClassFire][api-audit] 审计写入失败（已忽略，不影响业务）:', e?.message || e)
     }
   })
 })

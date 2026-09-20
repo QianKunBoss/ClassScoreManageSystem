@@ -1,20 +1,20 @@
 version: '3.8'
 
 services:
-  csms:
+  classfire:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: csms-app
+    container_name: classfire-app
     restart: unless-stopped
     ports:
       - "3000:3000"      # IPv4
       - "[::]:3000:3000"  # IPv6
     volumes:
       # SQLite 数据持久化（关键！）
-      - csms-data:/app/data
+      - classfire-data:/app/data
       # 日志持久化
-      - csms-logs:/app/logs
+      - classfire-logs:/app/logs
     environment:
       - NODE_ENV=production
       - SESSION_SECRET=${SESSION_SECRET:-change-this-to-a-random-secret}
@@ -30,7 +30,7 @@ services:
   # Nginx 反向代理（可选，推荐用于生产环境）
   nginx:
     image: nginx:alpine
-    container_name: csms-nginx
+    container_name: classfire-nginx
     restart: unless-stopped
     ports:
       - "80:80"           # IPv4
@@ -41,21 +41,23 @@ services:
       # HTTPS 证书目录（如果需要）
       # - ./deploy/nginx/certs:/etc/nginx/certs:ro
     depends_on:
-      csms:
+      classfire:
         condition: service_healthy
     networks:
-      - csms-network
+      - classfire-network
 
 volumes:
-  csms-data:
+  classfire-data:
     driver: local
-  csms-logs:
+  classfire-logs:
     driver: local
 
 networks:
-  csms-network:
+  classfire-network:
     driver: bridge
     enable_ipv6: true
     ipam:
       config:
-        - subnet: "fd00:csms::/64"
+        # 注意：subnet 必须是合法十六进制 IPv6 网段（旧值 fd00:csms::/64 含非十六进制字符，
+        # Docker 解析会直接失败）
+        - subnet: "fd00:ca1f::/64"

@@ -14,7 +14,7 @@ function generateTempPassword(): string {
   const bytes = randomBytes(6)
   let rand = ''
   for (let i = 0; i < 6; i++) rand += alphabet[bytes[i] % alphabet.length]
-  return 'Csms' + rand // 共 10 位，前缀确保含字母、长度达标
+  return 'Classfire' + rand // 共 15 位，前缀确保含字母、长度达标
 }
 
 export default defineEventHandler(async (event) => {

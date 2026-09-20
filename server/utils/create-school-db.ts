@@ -14,11 +14,11 @@ export async function createSchoolDb(schoolId: number) {
   
   // 文件已存在则直接返回，避免重复初始化导致卡住
   if (fs.existsSync(dbPath)) {
-    console.log(`[CSMS] 学校 ID=${schoolId} 的数据库文件已存在，跳过创建`)
+    console.log(`[ClassFire] 学校 ID=${schoolId} 的数据库文件已存在，跳过创建`)
     return
   }
   
-  console.log(`[CSMS] 正在为学校 ID=${schoolId} 创建数据库文件...`)
+  console.log(`[ClassFire] 正在为学校 ID=${schoolId} 创建数据库文件...`)
   const client = createClient({ url: `file:${dbPath}` })
 
   try {

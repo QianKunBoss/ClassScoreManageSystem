@@ -1,6 +1,6 @@
 module.exports = {
   apps: [{
-    name: 'csms',
+    name: 'classfire',
     script: '.output/server/index.mjs',
     instances: 1,          // 必须为 1！SQLite 不支持多进程写入
     exec_mode: 'fork',
@@ -11,8 +11,8 @@ module.exports = {
       NUXT_SESSION_PASSWORD: process.env.NUXT_SESSION_PASSWORD || 'change-this-to-a-random-secret',
     },
     max_memory_restart: '512M',
-    error_file: './logs/csms-error.log',
-    out_file: './logs/csms-out.log',
+    error_file: './logs/classfire-error.log',
+    out_file: './logs/classfire-out.log',
     log_date_format: 'YYYY-MM-DD HH:mm:ss',
   }]
 }

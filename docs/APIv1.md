@@ -1,6 +1,6 @@
-# CSMS 外部开放 API 文档（v1）
+# ClassFire 外部开放 API 文档（v1）
 
-> 适用版本：**CSMS v0.3.2** 起
+> 适用版本：**ClassFire v0.3.2** 起
 > 基础路径：`/api/v1/**`
 > 配套文档：内部管理员 API 见 [api.md](./api.md)；本文件只描述对外第三方对接的开放接口。
 
@@ -26,7 +26,7 @@
 <站点域名>/api/v1
 ```
 
-例如本站部署在 `https://csms.example.com`，则 ping 端点为 `https://csms.example.com/api/v1/ping`。
+例如本站部署在 `https://classfire.example.com`，则 ping 端点为 `https://classfire.example.com/api/v1/ping`。
 
 ### 2.2 统一响应信封
 
@@ -95,16 +95,16 @@
 每次请求需在 Header 中携带凭证明文，**二选一**：
 
 ```
-Authorization: Bearer csms_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+Authorization: Bearer classfire_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 或
 
 ```
-X-API-Token: csms_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+X-API-Token: classfire_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
-> token 明文形如 `csms_` + 高熵随机串（共约 45 字符）。后端仅以 `sha256(token)` 哈希入库（唯一索引，常数时间命中），明文只在校验时由调用方提供，库内不存储明文、无法还原。
+> token 明文形如 `classfire_` + 高熵随机串（共约 45 字符）。后端仅以 `sha256(token)` 哈希入库（唯一索引，常数时间命中），明文只在校验时由调用方提供，库内不存储明文、无法还原。
 
 ### 3.2 校验顺序与拒绝情形
 
@@ -241,7 +241,7 @@ Idempotency-Key: <自定义唯一串，最长 128 字符>
 | 字段 | 说明 |
 |------|------|
 | `requestId` | 与响应体的 `requestId` 一致 |
-| `tokenId` / `tokenPrefix` | 凭证 ID 与前缀（`csms_xxx…`） |
+| `tokenId` / `tokenPrefix` | 凭证 ID 与前缀（`classfire_xxx…`） |
 | `schoolId` | 所属学校 |
 | `method` / `path` | 请求方法与路径 |
 | `statusCode` / `latencyMs` | 响应码与耗时 |
@@ -273,7 +273,7 @@ Idempotency-Key: <自定义唯一串，最长 128 字符>
   "serverTime": "2026-08-30T15:04:05.123Z",
   "school": { "id": 7, "name": "示例学校" },
   "token": {
-    "name": "一卡通对接", "prefix": "csms_Ab12cd34",
+    "name": "一卡通对接", "prefix": "classfire_Ab12cd34",
     "scopeType": "class", "scopeGradeId": null, "scopeClassId": 42,
     "scopes": ["students:read","scores:read","scores:write"],
     "expiresAt": null, "callCount": 128, "createdAt": "2026-08-01T..."
@@ -422,8 +422,8 @@ Idempotency-Key: <自定义唯一串，最长 128 字符>
 ## 11. 快速开始（curl 示例）
 
 ```bash
-BASE="https://csms.example.com/api/v1"
-TOKEN="csms_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+BASE="https://classfire.example.com/api/v1"
+TOKEN="classfire_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 
 # 1) 自检：我的凭证绑在哪校、有什么权限
 curl -H "Authorization: Bearer $TOKEN" "$BASE/ping"
@@ -450,8 +450,8 @@ curl -H "Authorization: Bearer $TOKEN" "$BASE/stats/overview"
 Node.js（fetch）示例：
 
 ```js
-const BASE = 'https://csms.example.com/api/v1'
-const TOKEN = process.env.CSMS_TOKEN
+const BASE = 'https://classfire.example.com/api/v1'
+const TOKEN = process.env.ClassFire_TOKEN
 
 async function addScore(username, scoreChange, description) {
   const res = await fetch(`${BASE}/scores`, {
@@ -476,7 +476,7 @@ async function addScore(username, scoreChange, description) {
 | 现象 | 可能原因 | 处理 |
 |------|----------|------|
 | `40101` 缺少 token | 未带 `Authorization` / `X-API-Token` | 检查请求头拼写与 Bearer 前缀 |
-| `40102` token 无效 | 明文复制不全/含多余空格 | 重新从管理后台复制完整 `csms_...` 串 |
+| `40102` token 无效 | 明文复制不全/含多余空格 | 重新从管理后台复制完整 `classfire_...` 串 |
 | `40103` / `40104` | 凭证被禁用或过期 | 管理后台查看状态/有效期，必要时重发 |
 | `40105` | 签发者（管理员）被禁用 | 联系上级管理员恢复签发者账号 |
 | `40302` 权限不足 | 凭证 `scopes` 不含目标权限 | 管理后台扩充权限或换凭证 |
@@ -497,4 +497,4 @@ async function addScore(username, scoreChange, description) {
 
 ---
 
-*文档生成对应代码版本：CSMS v0.3.2。如与代码不符，以 `server/utils/api-*.ts`、`server/api/v1/**` 及 `server/api/api-tokens/**` 的实际实现为准。*
+*文档生成对应代码版本：ClassFire v0.3.2。如与代码不符，以 `server/utils/api-*.ts`、`server/api/v1/**` 及 `server/api/api-tokens/**` 的实际实现为准。*

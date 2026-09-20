@@ -30,9 +30,9 @@ async function handleLogout() {
       <div class="flex items-center gap-6">
         <NuxtLink to="/student" class="flex items-center gap-2">
           <div class="w-8 h-8 rounded-lg overflow-hidden bg-brand-500 p-1">
-            <img src="/favicon.ico" alt="CSMS" class="w-full h-full object-contain" />
+            <img src="/favicon.ico" alt="ClassFire" class="w-full h-full object-contain" />
           </div>
-          <span class="text-sm font-bold text-slate-100 hidden sm:inline">CSMS 学生端</span>
+          <span class="text-sm font-bold text-slate-100 hidden sm:inline">ClassFire 学生端</span>
         </NuxtLink>
 
         <div class="flex items-center gap-1">

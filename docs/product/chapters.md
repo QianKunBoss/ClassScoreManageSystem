@@ -1,7 +1,7 @@
-# CSMS 宣传片 章节规划（科技简洁风 · 深色钢蓝）
+# ClassFire 宣传片 章节规划（科技简洁风 · 深色钢蓝）
 
 PPT 类型：Product / Promo（Problem-Solution + Emotional）
-核心信息：CSMS 让班级操行分管理变得简单、透明、有趣。
+核心信息：ClassFire 让班级操行分管理变得简单、透明、有趣。
 页数：12 页（封面 + 9 内容 + 价值总结 + 结尾）
 风格：Tech（深色 / 冷色调 / 钢蓝 / 几何细线 / 零渐变）
 
@@ -9,9 +9,9 @@ PPT 类型：Product / Promo（Problem-Solution + Emotional）
 
 ## Page 1: 封面
 - **Page Type**: Cover
-- **Page Title**: CSMS（副标题：让班级操行分管理，更智能、更高效）
+- **Page Title**: ClassFire（副标题：让班级操行分管理，更智能、更高效）
 - **Selected Template**: cover/tech/039.tpl
-- **Content Structure**: 主标题 CSMS；副标题「班级操行分管理系统」；一句话定位「简单 · 透明 · 有趣」；品牌署名。
+- **Content Structure**: 主标题 ClassFire；副标题「班级操行分管理系统」；一句话定位「简单 · 透明 · 有趣」；品牌署名。
 - **Image Requirements**: 无（模板自带网格线背景装饰）
 - **Page Weight**: 核心页
 
@@ -22,11 +22,11 @@ PPT 类型：Product / Promo（Problem-Solution + Emotional）
 - **Content Structure**: 2x2 四卡片——①纸质记录：易丢失、难查阅；②黑板公示：不透明、易争议；③Excel 核算：手动慢、易出错；④凭记忆：难追溯、不公平。
 - **Image Requirements**: 无
 - **Page Weight**: 核心页
-- **Content Page Selection Rationale**: 用痛点共鸣引出产品价值，建立"为什么需要 CSMS"。
+- **Content Page Selection Rationale**: 用痛点共鸣引出产品价值，建立"为什么需要 ClassFire"。
 
 ## Page 3: 产品亮相
 - **Page Type**: Content
-- **Page Title**: CSMS 是什么？（副标题：一款面向各级学校的积分管理系统）
+- **Page Title**: ClassFire 是什么？（副标题：一款面向各级学校的积分管理系统）
 - **Selected Template**: content/tech/1582.tpl
 - **Content Structure**: 三原则卡——①多级权限：总系统→学校→年级→班级；②实时积分：线上化、结构化、可追溯；③可视化运营：座位、统计一目了然。
 - **Image Requirements**: 无
@@ -40,7 +40,7 @@ PPT 类型：Product / Promo（Problem-Solution + Emotional）
 - **Content Structure**: 五节点流程链——总系统 → 学校 → 年级 → 班级 → 学生；每级权限清晰、责任明确，上级统御下级。
 - **Image Requirements**: 无（模板 SVG 节点流）
 - **Page Weight**: 核心页
-- **Content Page Selection Rationale**: 架构是 CSMS 差异化核心，用节点流直观呈现层级。
+- **Content Page Selection Rationale**: 架构是 ClassFire 差异化核心，用节点流直观呈现层级。
 
 ## Page 5: 核心亮点 · 实时积分追踪
 - **Page Type**: Content
@@ -84,7 +84,7 @@ PPT 类型：Product / Promo（Problem-Solution + Emotional）
 - **Page Weight**: 核心页
 - **Content Page Selection Rationale**: 安全是校方决策的关键顾虑，单独强调。
 
-## Page 10: 谁在用 CSMS
+## Page 10: 谁在用 ClassFire
 - **Page Type**: Content
 - **Page Title**: 每个人，都有自己的位置（副标题：从学校到班级，从管理者到学生）
 - **Selected Template**: content/tech/1590.tpl
@@ -95,7 +95,7 @@ PPT 类型：Product / Promo（Problem-Solution + Emotional）
 
 ## Page 11: 核心价值总结
 - **Page Type**: Content
-- **Page Title**: 为什么选择 CSMS（副标题：简单 · 透明 · 有趣）
+- **Page Title**: 为什么选择 ClassFire（副标题：简单 · 透明 · 有趣）
 - **Selected Template**: content/tech/1581.tpl
 - **Content Structure**: 2x2 四卡片——①效率：自动统计，告别手工；②公平：留痕透明，减少争议；③安全：加密+二次确认；④易用：模板+拖拽，5 分钟上手。
 - **Image Requirements**: 无
@@ -104,7 +104,7 @@ PPT 类型：Product / Promo（Problem-Solution + Emotional）
 
 ## Page 12: 结尾
 - **Page Type**: Ending
-- **Page Title**: 开启智能化班级管理新时代（副标题：CSMS · 让积分管理简单、透明、有趣）
+- **Page Title**: 开启智能化班级管理新时代（副标题：ClassFire · 让积分管理简单、透明、有趣）
 - **Selected Template**: ending/tech/1108.tpl
 - **Content Structure**: 品牌 slogan + 行动号召；联系/官网占位。
 - **Image Requirements**: 无

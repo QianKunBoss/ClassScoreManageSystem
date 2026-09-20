@@ -1,15 +1,15 @@
 # PPT Outline
 
 ## Overview
-CSMS 班级操行分管理系统宣传片，共 12 页，采用科技简洁风格（深色钢蓝、几何细线、零渐变）。以"痛点 → 产品 → 六大核心亮点 → 受众 → 价值总结 → 行动号召"的故事线，逐页呈现产品与品牌核心信息，动画平滑、留白充足、文字精简。
+ClassFire 班级操行分管理系统宣传片，共 12 页，采用科技简洁风格（深色钢蓝、几何细线、零渐变）。以"痛点 → 产品 → 六大核心亮点 → 受众 → 价值总结 → 行动号召"的故事线，逐页呈现产品与品牌核心信息，动画平滑、留白充足、文字精简。
 
 ## Outline Content
 
 ### Page 1: 封面
 - Page Type: Cover
-- Page Title: CSMS
+- Page Title: ClassFire
 - Page Subtitle: 让班级操行分管理，更智能、更高效
-- Content: 主标题 CSMS；副标题「班级操行分管理系统」；定位金句「简单 · 透明 · 有趣」。
+- Content: 主标题 ClassFire；副标题「班级操行分管理系统」；定位金句「简单 · 透明 · 有趣」。
 
 ### Page 2: 痛点
 - Page Type: Content
@@ -19,7 +19,7 @@ CSMS 班级操行分管理系统宣传片，共 12 页，采用科技简洁风�
 
 ### Page 3: 产品亮相
 - Page Type: Content
-- Page Title: CSMS 是什么？
+- Page Title: ClassFire 是什么？
 - Page Subtitle: 一款面向各级学校的积分管理系统
 - Content: 三支柱——多级权限、实时积分、可视化运营。
 
@@ -59,7 +59,7 @@ CSMS 班级操行分管理系统宣传片，共 12 页，采用科技简洁风�
 - Page Subtitle: 数据安全，是底线
 - Content: Session 认证、BCrypt 加密、二次确认、防误触。
 
-### Page 10: 谁在用 CSMS
+### Page 10: 谁在用 ClassFire
 - Page Type: Content
 - Page Title: 每个人，都有自己的位置
 - Page Subtitle: 从学校到班级，从管理者到学生
@@ -67,14 +67,14 @@ CSMS 班级操行分管理系统宣传片，共 12 页，采用科技简洁风�
 
 ### Page 11: 核心价值总结
 - Page Type: Content
-- Page Title: 为什么选择 CSMS
+- Page Title: 为什么选择 ClassFire
 - Page Subtitle: 简单 · 透明 · 有趣
 - Content: 效率、公平、安全、易用四大价值。
 
 ### Page 12: 结尾
 - Page Type: Ending
 - Page Title: 开启智能化班级管理新时代
-- Page Subtitle: CSMS · 让积分管理简单、透明、有趣
+- Page Subtitle: ClassFire · 让积分管理简单、透明、有趣
 - Content: 品牌 slogan + 行动号召。
 
 ## Design Style

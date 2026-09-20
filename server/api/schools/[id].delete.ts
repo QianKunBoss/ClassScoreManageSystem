@@ -44,7 +44,7 @@ export default defineEventHandler(async (event) => {
       if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath)
     } catch (_) {
       // 文件删除失败不阻断主库记录删除，仅记录告警
-      console.warn(`[CSMS] 删除学校 ${id} 的数据文件失败：${dbPath}`)
+      console.warn(`[ClassFire] 删除学校 ${id} 的数据文件失败：${dbPath}`)
     }
   }
 

@@ -12,7 +12,7 @@ let _mainClient: ReturnType<typeof createClient> | null = null
 
 function getMainClient() {
   if (_mainClient) return _mainClient
-  const dbPath = path.join(process.cwd(), 'data', 'csms.db')
+  const dbPath = path.join(process.cwd(), 'data', 'classfire.db')
   const dataDir = path.dirname(dbPath)
   if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true })
   _mainClient = createClient({ url: `file:${dbPath}` })
@@ -39,7 +39,7 @@ export function getMainRawClient() {
  * ⚠️ 仅用于尚未迁移到多数据库的旧 API，新代码请直接用 useMainDb() / useSchoolDb()
  */
 export function useDb() {
-  console.warn('[CSMS] useDb() 已废弃，请迁移到 useMainDb() / useSchoolDb()')
+  console.warn('[ClassFire] useDb() 已废弃，请迁移到 useMainDb() / useSchoolDb()')
   return useMainDb()
 }
 
@@ -157,11 +157,11 @@ export async function migrateSchoolDb(client: any, schoolId: number) {
         // 6. 重新打开外键检查
         await client.execute('PRAGMA foreign_keys = ON')
 
-        console.log(`[CSMS] school ${schoolId} seat_layout_config 表迁移完成：添加 class_id 列`)
+        console.log(`[ClassFire] school ${schoolId} seat_layout_config 表迁移完成：添加 class_id 列`)
       }
     } catch (e: any) {
       if (!e.message?.includes('no such table')) {
-        console.error(`[CSMS] school ${schoolId} seat_layout_config 迁移失败:`, e.message)
+        console.error(`[ClassFire] school ${schoolId} seat_layout_config 迁移失败:`, e.message)
       }
     }
 
@@ -175,7 +175,7 @@ export async function migrateSchoolDb(client: any, schoolId: number) {
       const needsClassIdBackfill = !colNames.includes('class_id')
       if (needsClassIdBackfill) {
         await client.execute('ALTER TABLE seat_data ADD COLUMN class_id INTEGER REFERENCES classes(id) ON DELETE CASCADE')
-        console.log(`[CSMS] school ${schoolId} seat_data 表迁移完成：添加 class_id 列`)
+        console.log(`[ClassFire] school ${schoolId} seat_data 表迁移完成：添加 class_id 列`)
       }
 
       // 回填 class_id（通过 user_id 关联 users 表获取班级）
@@ -192,24 +192,24 @@ export async function migrateSchoolDb(client: any, schoolId: number) {
           await client.execute(`UPDATE seat_data SET class_id = ${defaultClassId} WHERE class_id IS NULL`)
         }
         if (needsClassIdBackfill) {
-          console.log(`[CSMS] school ${schoolId} seat_data 表 class_id 回填完成`)
+          console.log(`[ClassFire] school ${schoolId} seat_data 表 class_id 回填完成`)
         }
       }
 
       // 添加 created_at 列
       if (!colNames.includes('created_at')) {
         await client.execute(`ALTER TABLE seat_data ADD COLUMN created_at TEXT NOT NULL DEFAULT '${new Date().toISOString()}'`)
-        console.log(`[CSMS] school ${schoolId} seat_data 表迁移完成：添加 created_at 列`)
+        console.log(`[ClassFire] school ${schoolId} seat_data 表迁移完成：添加 created_at 列`)
       }
 
       // 添加 updated_at 列
       if (!colNames.includes('updated_at')) {
         await client.execute(`ALTER TABLE seat_data ADD COLUMN updated_at TEXT NOT NULL DEFAULT '${new Date().toISOString()}'`)
-        console.log(`[CSMS] school ${schoolId} seat_data 表迁移完成：添加 updated_at 列`)
+        console.log(`[ClassFire] school ${schoolId} seat_data 表迁移完成：添加 updated_at 列`)
       }
     } catch (e: any) {
       if (!e.message?.includes('no such table')) {
-        console.error(`[CSMS] school ${schoolId} seat_data 迁移失败:`, e.message)
+        console.error(`[ClassFire] school ${schoolId} seat_data 迁移失败:`, e.message)
       }
     }
 
@@ -219,26 +219,26 @@ export async function migrateSchoolDb(client: any, schoolId: number) {
       const userCols = (userResult.rows as any[]).map((r: any) => r.name)
       if (!userCols.includes('email')) {
         await client.execute('ALTER TABLE users ADD COLUMN email TEXT')
-        console.log(`[CSMS] school ${schoolId} users 表迁移完成：添加 email 列`)
+        console.log(`[ClassFire] school ${schoolId} users 表迁移完成：添加 email 列`)
       }
       if (!userCols.includes('email_bound_at')) {
         await client.execute('ALTER TABLE users ADD COLUMN email_bound_at TEXT')
-        console.log(`[CSMS] school ${schoolId} users 表迁移完成：添加 email_bound_at 列`)
+        console.log(`[ClassFire] school ${schoolId} users 表迁移完成：添加 email_bound_at 列`)
       }
       // 唯一索引（允许多个 NULL，仅约束非空值）
       await client.execute('CREATE UNIQUE INDEX IF NOT EXISTS users_email_unq ON users(email)')
       // 账号状态列（0=正常，1=禁用）
       if (!userCols.includes('disabled')) {
         await client.execute('ALTER TABLE users ADD COLUMN disabled INTEGER NOT NULL DEFAULT 0')
-        console.log(`[CSMS] school ${schoolId} users 表迁移完成：添加 disabled 列`)
+        console.log(`[ClassFire] school ${schoolId} users 表迁移完成：添加 disabled 列`)
       }
       // 强制改密标志（1=使用默认/重置密码登录，需强制改密）
       if (!userCols.includes('must_change_password')) {
         await client.execute('ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0')
-        console.log(`[CSMS] school ${schoolId} users 表迁移完成：添加 must_change_password 列`)
+        console.log(`[ClassFire] school ${schoolId} users 表迁移完成：添加 must_change_password 列`)
       }
     } catch (e: any) {
-      console.error(`[CSMS] school ${schoolId} users email 迁移失败:`, e.message)
+      console.error(`[ClassFire] school ${schoolId} users email 迁移失败:`, e.message)
     }
 
     // ===== 外部开放 API：幂等键表（新表，CREATE IF NOT EXISTS 天然幂等）=====
@@ -253,10 +253,10 @@ export async function migrateSchoolDb(client: any, schoolId: number) {
       )`)
       await client.execute('CREATE UNIQUE INDEX IF NOT EXISTS api_idempotency_token_key_unq ON api_idempotency(token_id, key)')
     } catch (e: any) {
-      console.error(`[CSMS] school ${schoolId} api_idempotency 建表失败:`, e.message)
+      console.error(`[ClassFire] school ${schoolId} api_idempotency 建表失败:`, e.message)
     }
   } catch (e: any) {
-    console.error(`[CSMS] school ${schoolId} 迁移失败:`, e.message)
+    console.error(`[ClassFire] school ${schoolId} 迁移失败:`, e.message)
   }
 }
 
@@ -278,7 +278,7 @@ export async function migrateAllSchoolDbs() {
 
   const files = fs.readdirSync(dbDir).filter((f) => /^(\d+)\.db$/.test(f))
   if (files.length === 0) {
-    console.log('[CSMS] 未发现学校库，跳过全量迁移')
+    console.log('[ClassFire] 未发现学校库，跳过全量迁移')
     return
   }
 
@@ -299,8 +299,8 @@ export async function migrateAllSchoolDbs() {
       }
     } catch (e: any) {
       fail++
-      console.error(`[CSMS] 启动迁移学校库 ${schoolId} 失败:`, e?.message || e)
+      console.error(`[ClassFire] 启动迁移学校库 ${schoolId} 失败:`, e?.message || e)
     }
   }
-  console.log(`[CSMS] 学校库全量迁移完成：成功 ${ok}，失败 ${fail}`)
+  console.log(`[ClassFire] 学校库全量迁移完成：成功 ${ok}，失败 ${fail}`)
 }

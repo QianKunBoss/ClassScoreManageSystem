@@ -1,6 +1,6 @@
 import { createClient } from '@libsql/client'
 
-const client = createClient({ url: 'file:./data/csms.db' })
+const client = createClient({ url: 'file:./data/classfire.db' })
 await client.execute('PRAGMA journal_mode = WAL')
 
 // 检查所有表

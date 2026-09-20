@@ -9,7 +9,7 @@ export interface ToastItem {
 }
 
 export default defineNuxtPlugin(() => {
-  const toasts = useState<ToastItem[]>('csms-toasts', () => [])
+  const toasts = useState<ToastItem[]>('classfire-toasts', () => [])
   let idCounter = 0
 
   function show(message: string, type: ToastItem['type'] = 'info', duration = 3000) {

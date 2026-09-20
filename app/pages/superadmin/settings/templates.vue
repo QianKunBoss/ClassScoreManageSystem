@@ -237,7 +237,7 @@ onMounted(load)
 
         <div>
           <label class="lbl">邮件主题</label>
-          <input v-model="draft.subject" class="form-input" placeholder="【CSMS】您的邮箱验证码" />
+          <input v-model="draft.subject" class="form-input" placeholder="【ClassFire】您的邮箱验证码" />
         </div>
 
         <div>

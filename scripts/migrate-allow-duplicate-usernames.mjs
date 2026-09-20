@@ -11,7 +11,7 @@ import path from 'path'
 import { createClient } from '@libsql/client'
 import fs from 'fs'
 
-const mainDbPath = path.join(process.cwd(), 'data', 'csms.db')
+const mainDbPath = path.join(process.cwd(), 'data', 'classfire.db')
 if (!fs.existsSync(mainDbPath)) {
   console.error('主库不存在：', mainDbPath)
   process.exit(1)

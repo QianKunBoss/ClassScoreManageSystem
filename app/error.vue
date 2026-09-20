@@ -17,7 +17,7 @@ const desc = computed(() =>
 )
 
 useHead({
-  title: computed(() => `${code.value} · ${title.value} | CSMS`),
+  title: computed(() => `${code.value} · ${title.value} | ClassFire`),
 })
 
 function goHome() {

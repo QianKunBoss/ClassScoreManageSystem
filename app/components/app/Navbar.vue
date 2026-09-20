@@ -7,7 +7,7 @@ const { user: currentUser, status, loggedIn: isLoggedIn } = useAuth()
 
 // 站点公开展示设置（导航栏标题等）
 const { data: siteSettings } = useSiteSettings()
-const navTitle = computed(() => siteSettings.value?.data?.nav_title || 'CSMS')
+const navTitle = computed(() => siteSettings.value?.data?.nav_title || 'ClassFire')
 
 // 用户下拉菜单
 const userMenuOpen = ref(false)
@@ -47,7 +47,7 @@ const navLinks = computed(() => {
           <!-- Logo -->
           <NuxtLink to="/" class="flex items-center gap-2.5 group">
             <div class="w-9 h-9 rounded-xl overflow-hidden bg-brand-500 p-1.5 shadow-lg shadow-brand-500/30 group-hover:scale-105 transition-transform">
-              <img src="/favicon.ico" alt="CSMS" class="w-full h-full object-contain" />
+              <img src="/favicon.ico" alt="ClassFire" class="w-full h-full object-contain" />
             </div>
             <span class="text-lg font-bold highlight-text hidden sm:block">{{ navTitle }}</span>
           </NuxtLink>

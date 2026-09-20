@@ -150,7 +150,7 @@ function filterByScope(
 
   if (rejected.length) {
     console.warn(
-      `[CSMS-AUDIT] 导入越权拦截 admin=${ctx.adminId} school=${ctx.schoolId} role=${scope.role} ` +
+      `[ClassFire-AUDIT] 导入越权拦截 admin=${ctx.adminId} school=${ctx.schoolId} role=${scope.role} ` +
       `拒绝 ${rejected.length} 个越权实体: ${rejected.slice(0, 20).join(', ')}${rejected.length > 20 ? '...' : ''}`,
     )
   }

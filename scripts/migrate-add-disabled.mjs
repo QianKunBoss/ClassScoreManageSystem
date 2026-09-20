@@ -4,7 +4,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const dbPath = path.resolve(__dirname, '../data/main.db')
+const dbPath = path.resolve(__dirname, '../data/classfire.db')
 
 console.log('正在连接数据库：', dbPath)
 const db = new Database(dbPath)

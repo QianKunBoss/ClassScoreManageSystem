@@ -1,4 +1,4 @@
-# CSMS v0.3.0 生产环境部署指南
+# ClassFire v0.3.0 生产环境部署指南
 
 > 班级积分管理系统 — Nuxt 4 + SQLite + Drizzle ORM
 
@@ -63,11 +63,11 @@ docker compose version
 
 ```bash
 # 方式一：Git 克隆
-git clone <your-repo-url> /opt/csms
-cd /opt/csms
+git clone <your-repo-url> /opt/classfire
+cd /opt/classfire
 
 # 方式二：SCP 上传（在本地执行）
-scp -r ./ClassScoreManageSystem-0.3.0 user@your-server:/opt/csms
+scp -r ./ClassFire-0.3.0 user@your-server:/opt/classfire
 ```
 
 ### 3. 配置环境变量
@@ -75,7 +75,7 @@ scp -r ./ClassScoreManageSystem-0.3.0 user@your-server:/opt/csms
 在项目根目录创建 `.env` 文件：
 
 ```bash
-cd /opt/csms
+cd /opt/classfire
 cp .env.example .env   # 如果没有 .env.example，手动创建
 vim .env
 ```
@@ -115,8 +115,8 @@ docker compose ps
 
 ```
 NAME          STATUS                    PORTS
-csms-app      Up (healthy)              0.0.0.0:3000->3000/tcp
-csms-nginx    Up                        0.0.0.0:80->80/tcp
+classfire-app      Up (healthy)              0.0.0.0:3000->3000/tcp
+classfire-nginx    Up                        0.0.0.0:80->80/tcp
 ```
 
 ### 5. 验证部署
@@ -135,11 +135,11 @@ curl http://your-server-ip/api/settings
 
 ```bash
 # 查看日志
-docker compose logs -f csms      # 应用日志
+docker compose logs -f classfire      # 应用日志
 docker compose logs -f nginx     # Nginx 日志
 
 # 重启服务
-docker compose restart csms
+docker compose restart classfire
 docker compose restart nginx
 
 # 停止所有服务
@@ -150,7 +150,7 @@ git pull
 docker compose up -d --build
 
 # 进入容器排查
-docker compose exec csms sh
+docker compose exec classfire sh
 ```
 
 ---
@@ -178,7 +178,7 @@ npm install -g pm2
 ### 3. 构建项目
 
 ```bash
-cd /opt/csms
+cd /opt/classfire
 
 # 安装依赖
 npm ci
@@ -194,7 +194,7 @@ npm run build
 ```javascript
 module.exports = {
   apps: [{
-    name: 'csms',
+    name: 'classfire',
     script: '.output/server/index.mjs',
     instances: 1,          // 必须为 1！SQLite 不支持多进程写入
     exec_mode: 'fork',
@@ -205,8 +205,8 @@ module.exports = {
       SESSION_SECRET: '替换为你的随机密钥',
     },
     max_memory_restart: '512M',
-    error_file: './logs/csms-error.log',
-    out_file: './logs/csms-out.log',
+    error_file: './logs/classfire-error.log',
+    out_file: './logs/classfire-out.log',
     log_date_format: 'YYYY-MM-DD HH:mm:ss',
   }]
 }
@@ -226,7 +226,7 @@ pm2 startup    # 按提示执行返回的命令
 
 # 查看状态
 pm2 status
-pm2 logs csms
+pm2 logs classfire
 ```
 
 ### 6. 配置 Nginx 反向代理
@@ -240,7 +240,7 @@ sudo cp deploy/nginx/nginx.conf /etc/nginx/nginx.conf
 sudo cp deploy/nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf
 
 # 修改 default.conf 中的 proxy_pass
-# 将 http://csms-app:3000 改为 http://127.0.0.1:3000
+# 将 http://classfire-app:3000 改为 http://127.0.0.1:3000
 sudo vim /etc/nginx/conf.d/default.conf
 
 # 测试并重载
@@ -263,7 +263,7 @@ sudo systemctl reload nginx
 ```yaml
   certbot:
     image: certbot/certbot
-    container_name: csms-certbot
+    container_name: classfire-certbot
     volumes:
       - ./deploy/nginx/certs:/etc/letsencrypt
       - ./deploy/nginx/www:/var/www/certbot
@@ -311,7 +311,7 @@ server {
 
     # ... 其余 proxy 配置与 HTTP 版本相同
     location / {
-        proxy_pass http://csms-app:3000;
+        proxy_pass http://classfire-app:3000;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -320,13 +320,13 @@ server {
     }
 
     location /_nuxt/ {
-        proxy_pass http://csms-app:3000;
+        proxy_pass http://classfire-app:3000;
         expires 30d;
         add_header Cache-Control "public, immutable";
     }
 
     location /api/ {
-        proxy_pass http://csms-app:3000;
+        proxy_pass http://classfire-app:3000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         add_header Cache-Control "no-store, no-cache, must-revalidate";
@@ -388,13 +388,13 @@ sudo certbot renew --dry-run
 
 ### 自动备份脚本
 
-创建 `/opt/csms/backup.sh`：
+创建 `/opt/classfire/backup.sh`：
 
 ```bash
 #!/bin/bash
-# CSMS 数据库自动备份脚本
+# ClassFire 数据库自动备份脚本
 
-BACKUP_DIR="/opt/csms/backups"
+BACKUP_DIR="/opt/classfire/backups"
 DATE=$(date +%Y%m%d_%H%M%S)
 RETENTION_DAYS=30
 
@@ -402,21 +402,30 @@ mkdir -p "$BACKUP_DIR"
 
 echo "[$(date)] 开始备份..."
 
-# Docker 部署：在容器内执行 SQLite 热备份
-if docker compose ps csms | grep -q "Up"; then
-    docker compose exec -T csms sh -c \
-      "sqlite3 /app/data/main.db '.backup /tmp/backup_main.db' && \
-       sqlite3 /app/data/schools.db '.backup /tmp/backup_schools.db'" 2>/dev/null
+# Docker 部署：在容器内执行 SQLite 热备份（主库 + 各校分库）
+if docker compose ps classfire | grep -q "Up"; then
+    docker compose exec -T classfire sh -c \
+      "sqlite3 /app/data/classfire.db '.backup /tmp/bk_main.db' && \
+       mkdir -p /tmp/bk_schools && \
+       for f in /app/data/schools/*.db; do \
+         [ -e \"\$f\" ] || continue; \
+         sqlite3 \"\$f\" \".backup /tmp/bk_schools/\$(basename \"\$f\")\"; \
+       done"
 
-    docker compose cp csms:/tmp/backup_main.db "$BACKUP_DIR/main_$DATE.db"
-    docker compose cp csms:/tmp/backup_schools.db "$BACKUP_DIR/schools_$DATE.db"
+    docker compose cp classfire:/tmp/bk_main.db "$BACKUP_DIR/classfire_$DATE.db"
+    mkdir -p "$BACKUP_DIR/schools_$DATE"
+    docker compose cp classfire:/tmp/bk_schools/. "$BACKUP_DIR/schools_$DATE/"
 
-    docker compose exec -T csms rm /tmp/backup_main.db /tmp/backup_schools.db
+    docker compose exec -T classfire rm -rf /tmp/bk_main.db /tmp/bk_schools
 
 # PM2 部署：直接本地备份
-elif pm2 list | grep -q "csms"; then
-    sqlite3 /opt/csms/data/main.db ".backup $BACKUP_DIR/main_$DATE.db"
-    sqlite3 /opt/csms/data/schools.db ".backup $BACKUP_DIR/schools_$DATE.db"
+elif pm2 list | grep -q "classfire"; then
+    sqlite3 /opt/classfire/data/classfire.db ".backup $BACKUP_DIR/classfire_$DATE.db"
+    mkdir -p "$BACKUP_DIR/schools_$DATE"
+    for f in /opt/classfire/data/schools/*.db; do
+        [ -e "$f" ] || continue
+        sqlite3 "$f" ".backup $BACKUP_DIR/schools_$DATE/$(basename "$f")"
+    done
 fi
 
 # 压缩备份
@@ -432,37 +441,37 @@ ls -lh "$BACKUP_DIR" | tail -5
 设置定时任务：
 
 ```bash
-chmod +x /opt/csms/backup.sh
+chmod +x /opt/classfire/backup.sh
 
 # 每天凌晨 3 点自动备份
 crontab -e
 # 添加以下行：
-0 3 * * * /opt/csms/backup.sh >> /opt/csms/logs/backup.log 2>&1
+0 3 * * * /opt/classfire/backup.sh >> /opt/classfire/logs/backup.log 2>&1
 ```
 
 ### 手动备份
 
 ```bash
-# Docker
-docker compose exec csms sh -c "sqlite3 /app/data/main.db '.backup /tmp/backup.db'"
-docker compose cp csms:/tmp/backup.db ./my-backup.db
+# Docker（主库；分库在 /app/data/schools/ 下，需逐个 .backup）
+docker compose exec classfire sh -c "sqlite3 /app/data/classfire.db '.backup /tmp/backup.db'"
+docker compose cp classfire:/tmp/backup.db ./my-backup.db
 
 # PM2
-sqlite3 /opt/csms/data/main.db ".backup ./my-backup.db"
+sqlite3 /opt/classfire/data/classfire.db ".backup ./my-backup.db"
 ```
 
 ### 恢复备份
 
 ```bash
 # Docker（需要先停止应用）
-docker compose stop csms
-docker compose cp ./my-backup.db csms:/app/data/main.db
-docker compose start csms
+docker compose stop classfire
+docker compose cp ./my-backup.db classfire:/app/data/classfire.db
+docker compose start classfire
 
 # PM2
-pm2 stop csms
-cp ./my-backup.db /opt/csms/data/main.db
-pm2 start csms
+pm2 stop classfire
+cp ./my-backup.db /opt/classfire/data/classfire.db
+pm2 start classfire
 ```
 
 ---
@@ -512,11 +521,11 @@ curl -g -6 http://[your-ipv6-address]/api/settings
 
 ```bash
 # 查看详细日志
-docker compose logs csms
+docker compose logs classfire
 
 # 常见原因：
 # - 端口被占用 → 修改 docker-compose.yml 中的端口映射
-# - 权限问题 → sudo chown -R $USER:$USER /opt/csms
+# - 权限问题 → sudo chown -R $USER:$USER /opt/classfire
 # - 构建失败 → docker compose build --no-cache
 ```
 
@@ -553,17 +562,17 @@ curl -v https://your-domain.com/api/auth/login -X POST \
 docker system prune -a
 
 # 清理旧备份
-find /opt/csms/backups -name "*.db.gz" -mtime +30 -delete
+find /opt/classfire/backups -name "*.db.gz" -mtime +30 -delete
 
 # 查看磁盘使用
 df -h
-du -sh /opt/csms/*
+du -sh /opt/classfire/*
 ```
 
 ### 5. 更新部署
 
 ```bash
-cd /opt/csms
+cd /opt/classfire
 
 # 拉取最新代码
 git pull origin main
@@ -574,7 +583,7 @@ docker compose up -d --build
 # 或者 PM2 方式
 npm ci
 npm run build
-pm2 restart csms
+pm2 restart classfire
 ```
 
 ---
