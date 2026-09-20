@@ -49,3 +49,17 @@ CSMS_联系方式双行显示_说明.md
 CSMS_多逻辑提交计划.md
 .output.zip
 CSMS_排行榜每行迷你图预览.html
+
+# ---- 宣传片 / 演示片产出（本地产物，单次运行可达 ~1 GB，绝不入库）----
+# 含 promo-runs/ 的成片、素材包、逐帧中间件、超分底图、BGM 原轨等
+/outputs/
+# HyperFrames CLI 的渲染临时目录（实测 1800+ 文件 / 235 MB）
+/.hf-tmp/
+
+# ---- 本地调试脚手架（_ 前缀 = 一次性临时脚本/产物，非交付物）----
+# 本项目约定：所有临时分析脚本、抽帧结果、探针输出一律以 _ 开头。
+# 仓库根 scripts/ 下的 13 个正式脚本（migrate-*.mjs、gen-*.py、api-inventory.mjs…）不受影响。
+/_*
+/scripts/_*
+# 宣传片专用构建辅助（属于 outputs/ 那条产线，不随产品源码入库）
+/scripts/build-hf.mjs
