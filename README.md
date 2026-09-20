@@ -12,13 +12,48 @@
 
 基于 Nuxt 4 + Vue 3 + TypeScript + Drizzle ORM + SQLite 的现代化班级操行分管理系统。支持多校分级管理、四级权限架构、实时积分追踪、可视化座位表等功能。
 
-> **关于项目名**：本项目原名 CSMS（ClassScoreManageSystem），v0.3.2 起更名为 **ClassFire**，取「班级像火焰一样越烧越旺」之意，构词参照 ClassIsland 的双驼峰写法。代码内标识符（数据库文件名、Session Cookie 名、API token 前缀、部署资源名等）已同步更新，升级注意事项见[发布说明](docs/RELEASE-NOTES-v0.3.2.md)。
+> **关于项目名**：本项目原名 CSMS（ClassScoreManageSystem），v0.3.2 起更名为 **ClassFire**。命名含义、代码内标识符变更与升级迁移步骤见下方「项目更名说明」章节。
 
 ## 📖 文档导航
 
 - 🌐 [ClassFire 官网](https://classfire.tianrld.top) — 官方维护网站
 - 📚 [ClassFire 文档站](https://docs.classfire.tianrld.top) — 外部开放 API（v1）、内部 API 等全部接口文档
 - 🚀 [v0.3.2 发布说明](docs/RELEASE-NOTES-v0.3.2.md) — 完全重构版本的功能全景（全部模块、数据模型、接口规模、安全基线、部署与升级说明）
+
+---
+
+## 🔄 项目更名说明（CSMS → ClassFire）
+
+v0.3.2 起，项目由 **CSMS（ClassScoreManageSystem）** 正式更名为 **ClassFire**。
+
+- **命名含义**：取「班级像火焰一样越烧越旺」之意；构词参照知名项目 ClassIsland 的双驼峰（CamelCase）写法。
+- **本地目录名不变**：代码仓库仍位于原目录，仅标识符与品牌名变更。
+
+### 代码内已变更的标识符
+
+| 类别 | 旧值 | 新值 | 升级影响 |
+| --- | --- | --- | --- |
+| 主数据库文件 | `data/csms.db`（含 `-wal` / `-shm`） | `data/classfire.db` | 需整组重命名 |
+| Session Cookie 名 | `csms-session` | `classfire-session` | 已登录用户需重新登录 |
+| API token 前缀 | `csms_` | `classfire_` | 存量 token 无需重签（鉴权按 `sha256(token)` 查库，不校验前缀） |
+| PM2 进程名 | `csms` | `classfire` | 需 `pm2 delete csms && pm2 start ecosystem.config.cjs` |
+| Docker 服务 / 卷名 | `csms*` | `classfire*` | 卷名变更后需迁移数据 |
+| 站点名 / nav_title / PWA storageKey / 缓存前缀 | — | `ClassFire` 相关 | 自动生效 |
+
+### 刻意保留未改的项
+
+- 域名已随 DNS 变更切换为 `classfire.tianrld.top` / `docs.classfire.tianrld.top`（原 `csms.tianrld.top` 不再作为站点入口）
+- 发件邮箱 `csms@tianrld.top`（Resend 已验证，改了会拒发）
+- 安全黑名单中改名前的弱口令示例值（用于识别存量 `.env`）
+- 已签发 token 在管理界面显示的 `token_prefix` 仍是 `csms_…`（仅展示，不影响鉴权）
+- 品牌 favicon 仍为「CS 字母徽标」，尚未按 ClassFire 重做
+
+### 升级 / 迁移注意事项
+
+1. 把 `data/csms.db` 及其 `-wal` / `-shm` **作为一组**重命名为 `classfire.db*`（三个文件必须同时移动，单独改主文件会丢掉 WAL 中尚未 checkpoint 的写入）。
+2. 重新部署后所有用户需重新登录一次（Cookie 名已变）。
+3. PM2 / Docker 部署按上表更新进程名与卷名，并迁移卷内数据。
+4. 完整说明见[发布说明](docs/RELEASE-NOTES-v0.3.2.md) 第 8、11 节。
 
 ---
 
