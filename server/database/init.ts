@@ -292,6 +292,25 @@ export async function initDatabase() {
     }
   }
 
+  // ===== 3.5. 界面设置默认值（若不存在则插入）=====
+  // 界面设置页（superadmin/settings/appearance、admin/settings）按这 6 个 key 渲染，
+  // 缺行会导致页面上对应设置项直接消失
+  const uiDefaults: { key: string; value: string; desc: string }[] = [
+    { key: 'system_title', value: 'ClassFire 班级操行分管理系统', desc: '系统标题' },
+    { key: 'nav_title', value: 'ClassFire', desc: '导航栏标题' },
+    { key: 'show_ranking', value: '1', desc: '显示排行榜' },
+    { key: 'show_search', value: '1', desc: '显示搜索' },
+    { key: 'enable_user_detail', value: '1', desc: '启用用户详情' },
+    { key: 'show_statistics', value: '1', desc: '显示统计' },
+  ]
+  for (const u of uiDefaults) {
+    await client.execute({
+      sql: 'INSERT OR IGNORE INTO system_settings (setting_key, setting_value, description, updated_at) VALUES (?, ?, ?, ?)',
+      args: [u.key, u.value, u.desc, new Date().toISOString()],
+    })
+  }
+  console.log('[ClassFire] 界面设置默认值已就绪')
+
   // ===== 4. 邮件设置默认值（若不存在则插入）=====
   const emailDefaults: { key: string; value: string; desc: string }[] = [
     { key: 'mail_provider', value: 'custom', desc: '邮件服务提供商' },
