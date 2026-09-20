@@ -520,7 +520,7 @@ onBeforeUnmount(() => {
         </p>
 
         <div class="hero-cta animate-fade-in" style="animation-delay: 0.3s">
-          <a href="https://docs.csms.tianrld.top" target="_blank" rel="noopener noreferrer" class="btn-ghost-neon" data-magnetic>
+          <a href="https://docs.classfire.tianrld.top" target="_blank" rel="noopener noreferrer" class="btn-ghost-neon" data-magnetic>
             <MorphIcon name="book-open" class="gh-icon" />
             <span>文档</span>
           </a>
@@ -734,7 +734,7 @@ onBeforeUnmount(() => {
         <h2 class="cta-title">准备好提升班级管理效率了吗？</h2>
         <p class="cta-sub">联系超级管理员获取入驻资格，开启智能化班级管理新时代。</p>
         <div class="hero-cta">
-          <a href="https://docs.csms.tianrld.top" target="_blank" rel="noopener noreferrer" class="btn-ghost-neon" data-magnetic>
+          <a href="https://docs.classfire.tianrld.top" target="_blank" rel="noopener noreferrer" class="btn-ghost-neon" data-magnetic>
             <MorphIcon name="book-open" class="gh-icon" />
             <span>文档</span>
           </a>

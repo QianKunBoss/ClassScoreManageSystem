@@ -16,7 +16,8 @@
 
 ## 📖 文档导航
 
-- 📚 [ClassFire 文档站](https://docs.csms.tianrld.top) — 外部开放 API（v1）、内部 API 等全部接口文档
+- 🌐 [ClassFire 官网](https://classfire.tianrld.top) — 官方维护网站
+- 📚 [ClassFire 文档站](https://docs.classfire.tianrld.top) — 外部开放 API（v1）、内部 API 等全部接口文档
 - 🚀 [v0.3.2 发布说明](docs/RELEASE-NOTES-v0.3.2.md) — 完全重构版本的功能全景（全部模块、数据模型、接口规模、安全基线、部署与升级说明）
 
 ---
@@ -102,7 +103,7 @@ v0.3.0 是 ClassFire 的一次**完全重构**，从 PHP + jQuery 的传统架�
 - **全量调用审计**：每次调用（含鉴权失败/限流）写入日志并带 `X-Request-Id`，保留 30 天
 - **管理能力**：管理后台「API 凭证」页面签发/编辑/禁用/吊销凭证、查看调用日志，签发与吊销均需二次验密
 - 覆盖 22 个外部端点（学生 / 积分 / 年级 / 班级 / 模板 / 统计 / 自检）+ 6 个凭证管理内部端点
-- 完整接口文档见 ClassFire 文档站（https://docs.csms.tianrld.top）
+- 完整接口文档见 ClassFire 文档站（https://docs.classfire.tianrld.top）
 
 ### 📱 PWA 渐进式 Web 应用（已端到端验证生效）
 
