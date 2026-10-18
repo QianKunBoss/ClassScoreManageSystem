@@ -276,6 +276,11 @@ function menuEnter() {
     closeOrgMenu()
     return
   }
+  if (adminLoaded.value && !hasOrgAdmin(n)) {
+    toast.error('该层级暂无对应管理员，无法进入')
+    closeOrgMenu()
+    return
+  }
   confirmEnterOrg.value = {
     nodeKind: n.kind,
     nodeName: n.label,
@@ -397,6 +402,7 @@ function fitStage() {
 // ===== 用户星图数据 =====
 const adminList = ref<any[]>([])
 const adminLoaded = ref(false)
+const starLoaded = ref(false)
 const studentTotals = ref<Record<number, number>>({})
 const studentsByClass = ref<Record<string, any[]>>({})
 const starExpanded = ref<Set<string>>(new Set())
@@ -408,10 +414,8 @@ const ROLE_ORDER = [
   { role: 'class_admin', label: '班级管理员' },
 ]
 
-async function loadStarData() {
+async function loadAdminList() {
   if (adminLoaded.value) return
-  starLoading.value = true
-
   try {
     const a = await $fetch<{ data: any[] }>('/api/admin/manage', { params: { limit: 100 } })
     adminList.value = a.data || []
@@ -419,6 +423,12 @@ async function loadStarData() {
   } catch {
     toast.error('加载管理员数据失败')
   }
+}
+
+async function loadStarData() {
+  if (starLoaded.value) return
+  starLoading.value = true
+  await loadAdminList()
 
   const totals = await Promise.all(schools.value.map(async (s) => {
     try {
@@ -442,7 +452,25 @@ async function loadStarData() {
     }
   }
   starExpanded.value = exp
+  starLoaded.value = true
   starLoading.value = false
+}
+
+/** 目标层级是否确实有对应管理员（严格匹配，不回退） */
+function hasOrgAdmin(node: any): boolean {
+  const meta = node?.meta
+  if (!meta || meta.schoolId == null) return false
+  const { schoolId } = meta
+  if (node.kind === 'school') {
+    return adminList.value.some((a) => a.role === 'school_admin' && a.schoolId === schoolId && a.disabled !== 1)
+  }
+  if (node.kind === 'grade') {
+    return adminList.value.some((a) => a.role === 'grade_admin' && a.schoolId === schoolId && a.gradeId === meta.gradeId && a.disabled !== 1)
+  }
+  if (node.kind === 'class') {
+    return adminList.value.some((a) => a.role === 'class_admin' && a.schoolId === schoolId && a.classId === meta.classId && a.disabled !== 1)
+  }
+  return false
 }
 
 const starTree = computed<StarNode>(() => {
@@ -702,6 +730,8 @@ onMounted(async () => {
     pendingApplications.value = (pRes.data || []).length
     // 层级数据单独加载，不阻塞上方统计卡片渲染
     void loadHierarchy(schools.value)
+    // 管理员清单用于判断各层级是否可「进入组织」
+    void loadAdminList()
   } catch {
     toast.error('加载数据失败')
   } finally {
@@ -903,12 +933,15 @@ const roleNames: Record<string, string> = {
             <button
               type="button"
               class="org-menu-item !text-brand-400"
-              :disabled="menuSchool?.disabled === 1"
-              :class="{ 'opacity-40 cursor-not-allowed': menuSchool?.disabled === 1 }"
+              :disabled="menuSchool?.disabled === 1 || (adminLoaded && !hasOrgAdmin(menuNode))"
+              :class="{ 'opacity-40 cursor-not-allowed': menuSchool?.disabled === 1 || (adminLoaded && !hasOrgAdmin(menuNode)) }"
               @click="menuEnter"
             >
               进入组织
             </button>
+            <p v-if="adminLoaded && !hasOrgAdmin(menuNode)" class="px-3 pb-1.5 text-[10px] leading-snug text-slate-500">
+              该层级暂无对应管理员
+            </p>
           </template>
 
           <!-- 管理员账号 -->
@@ -952,7 +985,7 @@ const roleNames: Record<string, string> = {
       <UiConfirm
         :show="!!confirmEnterOrg"
         title="进入组织"
-        :message="confirmEnterOrg ? `将免密进入${SCOPE_LABEL[confirmEnterOrg.nodeKind]}「${confirmEnterOrg.nodeName}」。优先选择该层级已完成安全初始化的管理员；若该层级无管理员会向上回退。进入后顶部显示「退出模拟」，可一键恢复超管身份。` : ''"
+        :message="confirmEnterOrg ? `将免密进入${SCOPE_LABEL[confirmEnterOrg.nodeKind]}「${confirmEnterOrg.nodeName}」，使用该层级的管理员身份。该层级没有对应管理员时将无法进入。进入后顶部显示「退出模拟」，可一键恢复超管身份。` : ''"
         confirm-text="进入"
         @confirm="enterOrg"
         @cancel="confirmEnterOrg = null"

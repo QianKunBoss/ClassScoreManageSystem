@@ -75,10 +75,12 @@ export default defineEventHandler(async (event) => {
 
   const picked = await pickOrgAdmin(schoolId, scope, gid || undefined, cid || undefined)
   if (!picked.admin) {
-    const label = scope === 'class' ? '班级' : scope === 'grade' ? '年级' : '学校'
+    // 严格匹配：该层级没有对应管理员就不允许进入（不再向上回退）
+    const roleLabel = scope === 'class' ? '班级管理员' : scope === 'grade' ? '年级管理员' : '学校管理员'
+    const nodeLabel = scope === 'class' ? '班级' : scope === 'grade' ? '年级' : '学校'
     throw createError({
       statusCode: 404,
-      message: `该${label}及其上级均无可用的管理员，请先在「管理员账号」中创建`,
+      message: `该${nodeLabel}暂无${roleLabel}，无法进入；请先在「管理员账号」中为该${nodeLabel}分配管理员`,
     })
   }
 

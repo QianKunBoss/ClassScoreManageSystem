@@ -42,11 +42,11 @@ async function pickTier(
 }
 
 /**
- * 按目标组织层级选人（策略 B）：
- * - class：班级管理员 → 年级管理员 → 学校管理员
- * - grade：年级管理员 → 学校管理员
- * - school：学校管理员
- * 每级内部优先已完成安全初始化的账号；只有该级没有管理员才向上回退。
+ * 按目标组织层级选人（严格匹配，不向上回退）：
+ * - school：必须是该校的学校管理员
+ * - grade：必须是该年级的年级管理员
+ * - class：必须是该班级的班级管理员
+ * 同层级内优先已完成安全初始化的账号，随机取一个；该层级没有管理员则返回 null。
  */
 export async function pickOrgAdmin(
   schoolId: number,
@@ -54,26 +54,16 @@ export async function pickOrgAdmin(
   gradeId?: number,
   classId?: number,
 ): Promise<PickResult> {
-  const tiers: Array<{ scope: OrgScope; role: string; extra: { gradeId?: number; classId?: number } }> = []
+  const role = scope === 'class' ? 'class_admin' : scope === 'grade' ? 'grade_admin' : 'school_admin'
+  // 班级按 classId 匹配即可（classId 在同一学校库内唯一）；gradeId 仅作前端定位与校验用，
+  // 历史数据里可能存在 gradeId 为空但 classId 已设置的班级管理员。
+  const extra = scope === 'class' ? { classId } : scope === 'grade' ? { gradeId } : {}
 
-  if (scope === 'class') {
-    tiers.push({ scope: 'class', role: 'class_admin', extra: { gradeId, classId } })
-    if (gradeId != null) tiers.push({ scope: 'grade', role: 'grade_admin', extra: { gradeId } })
-    tiers.push({ scope: 'school', role: 'school_admin', extra: {} })
-  } else if (scope === 'grade') {
-    tiers.push({ scope: 'grade', role: 'grade_admin', extra: { gradeId } })
-    tiers.push({ scope: 'school', role: 'school_admin', extra: {} })
-  } else {
-    tiers.push({ scope: 'school', role: 'school_admin', extra: {} })
+  const hit = await pickTier(schoolId, role, extra)
+  if (!hit) {
+    return { admin: null, bypassedSecurity: false, candidates: 0, matchedScope: null, fallback: false }
   }
-
-  for (let i = 0; i < tiers.length; i++) {
-    const t = tiers[i]
-    const hit = await pickTier(schoolId, t.role, t.extra)
-    if (hit) return { ...hit, matchedScope: t.scope, fallback: i > 0 }
-  }
-
-  return { admin: null, bypassedSecurity: false, candidates: 0, matchedScope: null, fallback: false }
+  return { ...hit, matchedScope: scope, fallback: false }
 }
 
 export interface ImpersonationLogPayload {
