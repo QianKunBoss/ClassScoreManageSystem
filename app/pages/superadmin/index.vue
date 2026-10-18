@@ -49,18 +49,29 @@ function collapseAllGradeIds(): Set<string> {
 }
 
 function expandAllOrg() {
-  collapsed.value = new Set()
+  void rebuildOrg(new Set())
 }
 
 function collapseAllOrg() {
-  collapsed.value = collapseAllGradeIds()
+  void rebuildOrg(collapseAllGradeIds())
 }
 
-function toggleOrg(id: string) {
+async function toggleOrg(id: string) {
+  const before = anchorRect('[data-org-root]')
   const next = new Set(collapsed.value)
   if (next.has(id)) next.delete(id)
   else next.add(id)
   collapsed.value = next
+  await nextTick()
+  keepAnchored(before, '[data-org-root]')
+}
+
+/** 全量展开/收起时同样锚定根节点位置 */
+async function rebuildOrg(next: Set<string>) {
+  const before = anchorRect('[data-org-root]')
+  collapsed.value = next
+  await nextTick()
+  keepAnchored(before, '[data-org-root]')
 }
 
 // ===== 画布平移 / 缩放 =====
@@ -587,15 +598,15 @@ async function loadClassStudents(schoolId: number, classId: number) {
   studentsByClass.value = { ...studentsByClass.value, [key]: r.data || [] }
 }
 
-/** 星图根节点的屏幕位置（用于展开/折叠时锚定，避免整图跳动） */
-function starRootRect(): DOMRect | null {
-  const el = stageEl.value?.querySelector('[data-star-root]')
+/** 取画布内某个锚点节点的屏幕位置（用于布局变化时锚定，避免整图跳动） */
+function anchorRect(selector: string): DOMRect | null {
+  const el = stageEl.value?.querySelector(selector)
   return el ? el.getBoundingClientRect() : null
 }
 
-/** 布局变化后平移画布，让根节点停留在原来的屏幕位置 */
-function keepStarRootAnchored(before: DOMRect | null) {
-  const after = starRootRect()
+/** 布局变化后平移画布，让锚点节点停留在原来的屏幕位置 */
+function keepAnchored(before: DOMRect | null, selector: string) {
+  const after = anchorRect(selector)
   if (!before || !after) return
   const dx = before.left - after.left
   const dy = before.top - after.top
@@ -603,21 +614,22 @@ function keepStarRootAnchored(before: DOMRect | null) {
 }
 
 async function toggleStarNode(id: string) {
-  const before = starRootRect()
+  const SEL = '[data-star-root]'
+  const before = anchorRect(SEL)
   const next = new Set(starExpanded.value)
 
   if (next.has(id)) {
     next.delete(id)
     starExpanded.value = next
     await nextTick()
-    keepStarRootAnchored(before)
+    keepAnchored(before, SEL)
     return
   }
 
   next.add(id)
   starExpanded.value = next
   await nextTick()
-  keepStarRootAnchored(before)
+  keepAnchored(before, SEL)
 
   if (id.startsWith('star-class-')) {
     const parts = id.split('-')
@@ -626,10 +638,10 @@ async function toggleStarNode(id: string) {
     const key = `${schoolId}:${classId}`
     if (!Number.isFinite(schoolId) || !Number.isFinite(classId) || studentsByClass.value[key]) return
     try {
-      const beforeLoad = starRootRect()
+      const beforeLoad = anchorRect(SEL)
       await loadClassStudents(schoolId, classId)
       await nextTick()
-      keepStarRootAnchored(beforeLoad)
+      keepAnchored(beforeLoad, SEL)
     } catch {
       toast.error('加载学生失败')
     }
