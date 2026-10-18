@@ -129,10 +129,16 @@ function onWheel(e: WheelEvent) {
 interface DragState { active: boolean; moved: boolean; sx: number; sy: number; px: number; py: number }
 let dragState: DragState = { active: false, moved: false, sx: 0, sy: 0, px: 0, py: 0 }
 
+/**
+ * 拖拽在 window 上跟踪，**不使用 setPointerCapture**：
+ * 指针捕获会把后续的兼容鼠标事件（含 click）重定向到画布，导致节点点击失效。
+ */
 function onPointerDown(e: PointerEvent) {
   if (e.button !== 0) return
   dragState = { active: true, moved: false, sx: e.clientX, sy: e.clientY, px: pan.value.x, py: pan.value.y }
-  canvasEl.value?.setPointerCapture(e.pointerId)
+  window.addEventListener('pointermove', onPointerMove)
+  window.addEventListener('pointerup', onPointerUp, { once: true })
+  window.addEventListener('pointercancel', onPointerUp, { once: true })
 }
 
 function onPointerMove(e: PointerEvent) {
@@ -145,6 +151,9 @@ function onPointerMove(e: PointerEvent) {
 
 function onPointerUp() {
   dragState.active = false
+  window.removeEventListener('pointermove', onPointerMove)
+  window.removeEventListener('pointerup', onPointerUp)
+  window.removeEventListener('pointercancel', onPointerUp)
   // moved 保留到 click 阶段，用于抑制「拖拽结束时误触节点」
   setTimeout(() => { dragState.moved = false }, 0)
 }
@@ -860,9 +869,6 @@ const roleNames: Record<string, string> = {
           ref="canvasEl"
           class="org-canvas"
           @pointerdown="onPointerDown"
-          @pointermove="onPointerMove"
-          @pointerup="onPointerUp"
-          @pointercancel="onPointerUp"
           @wheel.prevent="onWheel"
           @click.capture="onClickCapture"
           @contextmenu.prevent

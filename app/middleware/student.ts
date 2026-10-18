@@ -8,12 +8,11 @@ export default defineNuxtRouteMiddleware(async (to) => {
   // 只处理学生端页面（双重保险）
   if (!to.path.startsWith('/student')) return
 
-  // SSR 下需把请求的 cookie 透传给内部 $fetch，否则无法识别登录态
+  // SSR 阶段跳过：内部请求带不上入站 Cookie，服务端判断会把已登录学生踢回登录页。
+  // 与 auth.global / super-admin 保持一致，统一交给客户端校验。
+  if (import.meta.server) return
+
   const opts: any = { credentials: 'include' }
-  if (process.server) {
-    const cookie = useRequestHeaders(['cookie']).cookie
-    if (cookie) opts.headers = { cookie }
-  }
 
   try {
     const res = await $fetch<{ success: boolean; student: any }>('/api/auth/student/me', opts)

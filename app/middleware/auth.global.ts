@@ -5,15 +5,15 @@ export default defineNuxtRouteMiddleware(async (to) => {
   // 免检页面：首页、登录页、申请页
   if (to.path === '/' || to.path === '/login' || to.path === '/apply') return
 
-  // SSR 下需把请求的 cookie 透传给内部 $fetch，否则无法识别登录态
-  const opts: any = { credentials: 'include' }
-  if (process.server) {
-    const cookie = useRequestHeaders(['cookie']).cookie
-    if (cookie) opts.headers = { cookie }
-  }
+  // SSR 阶段不做鉴权重定向：
+  // 受保护页面的数据全部由客户端携带会话请求（页面内 fetch 均为 server:false），
+  // 服务端只渲染骨架；而 SSR 渲染链路里的内部请求无法可靠携带入站 Cookie，
+  // 若在此判断并重定向，会出现「整页访问/刷新受保护页面被误踢回登录页」。
+  // 因此这里统一交给客户端校验（下方逻辑）。
+  if (import.meta.server) return
 
   try {
-    const res = await $fetch<{ success: boolean; admin: any }>('/api/auth/me', opts)
+    const res = await $fetch<{ success: boolean; admin: any }>('/api/auth/me', { credentials: 'include' })
 
     // 未登录（含 /settings）→ 回登录页
     if (!res.success) {
