@@ -251,3 +251,13 @@ export interface ApiAuditLogItem {
   errorMessage: string
   createdAt: string
 }
+
+/** 组织树节点（超管概览的组织结构图） */
+export interface OrgNode {
+  id: string
+  label: string
+  sub?: string
+  kind: 'root' | 'school' | 'grade' | 'class'
+  disabled?: boolean
+  children?: OrgNode[]
+}

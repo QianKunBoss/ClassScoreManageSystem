@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { OrgNode } from '~/types'
+
 definePageMeta({ middleware: 'super-admin', layout: 'superadmin' })
 
 const toast = useToast()
@@ -7,6 +9,94 @@ const loading = ref(true)
 const schools = ref<{ id: number; name: string; disabled: number; createdAt: string }[]>([])
 const admins = ref<{ id: number; username: string; role: string; disabled: number; lastLogin: string | null }[]>([])
 const pendingApplications = ref(0)
+
+// ===== 组织结构（系统 → 学校 → 年级 → 班级）=====
+interface SchoolHierarchy {
+  grades: { id: number; name: string }[]
+  classes: { id: number; name: string; gradeId: number }[]
+}
+const hierarchy = ref<Record<number, SchoolHierarchy>>({})
+const orgLoading = ref(true)
+const collapsed = ref<Set<string>>(new Set())
+
+async function loadHierarchy(list: typeof schools.value) {
+  const rows = await Promise.all(list.map(async (s) => {
+    try {
+      const [g, c] = await Promise.all([
+        $fetch<{ data: { id: number; name: string }[] }>('/api/grades', { params: { schoolId: s.id } }),
+        $fetch<{ data: { id: number; name: string; gradeId: number }[] }>('/api/classes', { params: { schoolId: s.id } }),
+      ])
+      return [s.id, { grades: g.data || [], classes: c.data || [] }] as const
+    } catch {
+      // 单校分库缺失/异常不影响整体展示
+      return [s.id, { grades: [], classes: [] }] as const
+    }
+  }))
+  hierarchy.value = Object.fromEntries(rows) as Record<number, SchoolHierarchy>
+  // 默认收起到「年级」层级：班级数量以角标提示，点年级可展开，避免图表过宽
+  collapsed.value = collapseAllGradeIds()
+  orgLoading.value = false
+}
+
+function collapseAllGradeIds(): Set<string> {
+  const ids = new Set<string>()
+  for (const s of schools.value) {
+    for (const g of hierarchy.value[s.id]?.grades || []) ids.add(`grade-${s.id}-${g.id}`)
+  }
+  return ids
+}
+
+function expandAllOrg() {
+  collapsed.value = new Set()
+}
+
+function collapseAllOrg() {
+  collapsed.value = collapseAllGradeIds()
+}
+
+function toggleOrg(id: string) {
+  const next = new Set(collapsed.value)
+  if (next.has(id)) next.delete(id)
+  else next.add(id)
+  collapsed.value = next
+}
+
+const orgTree = computed<OrgNode>(() => {
+  const all = Object.values(hierarchy.value)
+  const gradeTotal = all.reduce((n, h) => n + h.grades.length, 0)
+  const classTotal = all.reduce((n, h) => n + h.classes.length, 0)
+
+  return {
+    id: 'root',
+    label: 'ClassFire 系统',
+    sub: `${schools.value.length} 所学校 · ${gradeTotal} 个年级 · ${classTotal} 个班级`,
+    kind: 'root',
+    children: schools.value.map((s) => {
+      const h = hierarchy.value[s.id] || { grades: [], classes: [] }
+      return {
+        id: `school-${s.id}`,
+        label: s.name,
+        sub: s.disabled === 1 ? '已封禁' : `${h.grades.length} 个年级 · ${h.classes.length} 个班级`,
+        kind: 'school' as const,
+        disabled: s.disabled === 1,
+        children: h.grades.map((g) => {
+          const cls = h.classes.filter((c) => c.gradeId === g.id)
+          return {
+            id: `grade-${s.id}-${g.id}`,
+            label: g.name,
+            sub: `${cls.length} 个班级`,
+            kind: 'grade' as const,
+            children: cls.map((c) => ({
+              id: `class-${s.id}-${c.id}`,
+              label: c.name,
+              kind: 'class' as const,
+            })),
+          }
+        }),
+      }
+    }),
+  }
+})
 
 onMounted(async () => {
   try {
@@ -18,6 +108,8 @@ onMounted(async () => {
     schools.value = sRes.data || []
     admins.value = aRes.data || []
     pendingApplications.value = (pRes.data || []).length
+    // 层级数据单独加载，不阻塞上方统计卡片渲染
+    void loadHierarchy(schools.value)
   } catch {
     toast.error('加载数据失败')
   } finally {
@@ -83,6 +175,30 @@ const roleNames: Record<string, string> = {
           <p class="text-sm text-slate-400 mt-1">{{ s.label }}</p>
           <p class="text-xs text-slate-500 mt-0.5">{{ s.desc }}</p>
         </NuxtLink>
+      </div>
+
+      <!-- 组织结构 -->
+      <div class="glass-card p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-sm font-bold text-slate-100">组织结构</h2>
+          <div class="flex items-center gap-3 text-xs">
+            <span class="text-slate-500">{{ schools.length }} 所学校</span>
+            <button type="button" class="text-brand-400 hover:text-brand-300 transition-colors" @click="expandAllOrg">全部展开</button>
+            <span class="text-slate-700">/</span>
+            <button type="button" class="text-brand-400 hover:text-brand-300 transition-colors" @click="collapseAllOrg">全部收起</button>
+          </div>
+        </div>
+        <div v-if="orgLoading" class="space-y-3">
+          <div class="h-10 w-40 mx-auto rounded-lg bg-slate-800/40 animate-pulse"></div>
+          <div class="flex justify-center gap-3">
+            <div v-for="i in 4" :key="i" class="h-10 w-28 rounded-lg bg-slate-800/30 animate-pulse"></div>
+          </div>
+        </div>
+        <div v-else class="overflow-x-auto pb-3">
+          <div class="w-max mx-auto px-2 pt-1">
+            <OrgChart :node="orgTree" :collapsed="collapsed" @toggle="toggleOrg" />
+          </div>
+        </div>
       </div>
 
       <!-- 最近登录 + 待办 -->
