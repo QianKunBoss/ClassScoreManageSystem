@@ -270,3 +270,23 @@ export interface OrgNode {
   children?: OrgNode[]
   meta?: OrgNodeMeta
 }
+
+/** 用户星图节点（以当前用户为中心向外生长） */
+export type StarNodeKind = 'root' | 'group' | 'school' | 'role' | 'admin' | 'class' | 'student'
+
+export interface StarNode {
+  id: string
+  label: string
+  sub?: string
+  kind: StarNodeKind
+  tone?: 'brand' | 'emerald' | 'muted' | 'warning'
+  disabled?: boolean
+  children?: StarNode[]
+  meta?: {
+    schoolId?: number
+    gradeId?: number
+    classId?: number
+    adminId?: number
+    studentId?: number
+  }
+}

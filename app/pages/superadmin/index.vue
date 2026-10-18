@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { OrgNode } from '~/types'
+import type { OrgNode, StarNode } from '~/types'
 
 definePageMeta({ middleware: 'super-admin', layout: 'superadmin' })
 
@@ -68,7 +68,7 @@ const canvasEl = ref<HTMLElement | null>(null)
 const stageEl = ref<HTMLElement | null>(null)
 const zoom = ref(1)
 const pan = ref({ x: 0, y: 0 })
-const MIN_ZOOM = 0.5
+const MIN_ZOOM = 0.3
 const MAX_ZOOM = 2
 const zoomPercent = computed(() => Math.round(zoom.value * 100))
 
@@ -84,6 +84,10 @@ function centerStage() {
 }
 
 function resetView() {
+  if (activeView.value === 'star') {
+    fitStage()
+    return
+  }
   zoom.value = 1
   nextTick(centerStage)
 }
@@ -157,8 +161,8 @@ function onResize() {
   if (zoom.value === 1 && pan.value.y === 0) centerStage()
 }
 
-// ===== 组织节点右键菜单（学校 / 年级 / 班级）=====
-interface OrgMenuState { node: OrgNode; x: number; y: number }
+// ===== 组织节点右键菜单（学校 / 年级 / 班级 / 管理员 / 学生）=====
+interface OrgMenuState { node: any; x: number; y: number }
 const orgMenu = ref<OrgMenuState | null>(null)
 const menuNode = computed(() => orgMenu.value?.node || null)
 const menuSchool = computed(() => {
@@ -167,7 +171,7 @@ const menuSchool = computed(() => {
   return schools.value.find((s) => s.id === schoolId) || null
 })
 const menuKindLabel = computed(() =>
-  ({ school: '学校', grade: '年级', class: '班级' } as Record<string, string>)[menuNode.value?.kind || ''] || '',
+  ({ school: '学校', grade: '年级', class: '班级', admin: '管理员', student: '学生' } as Record<string, string>)[menuNode.value?.kind || ''] || '',
 )
 
 function openNodeMenu(payload: { node: OrgNode; event: MouseEvent }) {
@@ -253,6 +257,16 @@ function menuManage() {
   navigateTo(`/superadmin/schools/${s.id}`)
 }
 
+function gotoAdminsPage() {
+  closeOrgMenu()
+  navigateTo('/superadmin/admins')
+}
+
+function gotoStudentsPage() {
+  closeOrgMenu()
+  navigateTo('/superadmin/students')
+}
+
 function menuEnter() {
   const n = menuNode.value
   const s = menuSchool.value
@@ -336,6 +350,303 @@ async function enterOrg() {
     toast.error(err?.data?.message || err?.data?.statusMessage || '进入组织失败')
   } finally {
     entering.value = false
+  }
+}
+
+// ===== 视图切换：组织结构 / 用户星图 =====
+type ViewKey = 'org' | 'star'
+const activeView = ref<ViewKey>('org')
+const slideName = ref<'view-right' | 'view-left'>('view-right')
+
+const { user: currentUser } = useAuth()
+const currentUserName = computed(() => currentUser.value?.username || '我')
+
+function switchView(v: ViewKey) {
+  if (v === activeView.value) return
+  slideName.value = v === 'star' ? 'view-right' : 'view-left'
+  activeView.value = v
+  if (v === 'star') void loadStarData()
+}
+
+function onViewEnter() {
+  nextTick(() => {
+    if (activeView.value === 'star') fitStage()
+    else {
+      zoom.value = 1
+      centerStage()
+    }
+  })
+}
+
+/** 星图整体缩放到画布内（不放大，只缩小） */
+function fitStage() {
+  const c = canvasEl.value
+  const s = stageEl.value
+  if (!c || !s) return
+  const rect = c.getBoundingClientRect()
+  if (!s.offsetWidth || !s.offsetHeight) return
+  const z = Math.min(
+    1,
+    (rect.width - 24) / s.offsetWidth,
+    (rect.height - 24) / s.offsetHeight,
+  )
+  zoom.value = Math.max(MIN_ZOOM, z)
+  nextTick(centerStage)
+}
+
+// ===== 用户星图数据 =====
+const adminList = ref<any[]>([])
+const adminLoaded = ref(false)
+const studentTotals = ref<Record<number, number>>({})
+const studentsByClass = ref<Record<string, any[]>>({})
+const starExpanded = ref<Set<string>>(new Set())
+const starLoading = ref(false)
+
+const ROLE_ORDER = [
+  { role: 'school_admin', label: '学校管理员' },
+  { role: 'grade_admin', label: '年级管理员' },
+  { role: 'class_admin', label: '班级管理员' },
+]
+
+async function loadStarData() {
+  if (adminLoaded.value) return
+  starLoading.value = true
+
+  try {
+    const a = await $fetch<{ data: any[] }>('/api/admin/manage', { params: { limit: 100 } })
+    adminList.value = a.data || []
+    adminLoaded.value = true
+  } catch {
+    toast.error('加载管理员数据失败')
+  }
+
+  const totals = await Promise.all(schools.value.map(async (s) => {
+    try {
+      const r = await $fetch<{ total: number }>('/api/users', { params: { schoolId: s.id, limit: 1 } })
+      return [s.id, Number(r.total) || 0] as const
+    } catch {
+      return [s.id, 0] as const
+    }
+  }))
+  studentTotals.value = Object.fromEntries(totals)
+
+  // 默认展开：管理员 → 学校 → 角色（直接看到具体账号）；学生 → 学校（看到班级）
+  const exp = new Set<string>(['star-admin', 'star-student'])
+  for (const s of schools.value) {
+    if (adminList.value.some((a) => a.schoolId === s.id)) exp.add(`star-admin-school-${s.id}`)
+    exp.add(`star-student-school-${s.id}`)
+    for (const r of ROLE_ORDER) {
+      if (adminList.value.some((a) => a.schoolId === s.id && a.role === r.role)) {
+        exp.add(`star-role-${s.id}-${r.role}`)
+      }
+    }
+  }
+  starExpanded.value = exp
+  starLoading.value = false
+}
+
+const starTree = computed<StarNode>(() => {
+  const totalAdmins = adminList.value.length
+  const totalStudents = Object.values(studentTotals.value).reduce((a, b) => a + b, 0)
+
+  const adminSchools: StarNode[] = schools.value
+    .map((s): StarNode | null => {
+      const list = adminList.value.filter((a) => a.schoolId === s.id)
+      if (!list.length) return null
+      return {
+        id: `star-admin-school-${s.id}`,
+        label: s.name,
+        sub: `${list.length} 人`,
+        kind: 'school',
+        tone: 'brand',
+        meta: { schoolId: s.id },
+        children: ROLE_ORDER.map((r): StarNode | null => {
+          const members = list.filter((a) => a.role === r.role)
+          if (!members.length) return null
+          return {
+            id: `star-role-${s.id}-${r.role}`,
+            label: r.label,
+            sub: `${members.length} 人`,
+            kind: 'role',
+            tone: 'muted',
+            meta: { schoolId: s.id },
+            children: members.map((a): StarNode => ({
+              id: `star-admin-${a.id}`,
+              label: a.username,
+              sub: a.disabled === 1 ? '已封禁' : '',
+              kind: 'admin',
+              tone: 'brand',
+              disabled: a.disabled === 1,
+              meta: { adminId: a.id, schoolId: s.id },
+            })),
+          }
+        }).filter((x): x is StarNode => !!x),
+      }
+    })
+    .filter((x): x is StarNode => !!x)
+
+  const studentSchools: StarNode[] = schools.value
+    .filter((s) => (studentTotals.value[s.id] || 0) > 0)
+    .map((s): StarNode => {
+      const classList = hierarchy.value[s.id]?.classes || []
+      return {
+        id: `star-student-school-${s.id}`,
+        label: s.name,
+        sub: `${studentTotals.value[s.id]} 人`,
+        kind: 'school',
+        tone: 'emerald',
+        meta: { schoolId: s.id },
+        children: classList.map((c): StarNode => {
+          const key = `${s.id}:${c.id}`
+          const loaded = studentsByClass.value[key]
+          return {
+            id: `star-class-${s.id}-${c.id}`,
+            label: c.name,
+            sub: loaded ? `${loaded.length} 人` : '',
+            kind: 'class',
+            tone: 'emerald',
+            meta: { schoolId: s.id, gradeId: c.gradeId, classId: c.id },
+            children: loaded?.map((u): StarNode => ({
+              id: `star-student-${s.id}-${u.id}`,
+              label: u.username,
+              sub: u.disabled === 1 ? '已封禁' : '',
+              kind: 'student',
+              tone: 'emerald',
+              disabled: u.disabled === 1,
+              meta: { schoolId: s.id, classId: c.id, studentId: u.id },
+            })),
+          }
+        }),
+      }
+    })
+
+  return {
+    id: 'star-root',
+    label: '我',
+    sub: currentUserName.value,
+    kind: 'root',
+    tone: 'brand',
+    children: [
+      { id: 'star-admin', label: '管理员', sub: `${totalAdmins} 人`, kind: 'group', tone: 'brand', children: adminSchools },
+      { id: 'star-student', label: '学生', sub: `${totalStudents} 人`, kind: 'group', tone: 'emerald', children: studentSchools },
+    ],
+  }
+})
+
+/** 展开班级时按需加载学生 */
+async function loadClassStudents(schoolId: number, classId: number) {
+  const key = `${schoolId}:${classId}`
+  const r = await $fetch<{ data: any[] }>('/api/users', { params: { schoolId, classId, limit: 100 } })
+  studentsByClass.value = { ...studentsByClass.value, [key]: r.data || [] }
+}
+
+async function toggleStarNode(id: string) {
+  const next = new Set(starExpanded.value)
+  if (next.has(id)) {
+    next.delete(id)
+    starExpanded.value = next
+    return
+  }
+  next.add(id)
+  starExpanded.value = next
+
+  if (id.startsWith('star-class-')) {
+    const parts = id.split('-')
+    const schoolId = Number(parts[2])
+    const classId = Number(parts[3])
+    const key = `${schoolId}:${classId}`
+    if (!Number.isFinite(schoolId) || !Number.isFinite(classId) || studentsByClass.value[key]) return
+    try {
+      await loadClassStudents(schoolId, classId)
+    } catch {
+      toast.error('加载学生失败')
+    }
+  }
+}
+
+function openStarMenu(payload: { node: StarNode; event: MouseEvent }) {
+  const n = payload.node
+  if (n.kind === 'school' && n.meta?.schoolId != null) {
+    // 学校节点复用组织图的菜单
+    openNodeMenu({
+      node: {
+        id: `school-${n.meta.schoolId}`,
+        label: n.label,
+        kind: 'school',
+        meta: { schoolId: n.meta.schoolId },
+      } as OrgNode,
+      event: payload.event,
+    })
+    return
+  }
+  if ((n.kind === 'admin' || n.kind === 'student') && n.meta) {
+    const MENU_W = 184
+    const MENU_H = 180
+    const x = Math.min(payload.event.clientX, window.innerWidth - MENU_W - 8)
+    const y = Math.min(payload.event.clientY, window.innerHeight - MENU_H - 8)
+    orgMenu.value = { node: { ...n }, x: Math.max(8, x), y: Math.max(8, y) }
+  }
+}
+
+// ===== 星图节点：封禁/启用 =====
+const confirmToggleAdmin = ref<any>(null)
+const confirmToggleStudent = ref<any>(null)
+
+function menuToggleAdmin() {
+  if (!menuNode.value?.meta?.adminId) return
+  confirmToggleAdmin.value = { ...menuNode.value }
+  closeOrgMenu()
+}
+
+function menuToggleStudent() {
+  if (!menuNode.value?.meta?.studentId) return
+  confirmToggleStudent.value = { ...menuNode.value }
+  closeOrgMenu()
+}
+
+async function confirmToggleAdminDisabled() {
+  const n = confirmToggleAdmin.value
+  if (!n) return
+  const next = n.disabled === 1 ? 0 : 1
+  try {
+    await $fetch(`/api/admin/manage/${n.meta.adminId}`, { method: 'PATCH', body: { disabled: next } })
+    toast.success(`管理员已${next === 1 ? '封禁' : '启用'}`)
+    confirmToggleAdmin.value = null
+    const a = await $fetch<{ data: any[] }>('/api/admin/manage', { params: { limit: 100 } })
+    adminList.value = a.data || []
+  } catch (err: any) {
+    toast.error(err?.data?.message || err?.data?.statusMessage || '操作失败')
+  }
+}
+
+async function confirmToggleStudentDisabled() {
+  const n = confirmToggleStudent.value
+  if (!n) return
+  const next = n.disabled === 1 ? 0 : 1
+  try {
+    await $fetch(`/api/users/${n.meta.studentId}`, {
+      method: 'PATCH',
+      query: { schoolId: n.meta.schoolId },
+      body: { disabled: next },
+    })
+    toast.success(`学生已${next === 1 ? '封禁' : '启用'}`)
+    confirmToggleStudent.value = null
+    await loadClassStudents(n.meta.schoolId, n.meta.classId)
+  } catch (err: any) {
+    toast.error(err?.data?.message || err?.data?.statusMessage || '操作失败')
+  }
+}
+
+async function loginAsAdminFromMenu() {
+  const n = menuNode.value
+  if (!n?.meta?.adminId) return
+  closeOrgMenu()
+  try {
+    await $fetch(`/api/admin/manage/${n.meta.adminId}/login`, { method: 'POST' })
+    await refreshNuxtData('auth-me')
+    await navigateTo('/admin')
+  } catch (err: any) {
+    toast.error(err?.data?.message || err?.data?.statusMessage || '进入失败')
   }
 }
 
@@ -463,10 +774,30 @@ const roleNames: Record<string, string> = {
         </NuxtLink>
       </div>
 
-      <!-- 组织结构 -->
+      <!-- 组织结构 / 用户星图 -->
       <div class="glass-card p-6">
         <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <h2 class="text-sm font-bold text-slate-100">组织结构</h2>
+          <!-- 一体化分段切换（滑块左右滑动） -->
+          <div class="seg" role="tablist" aria-label="视图切换">
+            <span class="seg-thumb" :class="{ 'is-right': activeView === 'star' }" aria-hidden="true" />
+            <button
+              type="button"
+              role="tab"
+              class="seg-btn"
+              :class="{ 'is-active': activeView === 'org' }"
+              :aria-selected="activeView === 'org'"
+              @click="switchView('org')"
+            >组织结构</button>
+            <button
+              type="button"
+              role="tab"
+              class="seg-btn"
+              :class="{ 'is-active': activeView === 'star' }"
+              :aria-selected="activeView === 'star'"
+              @click="switchView('star')"
+            >用户星图</button>
+          </div>
+
           <div class="flex flex-wrap items-center gap-3 text-xs">
             <div class="flex items-center gap-1">
               <button type="button" class="org-tool" title="缩小" @click="zoomBy(0.8)">−</button>
@@ -474,13 +805,20 @@ const roleNames: Record<string, string> = {
               <button type="button" class="org-tool" title="放大" @click="zoomBy(1.25)">+</button>
               <button type="button" class="org-tool" title="复位视图" @click="resetView">复位</button>
             </div>
-            <span class="text-slate-700">|</span>
-            <span class="text-slate-500">{{ schools.length }} 所学校</span>
-            <button type="button" class="text-brand-400 hover:text-brand-300 transition-colors" @click="expandAllOrg">全部展开</button>
-            <span class="text-slate-700">/</span>
-            <button type="button" class="text-brand-400 hover:text-brand-300 transition-colors" @click="collapseAllOrg">全部收起</button>
+            <template v-if="activeView === 'org'">
+              <span class="text-slate-700">|</span>
+              <span class="text-slate-500">{{ schools.length }} 所学校</span>
+              <button type="button" class="text-brand-400 hover:text-brand-300 transition-colors" @click="expandAllOrg">全部展开</button>
+              <span class="text-slate-700">/</span>
+              <button type="button" class="text-brand-400 hover:text-brand-300 transition-colors" @click="collapseAllOrg">全部收起</button>
+            </template>
+            <template v-else>
+              <span class="text-slate-700">|</span>
+              <span class="text-slate-500">{{ adminList.length }} 名管理员</span>
+            </template>
           </div>
         </div>
+
         <div v-if="orgLoading" class="space-y-3">
           <div class="h-10 w-40 mx-auto rounded-lg bg-slate-800/40 animate-pulse"></div>
           <div class="flex justify-center gap-3">
@@ -504,65 +842,38 @@ const roleNames: Record<string, string> = {
             class="org-stage"
             :style="{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }"
           >
-            <OrgChart :node="orgTree" :collapsed="collapsed" @toggle="toggleOrg" @menu="openNodeMenu" />
-          </div>
-        </div>
-        <p v-if="!orgLoading" class="mt-2 text-[11px] text-slate-600">拖拽平移 · 滚轮缩放 · 点击节点收起/展开</p>
-      </div>
-
-      <!-- 最近登录 + 待办 -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div class="glass-card p-6 lg:col-span-2">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-sm font-bold text-slate-100">最近活跃管理员</h2>
-            <NuxtLink to="/superadmin/admins" class="text-xs text-brand-400 hover:text-brand-300 inline-flex items-center gap-0.5">全部管理员 <MorphIcon name="arrow-right" :size="12" class="inline-block align-middle" /></NuxtLink>
-          </div>
-          <div v-if="loading" class="space-y-2">
-            <div v-for="i in 3" :key="i" class="h-10 rounded-lg bg-slate-800/40 animate-pulse"></div>
-          </div>
-          <div v-else-if="recentLogins.length === 0" class="text-center py-6 text-sm text-slate-500">暂无登录记录</div>
-          <div v-else class="space-y-1">
-            <div
-              v-for="a in recentLogins"
-              :key="a.id"
-              class="flex items-center gap-3 p-2.5 rounded-lg hover:bg-slate-800/40 transition-colors"
-            >
-              <div class="w-8 h-8 rounded-full bg-brand-500/10 flex items-center justify-center text-xs text-brand-400 font-bold shrink-0">
-                {{ a.username.slice(0, 1).toUpperCase() }}
+            <Transition :name="slideName" mode="out-in" @after-enter="onViewEnter">
+              <OrgChart
+                v-if="activeView === 'org'"
+                key="org"
+                :node="orgTree"
+                :collapsed="collapsed"
+                @toggle="toggleOrg"
+                @menu="openNodeMenu"
+              />
+              <div v-else key="star" class="star-wrap">
+                <div v-if="starLoading" class="flex h-[420px] w-[420px] items-center justify-center text-xs text-slate-500">
+                  星图生成中…
+                </div>
+                <UserStarMap
+                  v-else
+                  :root="starTree"
+                  :expanded="starExpanded"
+                  @toggle="toggleStarNode"
+                  @menu="openStarMenu"
+                />
               </div>
-              <span class="text-sm text-slate-200 flex-1">{{ a.username }}</span>
-              <span class="text-xs text-slate-500">{{ roleNames[a.role] || a.role }}</span>
-              <span class="text-xs text-slate-500 shrink-0">{{ a.lastLogin ? new Date(a.lastLogin).toLocaleString('zh-CN') : '从未' }}</span>
-            </div>
+            </Transition>
           </div>
         </div>
-
-        <!-- 待办事项 -->
-        <div class="glass-card p-6">
-          <h2 class="text-sm font-bold text-slate-100 mb-4">待办事项</h2>
-          <NuxtLink
-            v-for="t in todos"
-            :key="t.label"
-            :to="t.to"
-            class="flex items-center gap-3 p-3 rounded-lg transition-colors hover:bg-slate-800/40"
-            :class="t.count > 0 ? 'mb-1' : ''"
-          >
-            <span
-              class="w-9 h-9 rounded-lg flex items-center justify-center text-base shrink-0"
-              :class="t.count > 0 ? 'bg-yellow-500/15' : 'bg-slate-800/50'"
-            ><MorphIcon :name="t.icon" size="1em" class="inline-block align-middle" /></span>
-            <span class="flex-1 min-w-0">
-              <span class="block text-sm" :class="t.count > 0 ? 'text-slate-200' : 'text-slate-500'">{{ t.label }}</span>
-              <span class="block text-xs text-slate-500 mt-0.5">{{ t.desc }}</span>
-            </span>
-            <span
-              v-if="t.count > 0"
-              class="px-2 py-0.5 rounded-full text-xs font-bold tabular-nums bg-yellow-500/15 text-yellow-400"
-            >{{ t.count }}</span>
-          </NuxtLink>
-        </div>
+        <p v-if="!orgLoading" class="mt-2 text-[11px] text-slate-600">
+          {{ activeView === 'org'
+            ? '拖拽平移 · 滚轮缩放 · 点击节点收起/展开 · 右键管理'
+            : '以你为中心向外生长 · 拖拽平移 · 滚轮缩放 · 点击节点展开 · 右键管理' }}
+        </p>
       </div>
-      <!-- 组织节点右键菜单（学校 / 年级 / 班级） -->
+
+      <!-- 组织节点 / 用户节点右键菜单 -->
       <Teleport to="body">
         <div
           v-if="orgMenu && menuNode"
@@ -573,29 +884,57 @@ const roleNames: Record<string, string> = {
           <div class="border-b border-slate-700/50 px-3 py-2">
             <div class="truncate text-xs font-semibold text-slate-200">{{ menuNode.label }}</div>
             <div class="mt-0.5 text-[10px] text-slate-500">
-              {{ menuKindLabel }}<span v-if="menuSchool"> · ID {{ menuSchool.id }}</span><span v-if="menuSchool?.disabled === 1"> · 已封禁</span>
+              {{ menuKindLabel }}
+              <span v-if="menuNode.kind === 'school' && menuNode.meta?.schoolId"> · ID {{ menuNode.meta.schoolId }}</span>
+              <span v-if="menuNode.disabled"> · 已封禁</span>
             </div>
           </div>
 
-          <!-- 封禁 / 启用仅学校层级支持 -->
-          <button v-if="menuNode.kind === 'school'" type="button" class="org-menu-item" @click="menuToggleDisable">
-            {{ menuSchool?.disabled === 1 ? '启用学校' : '封禁学校' }}
-          </button>
+          <!-- 组织节点（学校 / 年级 / 班级） -->
+          <template v-if="['school', 'grade', 'class'].includes(menuNode.kind)">
+            <button v-if="menuNode.kind === 'school'" type="button" class="org-menu-item" @click="menuToggleDisable">
+              {{ menuSchool?.disabled === 1 ? '启用学校' : '封禁学校' }}
+            </button>
+            <button type="button" class="org-menu-item !text-red-400" @click="menuDelete">
+              {{ menuNode.kind === 'school' ? '删除学校' : menuNode.kind === 'grade' ? '删除年级' : '删除班级' }}
+            </button>
+            <button type="button" class="org-menu-item" @click="menuManage">进入管理页</button>
+            <div class="my-1 border-t border-slate-700/50"></div>
+            <button
+              type="button"
+              class="org-menu-item !text-brand-400"
+              :disabled="menuSchool?.disabled === 1"
+              :class="{ 'opacity-40 cursor-not-allowed': menuSchool?.disabled === 1 }"
+              @click="menuEnter"
+            >
+              进入组织
+            </button>
+          </template>
 
-          <button type="button" class="org-menu-item !text-red-400" @click="menuDelete">
-            {{ menuNode.kind === 'school' ? '删除学校' : menuNode.kind === 'grade' ? '删除年级' : '删除班级' }}
-          </button>
-          <button type="button" class="org-menu-item" @click="menuManage">进入管理页</button>
-          <div class="my-1 border-t border-slate-700/50"></div>
-          <button
-            type="button"
-            class="org-menu-item !text-brand-400"
-            :disabled="menuSchool?.disabled === 1"
-            :class="{ 'opacity-40 cursor-not-allowed': menuSchool?.disabled === 1 }"
-            @click="menuEnter"
-          >
-            进入组织
-          </button>
+          <!-- 管理员账号 -->
+          <template v-else-if="menuNode.kind === 'admin'">
+            <button
+              v-if="menuNode.meta?.adminId !== currentUser?.id"
+              type="button"
+              class="org-menu-item"
+              @click="menuToggleAdmin"
+            >{{ menuNode.disabled ? '启用账号' : '封禁账号' }}</button>
+            <button
+              v-if="menuNode.meta?.adminId !== currentUser?.id && !menuNode.disabled"
+              type="button"
+              class="org-menu-item !text-brand-400"
+              @click="loginAsAdminFromMenu"
+            >进入登录</button>
+            <button type="button" class="org-menu-item" @click="gotoAdminsPage">查看账号</button>
+          </template>
+
+          <!-- 学生账号 -->
+          <template v-else-if="menuNode.kind === 'student'">
+            <button type="button" class="org-menu-item" @click="menuToggleStudent">
+              {{ menuNode.disabled ? '启用学生' : '封禁学生' }}
+            </button>
+            <button type="button" class="org-menu-item !text-brand-400" @click="gotoStudentsPage">查看学生</button>
+          </template>
         </div>
       </Teleport>
 
@@ -617,6 +956,24 @@ const roleNames: Record<string, string> = {
         confirm-text="进入"
         @confirm="enterOrg"
         @cancel="confirmEnterOrg = null"
+      />
+
+      <!-- 星图：管理员 / 学生封禁确认 -->
+      <UiConfirm
+        :show="!!confirmToggleAdmin"
+        :title="confirmToggleAdmin?.disabled === 1 ? '启用管理员' : '封禁管理员'"
+        :message="confirmToggleAdmin ? `确定要${confirmToggleAdmin.disabled === 1 ? '启用' : '封禁'}管理员「${confirmToggleAdmin.label}」吗？` : ''"
+        :danger="confirmToggleAdmin?.disabled !== 1"
+        @confirm="confirmToggleAdminDisabled"
+        @cancel="confirmToggleAdmin = null"
+      />
+      <UiConfirm
+        :show="!!confirmToggleStudent"
+        :title="confirmToggleStudent?.disabled === 1 ? '启用学生' : '封禁学生'"
+        :message="confirmToggleStudent ? `确定要${confirmToggleStudent.disabled === 1 ? '启用' : '封禁'}学生「${confirmToggleStudent.label}」吗？` : ''"
+        :danger="confirmToggleStudent?.disabled !== 1"
+        @confirm="confirmToggleStudentDisabled"
+        @cancel="confirmToggleStudent = null"
       />
 
       <!-- 删除学校（与学校管理页共用同一个三层确认弹窗） -->
@@ -642,7 +999,7 @@ const roleNames: Record<string, string> = {
 /* 可拖拽 / 缩放的组织图画布 */
 .org-canvas {
   position: relative;
-  height: 520px;
+  height: 560px;
   overflow: hidden;
   cursor: grab;
   touch-action: pan-y;
@@ -692,5 +1049,84 @@ const roleNames: Record<string, string> = {
 }
 .org-menu-item:hover:not(:disabled) {
   background: rgba(74, 122, 181, 0.15);
+}
+
+/* 一体化分段切换：两个按钮同处一个容器，滑块左右平移 */
+.seg {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 176px;
+  padding: 3px;
+  border: 1px solid #223148;
+  border-radius: 9px;
+  background: #0c1420;
+}
+.seg-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: calc(50% - 3px);
+  height: calc(100% - 6px);
+  border: 1px solid #355072;
+  border-radius: 6px;
+  background: #16283d;
+  transition: transform 0.32s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.seg-thumb.is-right {
+  transform: translateX(100%);
+}
+.seg-btn {
+  position: relative;
+  z-index: 1;
+  flex: 1 1 0;
+  padding: 4px 0;
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: center;
+  color: #7f8ea6;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+.seg-btn.is-active {
+  color: #e2ecf9;
+}
+
+/* 视图切换：淡出淡入 + 左右位移 */
+.view-right-enter-active,
+.view-right-leave-active,
+.view-left-enter-active,
+.view-left-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.view-right-enter-from {
+  opacity: 0;
+  transform: translateX(18px);
+}
+.view-right-leave-to {
+  opacity: 0;
+  transform: translateX(-18px);
+}
+.view-left-enter-from {
+  opacity: 0;
+  transform: translateX(-18px);
+}
+.view-left-leave-to {
+  opacity: 0;
+  transform: translateX(18px);
+}
+.star-wrap {
+  display: flex;
+  justify-content: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .seg-thumb,
+  .seg-btn,
+  .view-right-enter-active,
+  .view-right-leave-active,
+  .view-left-enter-active,
+  .view-left-leave-active {
+    transition: none;
+  }
 }
 </style>
