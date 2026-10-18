@@ -253,6 +253,14 @@ export interface ApiAuditLogItem {
 }
 
 /** 组织树节点（超管概览的组织结构图） */
+export interface OrgNodeMeta {
+  schoolId: number
+  gradeId?: number
+  classId?: number
+  /** 年级节点下的班级数量（用于删除影响提示） */
+  classCount?: number
+}
+
 export interface OrgNode {
   id: string
   label: string
@@ -260,4 +268,5 @@ export interface OrgNode {
   kind: 'root' | 'school' | 'grade' | 'class'
   disabled?: boolean
   children?: OrgNode[]
+  meta?: OrgNodeMeta
 }

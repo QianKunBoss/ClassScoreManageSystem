@@ -157,86 +157,123 @@ function onResize() {
   if (zoom.value === 1 && pan.value.y === 0) centerStage()
 }
 
-// ===== 学校节点右键菜单 =====
-const schoolMenu = ref<{ schoolId: number; x: number; y: number } | null>(null)
-const menuSchool = computed(() => schools.value.find((s) => s.id === schoolMenu.value?.schoolId) || null)
+// ===== 组织节点右键菜单（学校 / 年级 / 班级）=====
+interface OrgMenuState { node: OrgNode; x: number; y: number }
+const orgMenu = ref<OrgMenuState | null>(null)
+const menuNode = computed(() => orgMenu.value?.node || null)
+const menuSchool = computed(() => {
+  const schoolId = menuNode.value?.meta?.schoolId
+  if (schoolId == null) return null
+  return schools.value.find((s) => s.id === schoolId) || null
+})
+const menuKindLabel = computed(() =>
+  ({ school: '学校', grade: '年级', class: '班级' } as Record<string, string>)[menuNode.value?.kind || ''] || '',
+)
 
-function openSchoolMenu(payload: { node: OrgNode; event: MouseEvent }) {
-  const id = Number(payload.node.id.replace('school-', ''))
-  if (!Number.isInteger(id) || id <= 0) return
+function openNodeMenu(payload: { node: OrgNode; event: MouseEvent }) {
+  if (!payload.node.meta) return
   // 估算菜单尺寸，避免溢出视口
-  const MENU_W = 180
-  const MENU_H = 210
+  const MENU_W = 184
+  const MENU_H = 236
   const x = Math.min(payload.event.clientX, window.innerWidth - MENU_W - 8)
   const y = Math.min(payload.event.clientY, window.innerHeight - MENU_H - 8)
-  schoolMenu.value = { schoolId: id, x: Math.max(8, x), y: Math.max(8, y) }
+  orgMenu.value = { node: payload.node, x: Math.max(8, x), y: Math.max(8, y) }
 }
 
-function closeSchoolMenu() {
-  schoolMenu.value = null
+function closeOrgMenu() {
+  orgMenu.value = null
 }
 
 function onMenuOutside(e: PointerEvent) {
-  const el = document.getElementById('org-school-menu')
+  const el = document.getElementById('org-node-menu')
   if (el && e.target instanceof Node && el.contains(e.target)) return
-  closeSchoolMenu()
+  closeOrgMenu()
 }
 
 function onMenuEsc(e: KeyboardEvent) {
-  if (e.key === 'Escape') closeSchoolMenu()
+  if (e.key === 'Escape') closeOrgMenu()
 }
 
-watch(schoolMenu, (open) => {
+watch(orgMenu, (open) => {
   if (typeof window === 'undefined') return
   if (open) {
     window.addEventListener('pointerdown', onMenuOutside, true)
     window.addEventListener('keydown', onMenuEsc)
-    window.addEventListener('scroll', closeSchoolMenu, true)
+    window.addEventListener('scroll', closeOrgMenu, true)
   } else {
     window.removeEventListener('pointerdown', onMenuOutside, true)
     window.removeEventListener('keydown', onMenuEsc)
-    window.removeEventListener('scroll', closeSchoolMenu, true)
+    window.removeEventListener('scroll', closeOrgMenu, true)
   }
 })
 
 // --- 菜单动作 ---
 const confirmToggleSchool = ref<any>(null)
-const confirmEnterSchool = ref<any>(null)
-const deletingSchool = ref<any>(null)
+const confirmEnterOrg = ref<any>(null)
+const deletingSchool = ref<{ id: number; name: string } | null>(null)
+const deletingOrg = ref<{
+  kind: 'grade' | 'class'
+  name: string
+  schoolId: number
+  gradeId: number
+  classId?: number
+  classCount?: number
+} | null>(null)
 const entering = ref(false)
 
 function menuToggleDisable() {
-  if (!menuSchool.value) return
-  confirmToggleSchool.value = { ...menuSchool.value }
-  closeSchoolMenu()
+  const s = menuSchool.value
+  if (!s) return
+  confirmToggleSchool.value = { ...s }
+  closeOrgMenu()
 }
 
 function menuDelete() {
-  if (!menuSchool.value) return
-  deletingSchool.value = { id: menuSchool.value.id, name: menuSchool.value.name }
-  closeSchoolMenu()
+  const n = menuNode.value
+  if (!n?.meta) return
+  if (n.kind === 'school') {
+    deletingSchool.value = { id: n.meta.schoolId, name: n.label }
+  } else if (n.kind === 'grade' || n.kind === 'class') {
+    deletingOrg.value = {
+      kind: n.kind,
+      name: n.label,
+      schoolId: n.meta.schoolId,
+      gradeId: n.meta.gradeId!,
+      classId: n.meta.classId,
+      classCount: n.meta.classCount,
+    }
+  }
+  closeOrgMenu()
 }
 
 function menuManage() {
   const s = menuSchool.value
   if (!s) return
-  closeSchoolMenu()
+  closeOrgMenu()
   navigateTo(`/superadmin/schools/${s.id}`)
 }
 
 function menuEnter() {
+  const n = menuNode.value
   const s = menuSchool.value
-  if (!s) return
+  if (!n || !s) return
   if (s.disabled === 1) {
     toast.error('该校已被封禁，无法进入组织')
-    closeSchoolMenu()
+    closeOrgMenu()
     return
   }
-  confirmEnterSchool.value = { ...s }
-  closeSchoolMenu()
+  confirmEnterOrg.value = {
+    nodeKind: n.kind,
+    nodeName: n.label,
+    schoolId: s.id,
+    schoolName: s.name,
+    gradeId: n.meta?.gradeId,
+    classId: n.meta?.classId,
+  }
+  closeOrgMenu()
 }
 
-/** 学校被删除/封禁后刷新列表与组织树 */
+/** 组织数据变更后刷新学校列表与组织树 */
 async function reloadOrgData() {
   try {
     const res = await $fetch<{ data: typeof schools.value }>('/api/schools', { params: { includeDisabled: '1' } })
@@ -245,7 +282,7 @@ async function reloadOrgData() {
     orgLoading.value = true
     await loadHierarchy(schools.value)
   } catch {
-    toast.error('刷新学校数据失败')
+    toast.error('刷新组织数据失败')
   }
 }
 
@@ -263,25 +300,36 @@ async function confirmToggleSchoolDisabled() {
   }
 }
 
+const ROLE_LABEL: Record<string, string> = {
+  school_admin: '学校管理员',
+  grade_admin: '年级管理员',
+  class_admin: '班级管理员',
+}
+const SCOPE_LABEL: Record<string, string> = { school: '学校', grade: '年级', class: '班级' }
+
 async function enterOrg() {
-  const s = confirmEnterSchool.value
-  if (!s || entering.value) return
+  const t = confirmEnterOrg.value
+  if (!t || entering.value) return
   entering.value = true
   try {
     const res = await $fetch<{
       success: boolean
-      admin: { username: string; schoolName: string }
+      admin: { username: string; role: string; schoolName: string }
+      nodeName: string
+      matchedScope: string
+      fallback: boolean
       bypassedSecurity: boolean
     }>('/api/admin/impersonation/enter', {
       method: 'POST',
-      body: { schoolId: s.id },
+      body: { schoolId: t.schoolId, scope: t.nodeKind, gradeId: t.gradeId, classId: t.classId },
     })
-    confirmEnterSchool.value = null
-    toast.success(
-      res.bypassedSecurity
-        ? `已以 ${res.admin.username} 身份进入「${res.admin.schoolName}」（该账号未完成安全初始化）`
-        : `已以 ${res.admin.username} 身份进入「${res.admin.schoolName}」`,
-    )
+    confirmEnterOrg.value = null
+
+    let msg = `已以 ${res.admin.username}（${ROLE_LABEL[res.admin.role] || res.admin.role}）身份进入${SCOPE_LABEL[res.matchedScope] || ''}「${res.nodeName}」`
+    if (res.fallback) msg += '（该层级无管理员，已向上回退）'
+    if (res.bypassedSecurity) msg += '（该账号未完成安全初始化）'
+    toast.success(msg)
+
     await refreshNuxtData('auth-me')
     await navigateTo('/admin')
   } catch (err: any) {
@@ -309,6 +357,7 @@ const orgTree = computed<OrgNode>(() => {
         sub: s.disabled === 1 ? '已封禁' : `${h.grades.length} 个年级 · ${h.classes.length} 个班级`,
         kind: 'school' as const,
         disabled: s.disabled === 1,
+        meta: { schoolId: s.id },
         children: h.grades.map((g) => {
           const cls = h.classes.filter((c) => c.gradeId === g.id)
           return {
@@ -316,10 +365,12 @@ const orgTree = computed<OrgNode>(() => {
             label: g.name,
             sub: `${cls.length} 个班级`,
             kind: 'grade' as const,
+            meta: { schoolId: s.id, gradeId: g.id, classCount: cls.length },
             children: cls.map((c) => ({
               id: `class-${s.id}-${c.id}`,
               label: c.name,
               kind: 'class' as const,
+              meta: { schoolId: s.id, gradeId: g.id, classId: c.id },
             })),
           }
         }),
@@ -453,7 +504,7 @@ const roleNames: Record<string, string> = {
             class="org-stage"
             :style="{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }"
           >
-            <OrgChart :node="orgTree" :collapsed="collapsed" @toggle="toggleOrg" @menu="openSchoolMenu" />
+            <OrgChart :node="orgTree" :collapsed="collapsed" @toggle="toggleOrg" @menu="openNodeMenu" />
           </div>
         </div>
         <p v-if="!orgLoading" class="mt-2 text-[11px] text-slate-600">拖拽平移 · 滚轮缩放 · 点击节点收起/展开</p>
@@ -511,31 +562,36 @@ const roleNames: Record<string, string> = {
           </NuxtLink>
         </div>
       </div>
-      <!-- 学校节点右键菜单 -->
+      <!-- 组织节点右键菜单（学校 / 年级 / 班级） -->
       <Teleport to="body">
         <div
-          v-if="schoolMenu && menuSchool"
-          id="org-school-menu"
+          v-if="orgMenu && menuNode"
+          id="org-node-menu"
           class="fixed z-50 w-44 overflow-hidden rounded-lg border border-slate-700/60 bg-[#0f1726] py-1 shadow-2xl"
-          :style="{ left: schoolMenu.x + 'px', top: schoolMenu.y + 'px' }"
+          :style="{ left: orgMenu.x + 'px', top: orgMenu.y + 'px' }"
         >
           <div class="border-b border-slate-700/50 px-3 py-2">
-            <div class="truncate text-xs font-semibold text-slate-200">{{ menuSchool.name }}</div>
+            <div class="truncate text-xs font-semibold text-slate-200">{{ menuNode.label }}</div>
             <div class="mt-0.5 text-[10px] text-slate-500">
-              ID {{ menuSchool.id }}<span v-if="menuSchool.disabled === 1"> · 已封禁</span>
+              {{ menuKindLabel }}<span v-if="menuSchool"> · ID {{ menuSchool.id }}</span><span v-if="menuSchool?.disabled === 1"> · 已封禁</span>
             </div>
           </div>
-          <button type="button" class="org-menu-item" @click="menuToggleDisable">
-            {{ menuSchool.disabled === 1 ? '启用学校' : '封禁学校' }}
+
+          <!-- 封禁 / 启用仅学校层级支持 -->
+          <button v-if="menuNode.kind === 'school'" type="button" class="org-menu-item" @click="menuToggleDisable">
+            {{ menuSchool?.disabled === 1 ? '启用学校' : '封禁学校' }}
           </button>
-          <button type="button" class="org-menu-item !text-red-400" @click="menuDelete">删除学校</button>
+
+          <button type="button" class="org-menu-item !text-red-400" @click="menuDelete">
+            {{ menuNode.kind === 'school' ? '删除学校' : menuNode.kind === 'grade' ? '删除年级' : '删除班级' }}
+          </button>
           <button type="button" class="org-menu-item" @click="menuManage">进入管理页</button>
           <div class="my-1 border-t border-slate-700/50"></div>
           <button
             type="button"
             class="org-menu-item !text-brand-400"
-            :disabled="menuSchool.disabled === 1"
-            :class="{ 'opacity-40 cursor-not-allowed': menuSchool.disabled === 1 }"
+            :disabled="menuSchool?.disabled === 1"
+            :class="{ 'opacity-40 cursor-not-allowed': menuSchool?.disabled === 1 }"
             @click="menuEnter"
           >
             进入组织
@@ -543,7 +599,7 @@ const roleNames: Record<string, string> = {
         </div>
       </Teleport>
 
-      <!-- 封禁 / 启用确认 -->
+      <!-- 封禁 / 启用确认（仅学校） -->
       <UiConfirm
         :show="!!confirmToggleSchool"
         :title="confirmToggleSchool?.disabled === 1 ? '启用学校' : '封禁学校'"
@@ -555,12 +611,12 @@ const roleNames: Record<string, string> = {
 
       <!-- 进入组织确认 -->
       <UiConfirm
-        :show="!!confirmEnterSchool"
+        :show="!!confirmEnterOrg"
         title="进入组织"
-        :message="confirmEnterSchool ? `将免密进入「${confirmEnterSchool.name}」，以该校一名学校管理员的身份操作。优先选择已完成安全初始化的账号；进入后顶部会显示「退出模拟」，可一键恢复超管身份。` : ''"
+        :message="confirmEnterOrg ? `将免密进入${SCOPE_LABEL[confirmEnterOrg.nodeKind]}「${confirmEnterOrg.nodeName}」。优先选择该层级已完成安全初始化的管理员；若该层级无管理员会向上回退。进入后顶部显示「退出模拟」，可一键恢复超管身份。` : ''"
         confirm-text="进入"
         @confirm="enterOrg"
-        @cancel="confirmEnterSchool = null"
+        @cancel="confirmEnterOrg = null"
       />
 
       <!-- 删除学校（与学校管理页共用同一个三层确认弹窗） -->
@@ -568,6 +624,14 @@ const roleNames: Record<string, string> = {
         :show="!!deletingSchool"
         :school="deletingSchool"
         @close="deletingSchool = null"
+        @deleted="reloadOrgData"
+      />
+
+      <!-- 删除年级 / 班级（密码二次确认 + 级联影响提示） -->
+      <DeleteOrgNodeModal
+        :show="!!deletingOrg"
+        :target="deletingOrg"
+        @close="deletingOrg = null"
         @deleted="reloadOrgData"
       />
     </section>

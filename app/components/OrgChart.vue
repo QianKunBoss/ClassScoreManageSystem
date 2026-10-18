@@ -32,9 +32,9 @@ function toggle() {
   if (hasChildren.value) emit('toggle', props.node.id)
 }
 
-/** 只有学校节点支持右键菜单 */
+/** Root 之外的组织节点都支持右键菜单（学校/年级/班级） */
 function onContextMenu(e: MouseEvent) {
-  if (props.node.kind !== 'school') return
+  if (props.node.kind === 'root') return
   e.preventDefault()
   e.stopPropagation()
   emit('menu', { node: props.node, event: e })

@@ -156,6 +156,8 @@ export async function initDatabase() {
       target_name TEXT,
       school_id INTEGER,
       school_name TEXT,
+      node_kind TEXT,
+      node_name TEXT,
       bypassed_security INTEGER NOT NULL DEFAULT 0,
       ip TEXT,
       user_agent TEXT,

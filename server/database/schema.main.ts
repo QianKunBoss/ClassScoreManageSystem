@@ -210,6 +210,10 @@ export const adminImpersonationLogs = sqliteTable('admin_impersonation_logs', {
   targetName: text('target_name'),
   schoolId: integer('school_id'),
   schoolName: text('school_name'),
+  /** 进入的组织层级：school | grade | class */
+  nodeKind: text('node_kind'),
+  /** 目标节点名称（学校/年级/班级） */
+  nodeName: text('node_name'),
   /** 是否因目标账号未完成安全初始化而绕过强制改密/绑邮箱 */
   bypassedSecurity: integer('bypassed_security').notNull().default(0),
   ip: text('ip'),
