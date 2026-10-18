@@ -5,7 +5,11 @@ export function useAuth() {
     key: 'auth-me',
     credentials: 'include',
     server: false,
-    default: () => ({ success: false, admin: null as null | { id: number; username: string; role: string } }),
+    default: () => ({
+      success: false,
+      impersonator: null as null | { id: number; username: string },
+      admin: null as null | { id: number; username: string; role: string },
+    }),
   })
 
   // 是否已登录
@@ -13,6 +17,10 @@ export function useAuth() {
 
   // 当前用户
   const user = computed(() => authData.value?.admin || null)
+
+  // 「进入组织」状态下的原超管身份（为 null 表示正常身份）
+  const impersonator = computed(() => authData.value?.impersonator || null)
+  const impersonated = computed(() => !!impersonator.value)
 
   // 退出登录
   async function clear() {
@@ -28,6 +36,8 @@ export function useAuth() {
   return {
     loggedIn,
     user,
+    impersonator,
+    impersonated,
     clear,
     refresh: refreshAuth,
     status,

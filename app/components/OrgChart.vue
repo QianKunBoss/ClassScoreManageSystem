@@ -10,7 +10,11 @@ const props = withDefaults(defineProps<{
   collapsed: () => new Set<string>(),
 })
 
-const emit = defineEmits<{ toggle: [id: string] }>()
+const emit = defineEmits<{
+  toggle: [id: string]
+  /** 仅学校节点会触发（右键菜单） */
+  menu: [payload: { node: OrgNode; event: MouseEvent }]
+}>()
 
 const KIND_LABEL: Record<OrgNode['kind'], string> = {
   root: '系统',
@@ -27,6 +31,14 @@ const kindLabel = computed(() => KIND_LABEL[props.node.kind])
 function toggle() {
   if (hasChildren.value) emit('toggle', props.node.id)
 }
+
+/** 只有学校节点支持右键菜单 */
+function onContextMenu(e: MouseEvent) {
+  if (props.node.kind !== 'school') return
+  e.preventDefault()
+  e.stopPropagation()
+  emit('menu', { node: props.node, event: e })
+}
 </script>
 
 <template>
@@ -37,6 +49,7 @@ function toggle() {
       class="org-node"
       :class="[`org-node--${node.kind}`, { 'is-disabled': node.disabled, 'is-collapsed': isCollapsed }]"
       @click="toggle"
+      @contextmenu="onContextMenu"
     >
       <span class="org-kind">{{ kindLabel }}</span>
       <span class="org-label">{{ node.label }}</span>
@@ -53,7 +66,12 @@ function toggle() {
 
     <ul v-if="visibleChildren.length" class="org-children">
       <li v-for="child in visibleChildren" :key="child.id">
-        <OrgChart :node="child" :collapsed="collapsed" @toggle="emit('toggle', $event)" />
+        <OrgChart
+          :node="child"
+          :collapsed="collapsed"
+          @toggle="emit('toggle', $event)"
+          @menu="emit('menu', $event)"
+        />
       </li>
     </ul>
   </div>

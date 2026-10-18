@@ -37,8 +37,16 @@ export default defineEventHandler(async (event) => {
 
   const emailServiceConfigured = await isMailConfigured()
 
+  // 「进入组织」状态：会话里保存了原超管身份
+  const session = await getUserSession(event)
+  const imp = (session.data as any)?.impersonator
+  const impersonator = imp?.adminId
+    ? { id: Number(imp.adminId), username: String(imp.username || '') }
+    : null
+
   return {
     success: true,
+    impersonator,
     admin: {
       id: admin.id,
       username: admin.username,
@@ -52,6 +60,7 @@ export default defineEventHandler(async (event) => {
       gradeName,
       schoolName,
       emailServiceConfigured,
+      impersonated: !!impersonator,
     },
   }
 })

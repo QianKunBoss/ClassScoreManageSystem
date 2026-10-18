@@ -21,6 +21,7 @@ const showOrgSidebar = computed(() => route.path.startsWith('/admin'))
 <template>
   <div class="min-h-screen flex flex-col bg-[#0a0a1a]">
     <AppNavbar />
+    <AppImpersonationBar />
     <AppAnnouncementBar />
     <div class="flex flex-1 flex-col md:flex-row">
       <AdminOrgSidebar v-if="showOrgSidebar" />

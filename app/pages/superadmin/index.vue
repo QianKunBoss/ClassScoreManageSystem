@@ -157,6 +157,140 @@ function onResize() {
   if (zoom.value === 1 && pan.value.y === 0) centerStage()
 }
 
+// ===== 学校节点右键菜单 =====
+const schoolMenu = ref<{ schoolId: number; x: number; y: number } | null>(null)
+const menuSchool = computed(() => schools.value.find((s) => s.id === schoolMenu.value?.schoolId) || null)
+
+function openSchoolMenu(payload: { node: OrgNode; event: MouseEvent }) {
+  const id = Number(payload.node.id.replace('school-', ''))
+  if (!Number.isInteger(id) || id <= 0) return
+  // 估算菜单尺寸，避免溢出视口
+  const MENU_W = 180
+  const MENU_H = 210
+  const x = Math.min(payload.event.clientX, window.innerWidth - MENU_W - 8)
+  const y = Math.min(payload.event.clientY, window.innerHeight - MENU_H - 8)
+  schoolMenu.value = { schoolId: id, x: Math.max(8, x), y: Math.max(8, y) }
+}
+
+function closeSchoolMenu() {
+  schoolMenu.value = null
+}
+
+function onMenuOutside(e: PointerEvent) {
+  const el = document.getElementById('org-school-menu')
+  if (el && e.target instanceof Node && el.contains(e.target)) return
+  closeSchoolMenu()
+}
+
+function onMenuEsc(e: KeyboardEvent) {
+  if (e.key === 'Escape') closeSchoolMenu()
+}
+
+watch(schoolMenu, (open) => {
+  if (typeof window === 'undefined') return
+  if (open) {
+    window.addEventListener('pointerdown', onMenuOutside, true)
+    window.addEventListener('keydown', onMenuEsc)
+    window.addEventListener('scroll', closeSchoolMenu, true)
+  } else {
+    window.removeEventListener('pointerdown', onMenuOutside, true)
+    window.removeEventListener('keydown', onMenuEsc)
+    window.removeEventListener('scroll', closeSchoolMenu, true)
+  }
+})
+
+// --- 菜单动作 ---
+const confirmToggleSchool = ref<any>(null)
+const confirmEnterSchool = ref<any>(null)
+const deletingSchool = ref<any>(null)
+const entering = ref(false)
+
+function menuToggleDisable() {
+  if (!menuSchool.value) return
+  confirmToggleSchool.value = { ...menuSchool.value }
+  closeSchoolMenu()
+}
+
+function menuDelete() {
+  if (!menuSchool.value) return
+  deletingSchool.value = { id: menuSchool.value.id, name: menuSchool.value.name }
+  closeSchoolMenu()
+}
+
+function menuManage() {
+  const s = menuSchool.value
+  if (!s) return
+  closeSchoolMenu()
+  navigateTo(`/superadmin/schools/${s.id}`)
+}
+
+function menuEnter() {
+  const s = menuSchool.value
+  if (!s) return
+  if (s.disabled === 1) {
+    toast.error('该校已被封禁，无法进入组织')
+    closeSchoolMenu()
+    return
+  }
+  confirmEnterSchool.value = { ...s }
+  closeSchoolMenu()
+}
+
+/** 学校被删除/封禁后刷新列表与组织树 */
+async function reloadOrgData() {
+  try {
+    const res = await $fetch<{ data: typeof schools.value }>('/api/schools', { params: { includeDisabled: '1' } })
+    schools.value = res.data || []
+    hierarchy.value = {}
+    orgLoading.value = true
+    await loadHierarchy(schools.value)
+  } catch {
+    toast.error('刷新学校数据失败')
+  }
+}
+
+async function confirmToggleSchoolDisabled() {
+  const s = confirmToggleSchool.value
+  if (!s) return
+  const next = s.disabled === 1 ? 0 : 1
+  try {
+    await $fetch(`/api/schools/${s.id}`, { method: 'PATCH', body: { disabled: next } })
+    toast.success(`学校已${next === 1 ? '封禁' : '启用'}`)
+    confirmToggleSchool.value = null
+    await reloadOrgData()
+  } catch (err: any) {
+    toast.error(err?.data?.message || err?.data?.statusMessage || '操作失败')
+  }
+}
+
+async function enterOrg() {
+  const s = confirmEnterSchool.value
+  if (!s || entering.value) return
+  entering.value = true
+  try {
+    const res = await $fetch<{
+      success: boolean
+      admin: { username: string; schoolName: string }
+      bypassedSecurity: boolean
+    }>('/api/admin/impersonation/enter', {
+      method: 'POST',
+      body: { schoolId: s.id },
+    })
+    confirmEnterSchool.value = null
+    toast.success(
+      res.bypassedSecurity
+        ? `已以 ${res.admin.username} 身份进入「${res.admin.schoolName}」（该账号未完成安全初始化）`
+        : `已以 ${res.admin.username} 身份进入「${res.admin.schoolName}」`,
+    )
+    await refreshNuxtData('auth-me')
+    await navigateTo('/admin')
+  } catch (err: any) {
+    toast.error(err?.data?.message || err?.data?.statusMessage || '进入组织失败')
+  } finally {
+    entering.value = false
+  }
+}
+
 const orgTree = computed<OrgNode>(() => {
   const all = Object.values(hierarchy.value)
   const gradeTotal = all.reduce((n, h) => n + h.grades.length, 0)
@@ -312,13 +446,14 @@ const roleNames: Record<string, string> = {
           @pointercancel="onPointerUp"
           @wheel.prevent="onWheel"
           @click.capture="onClickCapture"
+          @contextmenu.prevent
         >
           <div
             ref="stageEl"
             class="org-stage"
             :style="{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }"
           >
-            <OrgChart :node="orgTree" :collapsed="collapsed" @toggle="toggleOrg" />
+            <OrgChart :node="orgTree" :collapsed="collapsed" @toggle="toggleOrg" @menu="openSchoolMenu" />
           </div>
         </div>
         <p v-if="!orgLoading" class="mt-2 text-[11px] text-slate-600">拖拽平移 · 滚轮缩放 · 点击节点收起/展开</p>
@@ -376,6 +511,65 @@ const roleNames: Record<string, string> = {
           </NuxtLink>
         </div>
       </div>
+      <!-- 学校节点右键菜单 -->
+      <Teleport to="body">
+        <div
+          v-if="schoolMenu && menuSchool"
+          id="org-school-menu"
+          class="fixed z-50 w-44 overflow-hidden rounded-lg border border-slate-700/60 bg-[#0f1726] py-1 shadow-2xl"
+          :style="{ left: schoolMenu.x + 'px', top: schoolMenu.y + 'px' }"
+        >
+          <div class="border-b border-slate-700/50 px-3 py-2">
+            <div class="truncate text-xs font-semibold text-slate-200">{{ menuSchool.name }}</div>
+            <div class="mt-0.5 text-[10px] text-slate-500">
+              ID {{ menuSchool.id }}<span v-if="menuSchool.disabled === 1"> · 已封禁</span>
+            </div>
+          </div>
+          <button type="button" class="org-menu-item" @click="menuToggleDisable">
+            {{ menuSchool.disabled === 1 ? '启用学校' : '封禁学校' }}
+          </button>
+          <button type="button" class="org-menu-item !text-red-400" @click="menuDelete">删除学校</button>
+          <button type="button" class="org-menu-item" @click="menuManage">进入管理页</button>
+          <div class="my-1 border-t border-slate-700/50"></div>
+          <button
+            type="button"
+            class="org-menu-item !text-brand-400"
+            :disabled="menuSchool.disabled === 1"
+            :class="{ 'opacity-40 cursor-not-allowed': menuSchool.disabled === 1 }"
+            @click="menuEnter"
+          >
+            进入组织
+          </button>
+        </div>
+      </Teleport>
+
+      <!-- 封禁 / 启用确认 -->
+      <UiConfirm
+        :show="!!confirmToggleSchool"
+        :title="confirmToggleSchool?.disabled === 1 ? '启用学校' : '封禁学校'"
+        :message="confirmToggleSchool ? `确定要${confirmToggleSchool.disabled === 1 ? '启用' : '封禁'}学校「${confirmToggleSchool.name}」吗？` : ''"
+        :danger="confirmToggleSchool?.disabled !== 1"
+        @confirm="confirmToggleSchoolDisabled"
+        @cancel="confirmToggleSchool = null"
+      />
+
+      <!-- 进入组织确认 -->
+      <UiConfirm
+        :show="!!confirmEnterSchool"
+        title="进入组织"
+        :message="confirmEnterSchool ? `将免密进入「${confirmEnterSchool.name}」，以该校一名学校管理员的身份操作。优先选择已完成安全初始化的账号；进入后顶部会显示「退出模拟」，可一键恢复超管身份。` : ''"
+        confirm-text="进入"
+        @confirm="enterOrg"
+        @cancel="confirmEnterSchool = null"
+      />
+
+      <!-- 删除学校（与学校管理页共用同一个三层确认弹窗） -->
+      <DeleteSchoolModal
+        :show="!!deletingSchool"
+        :school="deletingSchool"
+        @close="deletingSchool = null"
+        @deleted="reloadOrgData"
+      />
     </section>
   </div>
 </template>
@@ -420,5 +614,19 @@ const roleNames: Record<string, string> = {
 .org-tool:hover {
   border-color: #355072;
   background: #142033;
+}
+.org-menu-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 7px 12px;
+  font-size: 12px;
+  line-height: 1.2;
+  text-align: left;
+  color: #c2cfe0;
+  transition: background 0.12s ease;
+}
+.org-menu-item:hover:not(:disabled) {
+  background: rgba(74, 122, 181, 0.15);
 }
 </style>

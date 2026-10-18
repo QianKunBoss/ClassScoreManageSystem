@@ -38,6 +38,7 @@ const isActive = (item: typeof navItems[number]) =>
 <template>
   <div class="min-h-screen flex flex-col bg-[#0a0a1a]">
     <AppNavbar />
+    <AppImpersonationBar />
     <div class="flex flex-1">
       <!-- 桌面端侧边栏 -->
       <aside class="hidden md:flex flex-col w-56 shrink-0 border-r border-slate-800/50 bg-[#0b1220]/60 sticky top-16 h-[calc(100vh-4rem)]">

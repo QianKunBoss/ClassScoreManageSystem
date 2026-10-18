@@ -28,9 +28,16 @@ export default defineNuxtRouteMiddleware(async (to) => {
     // 注意：未配置邮件服务时不以「未绑邮箱」强制，避免新装系统无 SMTP 时死锁。
     // 注意：mustChangePassword 由后端以布尔形式返回（true/false），需用真值判断，
     // 不能用 === 1（true === 1 为 false，会导致强制改密失效）。
+    //
+    // 「进入组织」状态下放行：该会话由超管主动发起且可一键退出，
+    // 若仍强制跳转改密/绑邮箱，会把用户困在被冒充账号的安全设置页。
+    const impersonated = !!res.admin?.impersonated || !!res.impersonator
     if (
-      !!res.admin?.mustChangePassword
-      || (!res.admin?.email && res.admin?.emailServiceConfigured)
+      !impersonated
+      && (
+        !!res.admin?.mustChangePassword
+        || (!res.admin?.email && res.admin?.emailServiceConfigured)
+      )
     ) {
       // 仅在尚未处于强制改密页时跳转过去
       if (!(to.path === '/settings' && to.query.force === 'true')) {

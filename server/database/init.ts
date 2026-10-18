@@ -145,6 +145,24 @@ export async function initDatabase() {
     )`,
     `CREATE INDEX IF NOT EXISTS api_audit_logs_token_idx ON api_audit_logs(token_id, created_at)`,
     `CREATE INDEX IF NOT EXISTS api_audit_logs_created_idx ON api_audit_logs(created_at)`,
+
+    // 超管免密进入组织的审计日志（可追溯「谁以谁的身份操作过」）
+    `CREATE TABLE IF NOT EXISTS admin_impersonation_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      action TEXT NOT NULL,
+      actor_id INTEGER NOT NULL,
+      actor_name TEXT NOT NULL,
+      target_id INTEGER,
+      target_name TEXT,
+      school_id INTEGER,
+      school_name TEXT,
+      bypassed_security INTEGER NOT NULL DEFAULT 0,
+      ip TEXT,
+      user_agent TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`,
+    `CREATE INDEX IF NOT EXISTS imp_logs_created_idx ON admin_impersonation_logs(created_at)`,
+    `CREATE INDEX IF NOT EXISTS imp_logs_actor_idx ON admin_impersonation_logs(actor_id, created_at)`,
   ]
 
   for (const sql of createStatements) {

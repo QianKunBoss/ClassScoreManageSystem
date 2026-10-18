@@ -199,3 +199,23 @@ export const apiAuditLogs = sqliteTable('api_audit_logs', {
   createdIdx: index('api_audit_logs_created_idx').on(table.createdAt),
 }))
 
+
+// ===== admin_impersonation_logs（超管免密进入组织 · 审计）=====
+export const adminImpersonationLogs = sqliteTable('admin_impersonation_logs', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  action: text('action').notNull(),                 // enter | exit
+  actorId: integer('actor_id').notNull(),           // 发起人（超级管理员）
+  actorName: text('actor_name').notNull(),
+  targetId: integer('target_id'),                   // 被冒充的管理员
+  targetName: text('target_name'),
+  schoolId: integer('school_id'),
+  schoolName: text('school_name'),
+  /** 是否因目标账号未完成安全初始化而绕过强制改密/绑邮箱 */
+  bypassedSecurity: integer('bypassed_security').notNull().default(0),
+  ip: text('ip'),
+  userAgent: text('user_agent'),
+  createdAt: text('created_at').notNull().$defaultFn(() => new Date().toISOString()),
+}, (table) => ({
+  createdIdx: index('imp_logs_created_idx').on(table.createdAt),
+  actorIdx: index('imp_logs_actor_idx').on(table.actorId, table.createdAt),
+}))
