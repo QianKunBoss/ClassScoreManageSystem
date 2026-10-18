@@ -36,6 +36,8 @@ async function loadHierarchy(list: typeof schools.value) {
   // 默认收起到「年级」层级：班级数量以角标提示，点年级可展开，避免图表过宽
   collapsed.value = collapseAllGradeIds()
   orgLoading.value = false
+  await nextTick()
+  centerStage()
 }
 
 function collapseAllGradeIds(): Set<string> {
@@ -59,6 +61,100 @@ function toggleOrg(id: string) {
   if (next.has(id)) next.delete(id)
   else next.add(id)
   collapsed.value = next
+}
+
+// ===== 画布平移 / 缩放 =====
+const canvasEl = ref<HTMLElement | null>(null)
+const stageEl = ref<HTMLElement | null>(null)
+const zoom = ref(1)
+const pan = ref({ x: 0, y: 0 })
+const MIN_ZOOM = 0.5
+const MAX_ZOOM = 2
+const zoomPercent = computed(() => Math.round(zoom.value * 100))
+
+const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v))
+
+/** 内容比容器窄时居中，否则从左上角开始 */
+function centerStage() {
+  const c = canvasEl.value
+  const s = stageEl.value
+  if (!c || !s) return
+  const rect = c.getBoundingClientRect()
+  pan.value = { x: Math.max(0, (rect.width - s.offsetWidth * zoom.value) / 2), y: 0 }
+}
+
+function resetView() {
+  zoom.value = 1
+  nextTick(centerStage)
+}
+
+/** 以容器中心为锚点缩放 */
+function setZoom(next: number) {
+  const z = clamp(next, MIN_ZOOM, MAX_ZOOM)
+  if (z === zoom.value) return
+  const c = canvasEl.value
+  if (!c) { zoom.value = z; return }
+  const rect = c.getBoundingClientRect()
+  const cx = rect.width / 2
+  const cy = rect.height / 2
+  const sx = (cx - pan.value.x) / zoom.value
+  const sy = (cy - pan.value.y) / zoom.value
+  pan.value = { x: cx - sx * z, y: cy - sy * z }
+  zoom.value = z
+}
+
+function zoomBy(factor: number) {
+  setZoom(zoom.value * factor)
+}
+
+/** 以光标为锚点滚轮缩放 */
+function onWheel(e: WheelEvent) {
+  const c = canvasEl.value
+  if (!c) return
+  const rect = c.getBoundingClientRect()
+  const cx = e.clientX - rect.left
+  const cy = e.clientY - rect.top
+  const z = clamp(zoom.value * Math.exp(-e.deltaY * 0.0015), MIN_ZOOM, MAX_ZOOM)
+  if (z === zoom.value) return
+  const sx = (cx - pan.value.x) / zoom.value
+  const sy = (cy - pan.value.y) / zoom.value
+  pan.value = { x: cx - sx * z, y: cy - sy * z }
+  zoom.value = z
+}
+
+interface DragState { active: boolean; moved: boolean; sx: number; sy: number; px: number; py: number }
+let dragState: DragState = { active: false, moved: false, sx: 0, sy: 0, px: 0, py: 0 }
+
+function onPointerDown(e: PointerEvent) {
+  if (e.button !== 0) return
+  dragState = { active: true, moved: false, sx: e.clientX, sy: e.clientY, px: pan.value.x, py: pan.value.y }
+  canvasEl.value?.setPointerCapture(e.pointerId)
+}
+
+function onPointerMove(e: PointerEvent) {
+  if (!dragState.active) return
+  const dx = e.clientX - dragState.sx
+  const dy = e.clientY - dragState.sy
+  if (!dragState.moved && Math.abs(dx) + Math.abs(dy) > 4) dragState.moved = true
+  if (dragState.moved) pan.value = { x: dragState.px + dx, y: dragState.py + dy }
+}
+
+function onPointerUp() {
+  dragState.active = false
+  // moved 保留到 click 阶段，用于抑制「拖拽结束时误触节点」
+  setTimeout(() => { dragState.moved = false }, 0)
+}
+
+/** 捕获阶段拦截：发生过拖拽就不让它变成节点点击 */
+function onClickCapture(e: MouseEvent) {
+  if (!dragState.moved) return
+  e.stopPropagation()
+  e.preventDefault()
+  dragState.moved = false
+}
+
+function onResize() {
+  if (zoom.value === 1 && pan.value.y === 0) centerStage()
 }
 
 const orgTree = computed<OrgNode>(() => {
@@ -115,6 +211,11 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+  window.addEventListener('resize', onResize)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', onResize)
 })
 
 const stats = computed(() => [
@@ -179,9 +280,16 @@ const roleNames: Record<string, string> = {
 
       <!-- 组织结构 -->
       <div class="glass-card p-6">
-        <div class="flex items-center justify-between mb-4">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
           <h2 class="text-sm font-bold text-slate-100">组织结构</h2>
-          <div class="flex items-center gap-3 text-xs">
+          <div class="flex flex-wrap items-center gap-3 text-xs">
+            <div class="flex items-center gap-1">
+              <button type="button" class="org-tool" title="缩小" @click="zoomBy(0.8)">−</button>
+              <span class="w-10 text-center text-slate-400 tabular-nums">{{ zoomPercent }}%</span>
+              <button type="button" class="org-tool" title="放大" @click="zoomBy(1.25)">+</button>
+              <button type="button" class="org-tool" title="复位视图" @click="resetView">复位</button>
+            </div>
+            <span class="text-slate-700">|</span>
             <span class="text-slate-500">{{ schools.length }} 所学校</span>
             <button type="button" class="text-brand-400 hover:text-brand-300 transition-colors" @click="expandAllOrg">全部展开</button>
             <span class="text-slate-700">/</span>
@@ -194,11 +302,26 @@ const roleNames: Record<string, string> = {
             <div v-for="i in 4" :key="i" class="h-10 w-28 rounded-lg bg-slate-800/30 animate-pulse"></div>
           </div>
         </div>
-        <div v-else class="overflow-x-auto pb-3">
-          <div class="w-max mx-auto px-2 pt-1">
+        <div
+          v-else
+          ref="canvasEl"
+          class="org-canvas"
+          @pointerdown="onPointerDown"
+          @pointermove="onPointerMove"
+          @pointerup="onPointerUp"
+          @pointercancel="onPointerUp"
+          @wheel.prevent="onWheel"
+          @click.capture="onClickCapture"
+        >
+          <div
+            ref="stageEl"
+            class="org-stage"
+            :style="{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }"
+          >
             <OrgChart :node="orgTree" :collapsed="collapsed" @toggle="toggleOrg" />
           </div>
         </div>
+        <p v-if="!orgLoading" class="mt-2 text-[11px] text-slate-600">拖拽平移 · 滚轮缩放 · 点击节点收起/展开</p>
       </div>
 
       <!-- 最近登录 + 待办 -->
@@ -256,3 +379,46 @@ const roleNames: Record<string, string> = {
     </section>
   </div>
 </template>
+
+<style scoped>
+/* 可拖拽 / 缩放的组织图画布 */
+.org-canvas {
+  position: relative;
+  height: 520px;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: pan-y;
+  user-select: none;
+  border: 1px solid #16202f;
+  border-radius: 10px;
+  background: #0a111b;
+}
+.org-canvas:active {
+  cursor: grabbing;
+}
+.org-stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 18px;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+.org-tool {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border: 1px solid #24334a;
+  border-radius: 6px;
+  background: #0f1726;
+  color: #c2cfe0;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.org-tool:hover {
+  border-color: #355072;
+  background: #142033;
+}
+</style>
