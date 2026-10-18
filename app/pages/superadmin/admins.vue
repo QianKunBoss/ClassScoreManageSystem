@@ -409,7 +409,7 @@ watchEffect(async () => {
           </div>
         </div>
         <div class="overflow-x-auto">
-          <table class="data-table">
+          <table class="data-table compact min-w-[1200px]">
             <thead>
               <tr>
                 <th>用户名</th>
@@ -432,7 +432,7 @@ watchEffect(async () => {
                 <td class="text-xs text-slate-400">{{ a.gradeName || '-' }}</td>
                 <td class="text-xs text-slate-400">{{ a.className || '-' }}</td>
                 <td>
-                  <select :value="a.role" @change="updateRole(a.id, ($event.target as HTMLSelectElement).value)" :disabled="a.id === currentUser?.id" class="form-input text-sm py-1.5 w-32">
+                  <select :value="a.role" @change="updateRole(a.id, ($event.target as HTMLSelectElement).value)" :disabled="a.id === currentUser?.id" class="form-input text-sm py-1.5 w-36">
                     <option value="super_admin">超级管理员</option>
                     <option value="school_admin">学校管理员</option>
                     <option value="grade_admin">年级管理员</option>

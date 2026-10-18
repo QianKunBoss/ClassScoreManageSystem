@@ -212,6 +212,13 @@ select.form-input option {
   font-size: 0.875rem;
 }
 
+/* 列数较多的表格：收紧内边距并禁止换行，避免列被压窄导致内容显示不全 */
+.data-table.compact th,
+.data-table.compact td {
+  padding: 0.75rem;
+  white-space: nowrap;
+}
+
 .data-table tbody tr {
   transition: background 0.15s ease;
 }

@@ -123,7 +123,7 @@ watch(student, async (val) => {
           <p class="text-xs text-slate-500">我的当前排名</p>
         </div>
         <div class="text-right">
-          <p class="text-lg font-black text-brand-400">{{ student.totalScore ?? 0 }}</p>
+          <p class="text-lg font-black text-brand-400"><OdometerNumber :value="student.totalScore ?? 0" /></p>
           <p class="text-xs text-slate-500">积分</p>
         </div>
       </div>
@@ -171,7 +171,7 @@ watch(student, async (val) => {
                 </div>
 
                 <!-- 总积分 -->
-                <span class="w-20 text-right text-sm font-bold text-brand-400 tabular-nums">{{ u.totalScore ?? 0 }}</span>
+                <span class="w-20 text-right text-sm font-bold text-brand-400 tabular-nums"><OdometerNumber :value="u.totalScore ?? 0" /></span>
                 <!-- 加分 -->
                 <span class="w-16 text-right text-sm font-bold text-emerald-400 tabular-nums">+{{ u.addScore ?? 0 }}</span>
                 <!-- 减分 -->

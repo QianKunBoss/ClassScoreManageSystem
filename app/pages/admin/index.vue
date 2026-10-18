@@ -728,19 +728,19 @@ function cancelImport() {
             <!-- 统计卡片 -->
             <div v-if="classStats" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div class="glass-card p-4 text-center">
-                <p class="text-2xl font-bold text-slate-100">{{ classStats.count }}</p>
+                <p class="text-2xl font-bold text-slate-100"><OdometerNumber :value="classStats.count" /></p>
                 <p class="text-xs text-slate-500 mt-1">班级人数</p>
               </div>
               <div class="glass-card p-4 text-center">
-                <p class="text-2xl font-bold text-brand-400">{{ classStats.avg }}</p>
+                <p class="text-2xl font-bold text-brand-400"><OdometerNumber :value="classStats.avg" /></p>
                 <p class="text-xs text-slate-500 mt-1">平均积分</p>
               </div>
               <div class="glass-card p-4 text-center">
-                <p class="text-2xl font-bold text-emerald-400">{{ classStats.max }}</p>
+                <p class="text-2xl font-bold text-emerald-400"><OdometerNumber :value="classStats.max" /></p>
                 <p class="text-xs text-slate-500 mt-1">最高积分</p>
               </div>
               <div class="glass-card p-4 text-center">
-                <p class="text-2xl font-bold text-red-400">{{ classStats.min }}</p>
+                <p class="text-2xl font-bold text-red-400"><OdometerNumber :value="classStats.min" /></p>
                 <p class="text-xs text-slate-500 mt-1">最低积分</p>
               </div>
             </div>
@@ -785,7 +785,7 @@ function cancelImport() {
                       <span class="text-sm text-slate-200 truncate block">{{ u.actualName || u.username }}</span>
                       <span v-if="u.actualName" class="text-xs text-slate-600">{{ u.username }}</span>
                     </div>
-                    <span class="w-20 text-right text-sm font-bold text-brand-400 tabular-nums">{{ u.totalScore ?? 0 }}</span>
+                    <span class="w-20 text-right text-sm font-bold text-brand-400 tabular-nums"><OdometerNumber :value="u.totalScore ?? 0" /></span>
                     <span class="w-16 text-right text-sm font-bold text-emerald-400 tabular-nums">+{{ u.addScore ?? 0 }}</span>
                     <span class="w-16 text-right text-sm font-bold text-red-400 tabular-nums">{{ u.deductScore ?? 0 }}</span>
 

@@ -369,7 +369,7 @@ onMounted(async () => {
                 <div class="text-xs font-semibold text-slate-400 mb-2">分数统计</div>
                 <div class="grid grid-cols-4 gap-2">
                   <div class="rounded-lg bg-slate-800/60 px-3 py-2 text-center">
-                    <div class="text-lg font-bold text-slate-100">{{ detailStudent?.totalScore ?? 0 }}</div>
+                    <div class="text-lg font-bold text-slate-100"><OdometerNumber :value="detailStudent?.totalScore ?? 0" /></div>
                     <div class="text-[11px] text-slate-500">总分</div>
                   </div>
                   <div class="rounded-lg bg-emerald-500/10 px-3 py-2 text-center">
