@@ -6,6 +6,7 @@ definePageMeta({ middleware: 'super-admin', layout: 'superadmin' })
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const toast = useToast()
+const route = useRoute()
 
 // 列表 / 筛选 / 分页
 const students = ref<any[]>([])
@@ -200,7 +201,36 @@ async function copyPassword() {
 
 onMounted(async () => {
   await Promise.all([loadSchools(), loadStudents()])
+  await openFromQuery()
 })
+
+/**
+ * 从星图右键菜单跳转过来时，直接打开对应学生的详情 / 编辑 / 重置密码。
+ * 查询参数：?schoolId=1&studentId=23&action=detail|edit|reset
+ */
+async function openFromQuery() {
+  const studentId = Number(route.query.studentId)
+  const schoolId = Number(route.query.schoolId)
+  const action = String(route.query.action || 'detail')
+  if (!Number.isFinite(studentId) || !studentId || !Number.isFinite(schoolId) || !schoolId) return
+
+  // 让筛选器指向该校，关闭弹窗后列表也是同一范围
+  filterSchoolId.value = schoolId
+  await nextTick()
+
+  try {
+    const res = await $fetch<{ data: any }>(`/api/users/${studentId}`, { params: { schoolId } })
+    const d = res.data
+    if (!d) throw new Error('empty')
+    const student = { ...d, schoolId }
+
+    if (action === 'edit') openEdit(student)
+    else if (action === 'reset') askReset(student)
+    else openDetail(student)
+  } catch {
+    toast.error('打开学生信息失败')
+  }
+}
 </script>
 
 <template>

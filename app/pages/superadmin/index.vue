@@ -271,9 +271,19 @@ function gotoAdminsPage() {
   navigateTo('/superadmin/admins')
 }
 
-function gotoStudentsPage() {
+/** 学生节点：跳转到学生管理页并直接打开对应弹窗 */
+function openStudentPage(action: 'detail' | 'edit' | 'reset') {
+  const n = menuNode.value
+  if (!n?.meta?.studentId) return
   closeOrgMenu()
-  navigateTo('/superadmin/students')
+  navigateTo({
+    path: '/superadmin/students',
+    query: {
+      schoolId: String(n.meta.schoolId),
+      studentId: String(n.meta.studentId),
+      action,
+    },
+  })
 }
 
 function menuEnter() {
@@ -449,8 +459,8 @@ async function loadStarData() {
   }))
   studentTotals.value = Object.fromEntries(totals)
 
-  // 默认展开：管理员 → 学校 → 角色（直接看到具体账号）；学生 → 学校（看到班级）
-  const exp = new Set<string>(['star-admin', 'star-student'])
+  // 默认展开：根 → 管理员/学生 → 学校 → 角色（直接看到具体账号）
+  const exp = new Set<string>(['star-root', 'star-admin', 'star-student'])
   for (const s of schools.value) {
     if (adminList.value.some((a) => a.schoolId === s.id)) exp.add(`star-admin-school-${s.id}`)
     exp.add(`star-student-school-${s.id}`)
@@ -577,15 +587,37 @@ async function loadClassStudents(schoolId: number, classId: number) {
   studentsByClass.value = { ...studentsByClass.value, [key]: r.data || [] }
 }
 
+/** 星图根节点的屏幕位置（用于展开/折叠时锚定，避免整图跳动） */
+function starRootRect(): DOMRect | null {
+  const el = stageEl.value?.querySelector('[data-star-root]')
+  return el ? el.getBoundingClientRect() : null
+}
+
+/** 布局变化后平移画布，让根节点停留在原来的屏幕位置 */
+function keepStarRootAnchored(before: DOMRect | null) {
+  const after = starRootRect()
+  if (!before || !after) return
+  const dx = before.left - after.left
+  const dy = before.top - after.top
+  if (dx || dy) pan.value = { x: pan.value.x + dx, y: pan.value.y + dy }
+}
+
 async function toggleStarNode(id: string) {
+  const before = starRootRect()
   const next = new Set(starExpanded.value)
+
   if (next.has(id)) {
     next.delete(id)
     starExpanded.value = next
+    await nextTick()
+    keepStarRootAnchored(before)
     return
   }
+
   next.add(id)
   starExpanded.value = next
+  await nextTick()
+  keepStarRootAnchored(before)
 
   if (id.startsWith('star-class-')) {
     const parts = id.split('-')
@@ -594,7 +626,10 @@ async function toggleStarNode(id: string) {
     const key = `${schoolId}:${classId}`
     if (!Number.isFinite(schoolId) || !Number.isFinite(classId) || studentsByClass.value[key]) return
     try {
+      const beforeLoad = starRootRect()
       await loadClassStudents(schoolId, classId)
+      await nextTick()
+      keepStarRootAnchored(beforeLoad)
     } catch {
       toast.error('加载学生失败')
     }
@@ -972,7 +1007,9 @@ const roleNames: Record<string, string> = {
             <button type="button" class="org-menu-item" @click="menuToggleStudent">
               {{ menuNode.disabled ? '启用学生' : '封禁学生' }}
             </button>
-            <button type="button" class="org-menu-item !text-brand-400" @click="gotoStudentsPage">查看学生</button>
+            <button type="button" class="org-menu-item !text-brand-400" @click="openStudentPage('detail')">查看详情</button>
+            <button type="button" class="org-menu-item" @click="openStudentPage('edit')">编辑资料</button>
+            <button type="button" class="org-menu-item" @click="openStudentPage('reset')">重置密码</button>
           </template>
         </div>
       </Teleport>

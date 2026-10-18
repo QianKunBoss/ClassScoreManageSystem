@@ -166,6 +166,7 @@ function onContextMenu(e: MouseEvent, node: StarNode) {
         { 'is-disabled': p.node.disabled, 'is-clickable': !!p.node.children?.length },
       ]"
       :style="{ animationDelay: Math.min(i * 12, 320) + 'ms' }"
+      :data-star-root="p.depth === 0 ? '1' : undefined"
       @click="toggle(p.node)"
       @contextmenu="onContextMenu($event, p.node)"
     >
