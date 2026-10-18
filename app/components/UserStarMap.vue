@@ -32,29 +32,26 @@ interface Placed {
   parentId: string | null
 }
 
-function visibleChildren(n: StarNode): StarNode[] {
-  return n.children?.length && props.expanded.has(n.id) ? n.children : []
-}
-
-function leafCount(n: StarNode): number {
-  const kids = visibleChildren(n)
-  if (!kids.length) return 1
-  return kids.reduce((sum, k) => sum + leafCount(k), 0)
-}
-
-const placed = computed<Placed[]>(() => {
+function computeLayout(root: StarNode, expanded: Set<string>): Placed[] {
   const out: Placed[] = []
+
+  const kidsOf = (n: StarNode) => (n.children?.length && expanded.has(n.id) ? n.children : [])
+  const leaves = (n: StarNode): number => {
+    const kids = kidsOf(n)
+    if (!kids.length) return 1
+    return kids.reduce((sum, k) => sum + leaves(k), 0)
+  }
 
   const walk = (node: StarNode, depth: number, a0: number, a1: number, parentId: string | null) => {
     const angle = (a0 + a1) / 2
     const r = RING[Math.min(depth, RING.length - 1)]
     out.push({ node, depth, parentId, x: Math.cos(angle) * r, y: Math.sin(angle) * r })
 
-    const kids = visibleChildren(node)
+    const kids = kidsOf(node)
     if (!kids.length) return
 
     // 根节点的直接子节点（学生/管理员）均分整圆，其余按叶子数分配扇区
-    const weights = kids.map((k) => (depth === 0 ? 1 : leafCount(k)))
+    const weights = kids.map((k) => (depth === 0 ? 1 : leaves(k)))
     const total = weights.reduce((a, b) => a + b, 0) || 1
     let cursor = a0
     kids.forEach((k, i) => {
@@ -65,21 +62,71 @@ const placed = computed<Placed[]>(() => {
   }
 
   // 从正上方开始，管理员占右半圈、学生占左半圈
-  walk(props.root, 0, -Math.PI / 2, Math.PI * 1.5, null)
+  walk(root, 0, -Math.PI / 2, Math.PI * 1.5, null)
   return out
-})
+}
 
-const positions = computed(() => new Map(placed.value.map((p) => [p.node.id, p])))
+/** 目标布局（决定画布尺寸与节点增删） */
+const target = computed<Placed[]>(() => computeLayout(props.root, props.expanded))
 
-const edges = computed(() => placed.value
+/** 当前渲染位置（布局变化时按缓动插值过渡） */
+const view = ref<Placed[]>([])
+let raf = 0
+
+/** 先加速后减速 */
+const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
+const MOVE_MS = 520
+
+watch(target, (next) => {
+  const prev = view.value
+  if (!prev.length || !next.length) {
+    view.value = next
+    return
+  }
+
+  const prevMap = new Map(prev.map((p) => [p.node.id, p]))
+  const from = new Map<string, { x: number; y: number }>()
+  for (const p of next) {
+    const old = prevMap.get(p.node.id)
+    if (old) {
+      from.set(p.node.id, { x: old.x, y: old.y })
+    } else {
+      // 新节点从父节点旧位置生长出来
+      const parentOld = p.parentId ? prevMap.get(p.parentId) : null
+      from.set(p.node.id, parentOld ? { x: parentOld.x, y: parentOld.y } : { x: p.x, y: p.y })
+    }
+  }
+
+  cancelAnimationFrame(raf)
+  const startTs = performance.now()
+
+  const frame = (now: number) => {
+    const t = Math.min(1, (now - startTs) / MOVE_MS)
+    const e = easeInOutCubic(t)
+    view.value = next.map((p) => {
+      const f = from.get(p.node.id) || p
+      return { ...p, x: f.x + (p.x - f.x) * e, y: f.y + (p.y - f.y) * e }
+    })
+    if (t < 1) raf = requestAnimationFrame(frame)
+  }
+
+  raf = requestAnimationFrame(frame)
+}, { immediate: true })
+
+onBeforeUnmount(() => cancelAnimationFrame(raf))
+
+const positions = computed(() => new Map(view.value.map((p) => [p.node.id, p])))
+
+const edges = computed(() => view.value
   .filter((p) => p.parentId)
   .map((p) => {
     const parent = positions.value.get(p.parentId!)
     return { id: p.node.id, depth: p.depth, x1: parent?.x ?? 0, y1: parent?.y ?? 0, x2: p.x, y2: p.y }
   }))
 
+// 画布尺寸按目标布局固定，避免动画过程中不断缩放
 const extent = computed(() => {
-  const maxR = placed.value.reduce((m, p) => Math.max(m, Math.hypot(p.x, p.y)), 0)
+  const maxR = target.value.reduce((m, p) => Math.max(m, Math.hypot(p.x, p.y)), 0)
   return Math.ceil(maxR + PAD)
 })
 
@@ -158,7 +205,7 @@ function onContextMenu(e: MouseEvent, node: StarNode) {
     </g>
 
     <g
-      v-for="(p, i) in placed"
+      v-for="(p, i) in view"
       :key="p.node.id"
       class="star-node"
       :class="[
